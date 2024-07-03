@@ -1,0 +1,20 @@
+[package]
+name = "aoc"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+
+[dependencies]
+utils = { path = "../utils" }
+# xtask update dependencies
+year2015 = { path = "../year2015", optional = true }
+
+[features]
+default = ["all-years"]
+# xtask update features
+all-years = ["year2015"]
+
+[lints]
+workspace = true

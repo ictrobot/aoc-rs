@@ -1,0 +1,17 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+# Exclude xtask so there is only one binary (aoc), meaning it doesn't have to be specified when using cargo run
+default-members = ["crates/aoc", "crates/utils", "crates/year*"]
+
+[workspace.package]
+authors = ["Ethan Jones <ictrobot@outlook.com>"]
+edition = "2021"
+license = "MIT"
+publish = false
+repository = "https://github.com/ictrobot/aoc-rs"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
