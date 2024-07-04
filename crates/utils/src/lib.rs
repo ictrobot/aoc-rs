@@ -4,6 +4,8 @@ pub mod date;
 mod error;
 mod framework;
 pub mod input;
+pub mod number;
+pub mod point;
 
 pub use framework::{Puzzle, PuzzleExamples};
 
