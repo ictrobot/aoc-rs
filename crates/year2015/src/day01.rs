@@ -40,16 +40,16 @@ impl Day01 {
     }
 }
 
-examples!(Day01<i32, usize> => [
-    "(())" part1=0,
-    "()()" part1=0,
-    "(((" part1=3,
-    "(()(()(" part1=3,
-    "))(((((" part1=3,
-    "())" part1=-1,
-    "))(" part1=-1,
-    ")))" part1=-3,
-    ")())())" part1=-3,
-    ")" part2=1,
-    "()())" part2=5,
+examples!(Day01 -> (i32, usize) [
+    {input: "(())", part1: 0},
+    {input: "()()", part1: 0},
+    {input: "(((", part1: 3},
+    {input: "(()(()(", part1: 3},
+    {input: "))(((((", part1: 3},
+    {input: "())", part1: -1},
+    {input: "))(", part1: -1},
+    {input: ")))", part1: -3},
+    {input: ")())())", part1: -3},
+    {input: ")", part2: 1},
+    {input: "()())", part2: 5},
 ]);

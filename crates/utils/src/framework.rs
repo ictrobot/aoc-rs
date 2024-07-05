@@ -107,27 +107,29 @@ macro_rules! puzzles_noop {
 /// are only applicable to `part1` and `part2` of the puzzle respectively.
 ///
 /// ```ignore
-/// examples!(Day01<u32, u64> => [
-///     "ABCDEF" part1=30 part2=342,
-///     "AAAAAA" part1=21,
-///     "ABC123" part2=853,
+/// examples!(Day01 -> (u32, u64) [
+///     {input: "ABCDEF", part1: 30, part2: 342},
+///     {input: "AAAAAA", part1: 21},
+///     {input: "ABC123", part2: 853},
 /// ]);
 /// ```
 ///
-/// Example inputs can also be included from the crate's examples directory by prefixing the string
-/// with `@`:
+/// Example inputs can also be included from the crate's examples directory by using `file` instead
+/// of `input`:
 ///
 /// ```ignore
-/// examples!(Day01<u32, u64> => [
-///     "Short example" part1=27,
-///     @"day01_example.txt" part2=483,
+/// examples!(Day01 -> (u32, u64) [
+///     {input: "Short example", part1: 27},
+///     {file: "day01_example.txt", part2: 483},
 /// ]);
 /// ```
 #[macro_export]
 macro_rules! examples {
-    ($day:ident<$p1:ty, $p2:ty> => [$($tail:tt)*]) => {
+    ($day:ident -> ($p1:ty, $p2:ty) [$($tail:tt,)*]) => {
         impl $crate::PuzzleExamples<$p1, $p2> for $day {
-            const EXAMPLES: &'static [(&'static str, Option<$p1>, Option<$p2>)] = &$crate::examples!(@arr [$($tail)*] => []);
+            const EXAMPLES: &'static [(&'static str, Option<$p1>, Option<$p2>)] = &[$(
+                $crate::examples!(@item $tail)
+            ),*];
         }
 
         #[cfg(test)]
@@ -165,35 +167,22 @@ macro_rules! examples {
         }
     };
 
-    (@arr [] => [$($body:tt)*]) => { [$($body)*] };
-    (@arr [$str:literal part1=$p1:literal part2=$p2:expr, $($tail:tt)*] => [$($body:tt)*]) => {
-        $crate::examples!(@arr [$($tail)*] => [$($body)*
-            ($str, Some($p1), Some($p2)),
-        ])
+    (@item {input: $str:literal, part1: $p1:literal, part2: $p2:expr $(,)?}) => {
+        ($str, Some($p1), Some($p2))
     };
-    (@arr [$str:literal part1=$p1:literal, $($tail:tt)*] => [$($body:tt)*]) => {
-        $crate::examples!(@arr [$($tail)*] => [$($body)*
-            ($str, Some($p1), None),
-        ])
+    (@item {input: $str:literal, part1: $p1:literal $(,)?}) => {
+        ($str, Some($p1), None)
     };
-    (@arr [$str:literal part2=$p2:literal, $($tail:tt)*] => [$($body:tt)*]) => {
-        $crate::examples!(@arr [$($tail)*] => [$($body)*
-            ($str, None, Some($p2)),
-        ])
+    (@item {input: $str:literal, part2: $p2:expr $(,)?}) => {
+        ($str, None, Some($p2))
     };
-    (@arr [@$file:literal part1=$p1:literal part2=$p2:literal, $($tail:tt)*] => [$($body:tt)*]) => {
-        $crate::examples!(@arr [$($tail)*] => [$($body)*
-            (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)), Some($p1), Some($p2)),
-        ])
+    (@item {file: $file:literal, part1: $p1:literal, part2: $p2:expr $(,)?}) => {
+        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)), Some($p1), Some($p2))
     };
-    (@arr [@$file:literal part1=$p1:literal, $($tail:tt)*] => [$($body:tt)*]) => {
-        $crate::examples!(@arr [$($tail)*] => [$($body)*
-            (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)), Some($p1), None),
-        ])
+    (@item {file: $file:literal, part1: $p1:literal $(,)?}) => {
+        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)), Some($p1), None)
     };
-    (@arr [@$file:literal part2=$p2:literal, $($tail:tt)*] => [$($body:tt)*]) => {
-        $crate::examples!(@arr [$($tail)*] => [$($body)*
-            (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)), None, Some($p2)),
-        ])
+    (@item {file: $file:literal, part2: $p2:expr $(,)?}) => {
+        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)), None, Some($p2))
     };
 }

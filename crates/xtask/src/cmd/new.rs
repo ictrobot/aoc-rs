@@ -87,9 +87,10 @@ impl {struct_name} {{
     }}
 }}
 
-examples!({struct_name}<u64, u64> => [
-    "..." part1=0 part2=0,
-]);"#
+examples!({struct_name} -> (u64, u64) [
+    {{input: "...", part1: 0, part2: 0}},
+]);
+"#
         ),
     )?;
 

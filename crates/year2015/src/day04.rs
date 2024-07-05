@@ -58,7 +58,7 @@ impl Day04 {
     }
 }
 
-examples!(Day04<u64, u64> => [
-    "abcdef" part1=609043,
-    "pqrstuv" part1=1048970,
+examples!(Day04 -> (u64, u64) [
+    {input: "abcdef", part1: 609043},
+    {input: "pqrstuv", part1: 1048970},
 ]);

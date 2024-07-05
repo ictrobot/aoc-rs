@@ -59,7 +59,7 @@ impl Day02 {
     }
 }
 
-examples!(Day02<u32, u32> => [
-    "2x3x4" part1=58 part2=34,
-    "1x1x10" part1=43 part2=14,
+examples!(Day02 -> (u32, u32) [
+    {input: "2x3x4", part1: 58, part2: 34},
+    {input: "1x1x10", part1: 43, part2: 14},
 ]);

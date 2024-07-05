@@ -57,9 +57,9 @@ impl Day03 {
     }
 }
 
-examples!(Day03<usize, usize> => [
-    ">" part1=2,
-    "^>" part2=3,
-    "^>v<" part1=4 part2=3,
-    "^v^v^v^v^v" part1=2 part2=11,
+examples!(Day03 -> (usize, usize) [
+    {input: ">", part1: 2},
+    {input: "^>", part2: 3},
+    {input: "^>v<", part1: 4, part2: 3},
+    {input: "^v^v^v^v^v", part1: 2, part2: 11},
 ]);
