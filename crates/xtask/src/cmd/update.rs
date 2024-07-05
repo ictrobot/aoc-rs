@@ -4,7 +4,7 @@ use crate::common::{
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt::Write;
-use std::fs::read_dir;
+use std::fs::{read_dir, read_to_string};
 use std::path::Path;
 use utils::date::{Day, Year};
 
@@ -28,17 +28,18 @@ pub fn main(args: impl Iterator<Item = String>) -> Result<(), Box<dyn Error>> {
 
 fn update_year_lib_rs(year_dir: &Path, year: Year) -> Result<(), Box<dyn Error>> {
     let src_dir = year_dir.join("src");
-    let days: Vec<Day> = find_days(&src_dir)?;
+    let days = find_days(&src_dir)?;
     let lib_file = src_dir.join("lib.rs");
 
     let mut replacement = format!("{year:#} => {}, ${{\n", year_create_name(year));
-    for &day in &days {
+    for &(day, uses_lifetime) in &days {
         writeln!(
             &mut replacement,
-            "    {} => {}::{},",
+            "    {} => {}::{}{},",
             day.to_u8(),
             day_mod_name(day),
-            day_struct_name(day)
+            day_struct_name(day),
+            if uses_lifetime { "<'_>" } else { "" },
         )?;
     }
     replacement += "}";
@@ -133,17 +134,24 @@ fn find_years(crates_dir: &Path) -> Result<Vec<Year>, Box<dyn Error>> {
     Ok(years)
 }
 
-fn find_days(src_dir: &Path) -> Result<Vec<Day>, Box<dyn Error>> {
+fn find_days(src_dir: &Path) -> Result<Vec<(Day, bool)>, Box<dyn Error>> {
     let mut days = Vec::new();
     for entry in read_dir(src_dir)? {
-        if let Some(day_num) = entry?
-            .path()
+        let path = entry?.path();
+        if let Some(day_num) = path
             .file_name()
             .and_then(OsStr::to_str)
             .and_then(|s| s.strip_prefix("day"))
             .and_then(|s| s.strip_suffix(".rs"))
         {
-            days.push(day_num.parse()?);
+            let day = day_num.parse()?;
+
+            // Check if struct takes lifetime parameter
+            let definition = format!("pub struct {}<'", day_struct_name(day));
+            let contents = read_to_string(path)?;
+            let uses_lifetime = contents.lines().any(|l| l.starts_with(&definition));
+
+            days.push((day, uses_lifetime));
         }
     }
     days.sort_unstable();

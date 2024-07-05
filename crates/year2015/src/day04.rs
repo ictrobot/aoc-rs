@@ -3,15 +3,13 @@ use utils::prelude::*;
 
 /// Finding MD5 hashes with leading zeroes.
 #[derive(Clone, Debug)]
-pub struct Day04 {
-    prefix: String,
+pub struct Day04<'a> {
+    prefix: &'a str,
 }
 
-impl Day04 {
-    pub fn new(input: &str, _: InputType) -> Result<Self, InvalidInputError> {
-        Ok(Self {
-            prefix: input.to_string(),
-        })
+impl<'a> Day04<'a> {
+    pub fn new(input: &'a str, _: InputType) -> Result<Self, InvalidInputError> {
+        Ok(Self { prefix: input })
     }
 
     #[must_use]
@@ -58,7 +56,7 @@ impl Day04 {
     }
 }
 
-examples!(Day04 -> (u64, u64) [
+examples!(Day04<'_> -> (u64, u64) [
     {input: "abcdef", part1: 609043},
     {input: "pqrstuv", part1: 1048970},
 ]);

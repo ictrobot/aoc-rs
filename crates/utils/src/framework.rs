@@ -51,12 +51,14 @@ pub trait PuzzleExamples<P1: Debug + Display + 'static, P2: Debug + Display + 's
 /// ```
 #[macro_export]
 macro_rules! year {
-    ($year:literal => $crate_name:ident, $dollar:tt{$($day:literal => $day_mod:ident::$day_struct:ident,)+}) => {
+    ($year:literal => $crate_name:ident, $dollar:tt{$(
+        $day:literal => $day_mod:ident::$day_struct:ident$(<$lifetime:lifetime>)?,
+    )+}) => {
         $(
             mod $day_mod;
             #[doc = concat!("[", $year, " Day ", $day, "](https://adventofcode.com/", $year, "/day/", $day, "):")]
             pub use $day_mod::$day_struct;
-            impl $crate::Puzzle for $day_struct {
+            impl $crate::Puzzle for $day_struct$(<$lifetime>)? {
                 #[doc = concat!("Year ", $year)]
                 const YEAR: $crate::date::Year = $crate::date::Year::new_const::<$year>();
                 #[doc = concat!("Day ", $day)]
@@ -125,8 +127,8 @@ macro_rules! puzzles_noop {
 /// ```
 #[macro_export]
 macro_rules! examples {
-    ($day:ident -> ($p1:ty, $p2:ty) [$($tail:tt,)*]) => {
-        impl $crate::PuzzleExamples<$p1, $p2> for $day {
+    ($day:ident$(<$lifetime:lifetime>)? -> ($p1:ty, $p2:ty) [$($tail:tt,)*]) => {
+        impl $crate::PuzzleExamples<$p1, $p2> for $day$(<$lifetime>)? {
             const EXAMPLES: &'static [(&'static str, Option<$p1>, Option<$p2>)] = &[$(
                 $crate::examples!(@item $tail)
             ),*];
