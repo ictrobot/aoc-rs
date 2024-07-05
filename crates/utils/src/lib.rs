@@ -4,6 +4,7 @@ pub mod date;
 mod error;
 mod framework;
 pub mod input;
+pub mod md5;
 pub mod number;
 pub mod point;
 
