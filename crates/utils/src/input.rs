@@ -27,7 +27,7 @@ error_type! {
         ParseIntError
     ]
     impl Display match {
-        Self::UnexpectedChar(c) => |f: &mut Formatter| write!(f, "unexpected character '{c}'"),
-        Self::UnexpectedString(s) => |f: &mut Formatter| write!(f, "unexpected string '{s}'"),
+        Self::UnexpectedChar(c) => |f: &mut Formatter| write!(f, "unexpected character {c:?}"),
+        Self::UnexpectedString(s) => |f: &mut Formatter| write!(f, "unexpected string {s:?}"),
     }
 }

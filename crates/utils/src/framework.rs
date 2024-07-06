@@ -16,7 +16,7 @@ pub trait Puzzle {
         path.push("inputs");
         path.push(format!("year{}", Self::YEAR.to_u16()));
         path.push(format!("day{:02}.txt", Self::DAY.to_u8()));
-        read_to_string(path).map(|s| s.trim_end().to_string())
+        read_to_string(path).map(|s| s.trim_end().replace("\r\n", "\n"))
     }
 }
 
@@ -143,7 +143,11 @@ macro_rules! examples {
             fn new() {
                 for (i, example) in $day::EXAMPLES.iter().enumerate() {
                     let solution = $day::new(example.0, InputType::Example);
-                    assert!(solution.is_ok(), "new failed for example {i}: {:?}", solution.unwrap_err())
+                    assert!(
+                        solution.is_ok(),
+                        "new failed for example {i}: {:?}",
+                        example.0,
+                    );
                 }
             }
 
@@ -152,7 +156,12 @@ macro_rules! examples {
                 for (i, example) in $day::EXAMPLES.iter().enumerate() {
                     if let Some(expected) = example.1 {
                         let solution = $day::new(example.0, InputType::Example).unwrap();
-                        assert_eq!(solution.part1(), expected, "part 1 incorrect for example {i}");
+                        assert_eq!(
+                            solution.part1(),
+                            expected,
+                            "part 1 incorrect for example {i}: {:?}",
+                            example.0,
+                        );
                     }
                 }
             }
@@ -162,7 +171,12 @@ macro_rules! examples {
                 for (i, example) in $day::EXAMPLES.iter().enumerate() {
                     if let Some(expected) = example.2 {
                         let solution = $day::new(example.0, InputType::Example).unwrap();
-                        assert_eq!(solution.part2(), expected, "part 2 incorrect for example {i}");
+                        assert_eq!(
+                            solution.part2(),
+                            expected,
+                            "part 2 incorrect for example {i}: {:?}",
+                            example.0,
+                        );
                     }
                 }
             }
