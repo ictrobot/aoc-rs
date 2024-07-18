@@ -7,16 +7,16 @@ pub struct Day01 {
 }
 
 impl Day01 {
-    pub fn new(input: &str, _: InputType) -> Result<Self, InvalidInputError> {
+    pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
             directions: input
                 .chars()
                 .map(|c| match c {
                     '(' => Ok(1),
                     ')' => Ok(-1),
-                    _ => Err(InvalidInputError::UnexpectedChar(c)),
+                    _ => Err(InputError::new(input, c, "expected bracket")),
                 })
-                .collect::<Result<Vec<i32>, InvalidInputError>>()?,
+                .collect::<Result<Vec<i32>, InputError>>()?,
         })
     }
 

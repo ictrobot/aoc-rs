@@ -38,23 +38,42 @@ number_impl! {0, 1 => i8, i16, i32, i64, i128}
 number_impl! {0.0, 1.0 => f32, f64}
 
 /// Trait implemented by the primitive integer types.
-pub trait Integer: Number {}
+pub trait Integer: Number {
+    fn checked_add(self, rhs: Self) -> Option<Self>;
+    fn checked_sub(self, rhs: Self) -> Option<Self>;
+    fn checked_mul(self, rhs: Self) -> Option<Self>;
+}
 
-macro_rules! marker_impl {
-    ($tr:ident for $($t:ty),+) => {$(
-        impl $tr for $t {}
+macro_rules! integer_impl {
+    ($($t:ty),+) => {$(
+        impl Integer for $t {
+            fn checked_add(self, rhs: Self) -> Option<Self> {
+                self.checked_add(rhs)
+            }
+            fn checked_sub(self, rhs: Self) -> Option<Self> {
+                self.checked_sub(rhs)
+            }
+            fn checked_mul(self, rhs: Self) -> Option<Self> {
+                self.checked_mul(rhs)
+            }
+        }
     )+};
 }
-marker_impl! {Integer for u8, u16, u32, u64, u128}
-marker_impl! {Integer for i8, i16, i32, i64, i128}
+integer_impl! {u8, u16, u32, u64, u128}
+integer_impl! {i8, i16, i32, i64, i128}
 
 /// Trait implemented by the primitive unsigned integer types.
-pub trait Unsigned: Integer {}
+pub trait Unsigned: Integer + From<u8> {}
 
-marker_impl! {Unsigned for u8, u16, u32, u64, u128}
+macro_rules! unsigned_impl {
+    ($($t:ty),+) => {$(
+        impl Unsigned for $t {}
+    )+};
+}
+unsigned_impl! {u8, u16, u32, u64, u128}
 
 /// Trait implemented by the primitive signed integer types.
-pub trait Signed: Integer {
+pub trait Signed: Integer + From<i8> {
     const MINUS_ONE: Self;
 }
 

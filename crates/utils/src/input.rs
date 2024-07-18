@@ -1,8 +1,7 @@
 //! Items relating to puzzle input.
 
-use crate::error_type;
-use std::fmt::Formatter;
-use std::num::ParseIntError;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 /// Enum for distinguishing between example and real inputs.
 ///
@@ -18,16 +17,193 @@ pub enum InputType {
     Real,
 }
 
-error_type! {
-    /// Error type which should be returned by puzzle `new` functions
-    pub enum InvalidInputError {
-        UnexpectedChar(char),
-        UnexpectedString(String),
-    } wraps [
-        ParseIntError
-    ]
-    impl Display match {
-        Self::UnexpectedChar(c) => |f: &mut Formatter| write!(f, "unexpected character {c:?}"),
-        Self::UnexpectedString(s) => |f: &mut Formatter| write!(f, "unexpected string {s:?}"),
+/// Error type that shows the error's location in the input, returned by puzzle `new` functions.
+///
+/// # Examples
+///
+/// ```
+/// # use utils::input::InputError;
+/// let input = "12 34\n56 78\n90 abc";
+/// let error = InputError::new(input, 15, "expected number");
+/// assert_eq!(error.to_string(), "
+/// invalid input: expected number
+///   --> line 3 column 4
+///   |
+/// 3 | 90 abc
+///   |    ^
+/// ".trim_start());
+/// ```
+#[allow(clippy::module_name_repetitions)]
+#[derive(Debug)]
+pub struct InputError {
+    line_number: usize,
+    column_number: usize,
+    line: String,
+    source: Box<dyn Error>,
+}
+
+impl InputError {
+    /// Create a new [`InputError`].
+    ///
+    /// See [`ToIndex`] implementations for details on supported indexes.
+    #[cold]
+    pub fn new(input: &str, index: impl ToIndex, source: impl Into<Box<dyn Error>>) -> Self {
+        let index = index.input_index(input);
+        let (line_number, column_number, line) = Self::line_position(input, index);
+
+        InputError {
+            line_number,
+            column_number,
+            line,
+            source: source.into(),
+        }
+    }
+
+    #[cold]
+    fn line_position(input: &str, index: usize) -> (usize, usize, String) {
+        let start = input[..index].rfind('\n').map_or(0, |p| p + 1);
+        let end = input[start..].find('\n').map_or(input.len(), |p| p + start);
+        let line = input[start..end].trim_end_matches('\r');
+
+        let line_number = input[..start].matches('\n').count() + 1;
+        let column_number = index - start + 1;
+
+        (line_number, column_number, line.to_string())
+    }
+}
+
+impl Display for InputError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        let pad = " ".repeat(self.line_number.to_string().len());
+
+        write!(
+            f,
+            "invalid input: {}\n  --> line {} column {}\n{pad} |\n{} | {}\n{pad} |{}^\n",
+            self.source,
+            self.line_number,
+            self.column_number,
+            self.line_number,
+            self.line,
+            " ".repeat(self.column_number),
+        )
+    }
+}
+
+impl Error for InputError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&*self.source)
+    }
+}
+
+/// Helper trait to simplify error location tracking.
+///
+/// Used in [`InputError::new`].
+pub trait ToIndex {
+    fn input_index(self, input: &str) -> usize;
+}
+
+impl ToIndex for &str {
+    /// Find index of this substring in the provided input.
+    ///
+    /// Uses the pointer offset, meaning it works if this substring is not the first occurrence in
+    /// the string. This allows recovering the error position without tracking an offset into the
+    /// string, which is useful when using [`Iterator`]s such as [`str::lines`] on an input.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if this string is not a substring inside the provided string.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use utils::input::ToIndex;
+    /// let string = "abcabc";
+    /// assert_eq!(string[4..].input_index(string), 4);
+    /// ```
+    ///
+    /// ```should_panic
+    /// # use utils::input::ToIndex;
+    /// let string = "abcabc";
+    /// let mut other = String::new();
+    /// other.push('b');
+    /// other.push('c');
+    /// other.input_index(string);
+    /// ```
+    fn input_index(self, input: &str) -> usize {
+        self.as_bytes().input_index(input)
+    }
+}
+
+impl ToIndex for &[u8] {
+    /// Find index of this subslice in the provided input.
+    ///
+    /// For use with functions that iterate over a string's bytes.
+    /// See the [`&str`](#impl-ToIndex-for-%26str) implementation.
+    fn input_index(self, input: &str) -> usize {
+        let self_ptr = self.as_ptr() as usize;
+        let input_ptr = input.as_ptr() as usize;
+        match self_ptr.checked_sub(input_ptr) {
+            Some(offset) if offset + self.len() <= input.len() => offset,
+            _ => panic!("invalid string index: {self_ptr:#x} is not a substring of {input_ptr:#x}"),
+        }
+    }
+}
+
+impl ToIndex for char {
+    /// Find the first instance of this character in the string.
+    ///
+    /// Intended for puzzles where the entire input should be a certain set of characters, so
+    /// if an invalid character is found, the instance in the error doesn't matter.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if this character is not present in the string
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use utils::input::ToIndex;
+    /// let string = "abca bc";
+    /// assert_eq!(' '.input_index(string), 4);
+    /// ```
+    ///
+    /// ```should_panic
+    /// # use utils::input::ToIndex;
+    /// let string = "abcdef";
+    /// ' '.input_index(string);
+    /// ```
+    fn input_index(self, input: &str) -> usize {
+        input
+            .find(self)
+            .unwrap_or_else(|| panic!("invalid string index: char {self:?} not found in {input:?}"))
+    }
+}
+
+impl ToIndex for usize {
+    /// Index into the input string.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if the index is out of range for the provided string.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use utils::input::ToIndex;
+    /// let string = "abcdef";
+    /// assert_eq!(4.input_index(string), 4);
+    /// ```
+    ///
+    /// ```should_panic
+    /// # use utils::input::ToIndex;
+    /// let string = "abcdef";
+    /// 10.input_index(string);
+    /// ```
+    fn input_index(self, input: &str) -> usize {
+        assert!(
+            self <= input.len(),
+            "invalid string index: index {self} out of range"
+        );
+        self
     }
 }

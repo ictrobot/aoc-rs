@@ -14,24 +14,13 @@ struct Box {
 }
 
 impl Day02 {
-    pub fn new(input: &str, _: InputType) -> Result<Self, InvalidInputError> {
+    pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
-            boxes: input
-                .lines()
-                .map(|line| {
-                    let (l, rest) = line
-                        .split_once('x')
-                        .ok_or_else(|| InvalidInputError::UnexpectedString(line.to_string()))?;
-                    let (w, h) = rest
-                        .split_once('x')
-                        .ok_or_else(|| InvalidInputError::UnexpectedString(line.to_string()))?;
-                    Ok(Box {
-                        l: l.parse()?,
-                        w: w.parse()?,
-                        h: h.parse()?,
-                    })
-                })
-                .collect::<Result<Vec<Box>, InvalidInputError>>()?,
+            boxes: parser::u32()
+                .then(parser::u32().with_prefix(b'x'))
+                .then(parser::u32().with_prefix(b'x'))
+                .map(|(l, w, h)| Box { l, w, h })
+                .parse_lines(input)?,
         })
     }
 

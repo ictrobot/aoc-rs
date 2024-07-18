@@ -34,44 +34,28 @@ enum Action {
 }
 
 impl Day06 {
-    pub fn new(input: &str, _: InputType) -> Result<Self, InvalidInputError> {
-        let mut x_values: Vec<u16> = Vec::new();
-        let mut y_values: Vec<u16> = Vec::new();
-
-        let mut instructions = input
-            .lines()
-            .map(|l| {
-                let (l, action) = if let Some(l) = l.strip_prefix("turn off ") {
-                    (l, Action::TurnOff)
-                } else if let Some(l) = l.strip_prefix("turn on ") {
-                    (l, Action::TurnOn)
-                } else if let Some(l) = l.strip_prefix("toggle ") {
-                    (l, Action::Toggle)
-                } else {
-                    return Err(InvalidInputError::UnexpectedString(l.to_string()));
-                };
-
-                let (first, second) = l
-                    .split_once(" through ")
-                    .ok_or_else(|| InvalidInputError::UnexpectedString(l.to_string()))?;
-                let (x1, y1) = first
-                    .split_once(',')
-                    .ok_or_else(|| InvalidInputError::UnexpectedString(first.to_string()))?;
-                let (x2, y2) = second
-                    .split_once(',')
-                    .ok_or_else(|| InvalidInputError::UnexpectedString(second.to_string()))?;
-
-                let (x1, y1, x2, y2) = (x1.parse()?, y1.parse()?, x2.parse()?, y2.parse()?);
-
-                x_values.push(x1);
-                x_values.push(x2 + 1);
-                y_values.push(y1);
-                y_values.push(y2 + 1);
-
-                Ok((action, (x1.min(x2), y1.min(y2), x1.max(x2), y1.max(y2))))
+    pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
+        let mut instructions = "turn off "
+            .map(|_| Action::TurnOff)
+            .or("turn on ".map(|_| Action::TurnOn))
+            .or("toggle ".map(|_| Action::Toggle))
+            .then(parser::u16())
+            .then(parser::u16().with_prefix(b','))
+            .then(parser::u16().with_prefix(" through "))
+            .then(parser::u16().with_prefix(b','))
+            .map(|(action, x1, y1, x2, y2)| {
+                (action, (x1.min(x2), y1.min(y2), x1.max(x2), y1.max(y2)))
             })
-            .collect::<Result<Vec<(Action, (u16, u16, u16, u16))>, InvalidInputError>>()?;
+            .parse_lines(input)?;
 
+        let mut x_values = Vec::with_capacity(instructions.len() * 2);
+        let mut y_values = Vec::with_capacity(instructions.len() * 2);
+        instructions.iter().for_each(|&(_, (x1, y1, x2, y2))| {
+            x_values.push(x1);
+            x_values.push(x2 + 1);
+            y_values.push(y1);
+            y_values.push(y2 + 1);
+        });
         x_values.sort_unstable();
         x_values.dedup();
         y_values.sort_unstable();

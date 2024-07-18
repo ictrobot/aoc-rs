@@ -72,7 +72,7 @@ pub struct {struct_name} {{
 }}
 
 impl {struct_name} {{
-    pub fn new(input: &str, _: InputType) -> Result<Self, InvalidInputError> {{
+    pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {{
         Ok(Self{{input: input.to_string()}})
     }}
 

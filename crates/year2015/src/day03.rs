@@ -9,7 +9,7 @@ pub struct Day03 {
 }
 
 impl Day03 {
-    pub fn new(input: &str, _: InputType) -> Result<Self, InvalidInputError> {
+    pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
             directions: input
                 .chars()
@@ -18,9 +18,9 @@ impl Day03 {
                     '>' => Ok(Point2D::RIGHT),
                     'v' => Ok(Point2D::DOWN),
                     '<' => Ok(Point2D::LEFT),
-                    _ => Err(InvalidInputError::UnexpectedChar(c)),
+                    _ => Err(InputError::new(input, c, "expected one of ^>v<")),
                 })
-                .collect::<Result<Vec<Point2D<i32>>, InvalidInputError>>()?,
+                .collect::<Result<Vec<Point2D<i32>>, InputError>>()?,
         })
     }
 

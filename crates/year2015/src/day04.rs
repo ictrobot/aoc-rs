@@ -8,7 +8,7 @@ pub struct Day04<'a> {
 }
 
 impl<'a> Day04<'a> {
-    pub fn new(input: &'a str, _: InputType) -> Result<Self, InvalidInputError> {
+    pub fn new(input: &'a str, _: InputType) -> Result<Self, InputError> {
         Ok(Self { prefix: input })
     }
 
