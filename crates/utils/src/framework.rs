@@ -102,6 +102,8 @@ macro_rules! puzzles_noop {
 /// functions, but they must be comparable with [`PartialEq`]. For functions returning [`String`]
 /// `&'static str` should be used.
 ///
+/// If no examples are provided, tests aren't generated.
+///
 /// # Examples
 ///
 /// Adding examples to a `Day01` puzzle where `part1` returns [`u32`] and `part2` returns [`u64`].
@@ -127,17 +129,19 @@ macro_rules! puzzles_noop {
 /// ```
 #[macro_export]
 macro_rules! examples {
-    ($day:ident$(<$lifetime:lifetime>)? -> ($p1:ty, $p2:ty) [$($tail:tt,)*]) => {
+    ($day:ident$(<$lifetime:lifetime>)? -> ($p1:ty, $p2:ty) [$($($tail:tt,)+)?]) => {
         impl $crate::PuzzleExamples<$p1, $p2> for $day$(<$lifetime>)? {
-            const EXAMPLES: &'static [(&'static str, Option<$p1>, Option<$p2>)] = &[$(
+            const EXAMPLES: &'static [(&'static str, Option<$p1>, Option<$p2>)] = &[$($(
                 $crate::examples!(@item $tail)
-            ),*];
+            ),+)?];
         }
 
+        $(
         #[cfg(test)]
         mod example_tests {
             use $crate::{PuzzleExamples, input::InputType};
             use super::$day;
+            $crate::examples!(@ignore $($tail)+);
 
             #[test]
             fn new() {
@@ -181,6 +185,7 @@ macro_rules! examples {
                 }
             }
         }
+        )?
     };
 
     (@item {input: $str:literal, part1: $p1:literal, part2: $p2:expr $(,)?}) => {
@@ -201,4 +206,5 @@ macro_rules! examples {
     (@item {file: $file:literal, part2: $p2:expr $(,)?}) => {
         (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)), None, Some($p2))
     };
+    (@ignore $($tail:tt)*) => {};
 }
