@@ -16,7 +16,7 @@ pub trait Puzzle {
         path.push("inputs");
         path.push(format!("year{}", Self::YEAR.to_u16()));
         path.push(format!("day{:02}.txt", Self::DAY.to_u8()));
-        read_to_string(path).map(|s| s.trim_end().replace("\r\n", "\n"))
+        read_to_string(path).map(|s| s.trim_ascii_end().replace("\r\n", "\n"))
     }
 }
 
@@ -198,13 +198,25 @@ macro_rules! examples {
         ($str, None, Some($p2))
     };
     (@item {file: $file:literal, part1: $p1:literal, part2: $p2:expr $(,)?}) => {
-        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)), Some($p1), Some($p2))
+        (
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)).trim_ascii_end(),
+            Some($p1),
+            Some($p2),
+        )
     };
     (@item {file: $file:literal, part1: $p1:literal $(,)?}) => {
-        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)), Some($p1), None)
+        (
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)).trim_ascii_end(),
+            Some($p1),
+            None,
+        )
     };
     (@item {file: $file:literal, part2: $p2:expr $(,)?}) => {
-        (include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)), None, Some($p2))
+        (
+            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)).trim_ascii_end(),
+            None,
+            Some($p2),
+        )
     };
     (@ignore $($tail:tt)*) => {};
 }
