@@ -78,17 +78,17 @@ pub fn repo_dir_path() -> PathBuf {
 
 #[must_use]
 pub fn year_create_name(year: Year) -> String {
-    format!("year{}", year.to_u16())
+    format!("year{year:#}")
 }
 
 #[must_use]
 pub fn day_mod_name(day: Day) -> String {
-    format!("day{:02}", day.to_u8())
+    format!("day{day:#}")
 }
 
 #[must_use]
 pub fn day_struct_name(day: Day) -> String {
-    format!("Day{:02}", day.to_u8())
+    format!("Day{day:#}")
 }
 
 // Check at runtime instead of compile time in case the workspace has been moved since compilation

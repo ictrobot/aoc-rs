@@ -57,7 +57,11 @@ fn fetch(year: Year, day: Day) -> Result<String, Box<dyn Error>> {
         return Err("invalid session token".into());
     }
 
-    let url = format!("https://adventofcode.com/{year:#}/day/{day:#}/input");
+    let url = format!(
+        "https://adventofcode.com/{}/day/{}/input",
+        year.to_u16(),
+        day.to_u8(),
+    );
     println!("fetching {url}");
 
     // Use config provided to stdin to avoid leaking cookies via cli arguments

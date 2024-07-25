@@ -177,7 +177,7 @@ impl FromStr for Day {
 impl Display for Day {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         if f.alternate() {
-            write!(f, "{}", self.0)
+            write!(f, "{:02}", self.0)
         } else {
             write!(f, "Day {:02}", self.0)
         }

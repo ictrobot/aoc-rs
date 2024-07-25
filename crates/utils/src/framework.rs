@@ -15,8 +15,8 @@ pub trait Puzzle {
         fn read(year: Year, day: Day) -> io::Result<String> {
             let mut path = PathBuf::new();
             path.push("inputs");
-            path.push(format!("year{}", year.to_u16()));
-            path.push(format!("day{:02}.txt", day.to_u8()));
+            path.push(format!("year{year:#}"));
+            path.push(format!("day{day:#}.txt"));
             read_to_string(path).map(|s| s.trim_ascii_end().replace("\r\n", "\n"))
         }
         read(Self::YEAR, Self::DAY)
