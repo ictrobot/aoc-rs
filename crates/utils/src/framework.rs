@@ -12,11 +12,14 @@ pub trait Puzzle {
     const DAY: Day;
 
     fn read_input() -> io::Result<String> {
-        let mut path = PathBuf::new();
-        path.push("inputs");
-        path.push(format!("year{}", Self::YEAR.to_u16()));
-        path.push(format!("day{:02}.txt", Self::DAY.to_u8()));
-        read_to_string(path).map(|s| s.trim_ascii_end().replace("\r\n", "\n"))
+        fn read(year: Year, day: Day) -> io::Result<String> {
+            let mut path = PathBuf::new();
+            path.push("inputs");
+            path.push(format!("year{}", year.to_u16()));
+            path.push(format!("day{:02}.txt", day.to_u8()));
+            read_to_string(path).map(|s| s.trim_ascii_end().replace("\r\n", "\n"))
+        }
+        read(Self::YEAR, Self::DAY)
     }
 }
 
