@@ -35,6 +35,8 @@ macro_rules! versions_impl {
     };
 }
 versions_impl! {
+    Array128,
+    Array256,
     #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
     AVX2 if arch::is_x86_feature_detected!("avx2"),
 }
@@ -109,6 +111,8 @@ macro_rules! multiversion {
 
             match *$dispatch {
                 Scalar => $name::scalar::$name($($arg_name),*),
+                Array128 => $name::array128::$name($($arg_name),*),
+                Array256 => $name::array256::$name($($arg_name),*),
                 #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
                 AVX2 => unsafe { $name::avx2::$name($($arg_name),*) },
             }
@@ -126,6 +130,22 @@ macro_rules! multiversion {
         pub mod scalar {
             #[allow(unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+scalar::*),*};
+
+            $($tail)*
+        }
+
+        /// [`multiversion!`] array128 implementation.
+        pub mod array128 {
+            #[allow(unused_imports, clippy::wildcard_imports)]
+            use {super::*, $($($path::)+array128::*),*};
+
+            $($tail)*
+        }
+
+        /// [`multiversion!`] array256 implementation.
+        pub mod array256 {
+            #[allow(unused_imports, clippy::wildcard_imports)]
+            use {super::*, $($($path::)+array256::*),*};
 
             $($tail)*
         }
@@ -152,6 +172,8 @@ macro_rules! multiversion {
                     let start = ::std::time::Instant::now();
                     ::std::hint::black_box(match x {
                         Scalar => scalar::$name(),
+                        Array128 => array128::$name(),
+                        Array256 => array256::$name(),
                         #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
                         AVX2 => unsafe { avx2::$name() },
                     });
@@ -223,6 +245,24 @@ macro_rules! multiversion_test {
         fn scalar() {
             #[allow(unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+scalar::*),*};
+
+            $body
+        }
+
+        #[test]
+        $(#[$m])*
+        fn array128() {
+            #[allow(unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+array128::*),*};
+
+            $body
+        }
+
+        #[test]
+        $(#[$m])*
+        fn array256() {
+            #[allow(unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+array256::*),*};
 
             $body
         }
