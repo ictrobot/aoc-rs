@@ -3,12 +3,21 @@
 //! **WARNING: Don't use MD5 for anything remotely security-sensitive!**
 //! This implementation is meant to be used for Advent of Code puzzles only.
 use crate::multiversion;
+use crate::multiversion::Version;
 use std::array;
+use std::sync::LazyLock;
 
 #[cfg(test)]
 mod tests;
 
+/// Fastest supported implementation, for dynamic dispatch.
+///
+/// Determined using a small microbenchmark at runtime.
+pub static FASTEST: LazyLock<Version> = multiversion! { fastest(microbenchmark()) };
+
 /// Returns the MD5 hash of the input slice.
+///
+/// Wrapper around the [`scalar`] implementation.
 ///
 /// # Examples
 ///
@@ -234,4 +243,18 @@ multiversion! {
     fn md5_i(b: U32Vector, c: U32Vector, d: U32Vector) -> U32Vector {
         c ^ (b | !d)
     }
+
+    pub(super) fn microbenchmark() {
+        for lane in (0..8).step_by(U32Vector::LANES) {
+            for len in 7..16 {
+                std::hint::black_box(hash(
+                    &BENCH_STRING[lane * 16..(lane + U32Vector::LANES) * 16],
+                    16,
+                    len,
+                ));
+            }
+        }
+    }
 }
+
+const BENCH_STRING: [u8; 128] = *b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefABCDEF\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36";

@@ -43,7 +43,7 @@ impl<'a> Day04<'a> {
 multiversion! {
     use {utils::simd::*, utils::md5::*};
 
-    #[dyn_dispatch(avx2, scalar)]
+    #[dyn_dispatch = md5::FASTEST]
     fn worker(prefix: &str, mask: u32) -> u64 {
         // Create a vector containing the prefix followed by space for numbers, repeated LANES times
         let lane_size = prefix.len() + 20; // u64::MAX is 20 digits long

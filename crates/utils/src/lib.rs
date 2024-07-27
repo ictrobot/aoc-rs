@@ -5,7 +5,7 @@ pub mod date;
 mod framework;
 pub mod input;
 pub mod md5;
-mod multiversion;
+pub mod multiversion;
 pub mod number;
 pub mod parser;
 pub mod point;
