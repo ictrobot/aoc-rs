@@ -9,3 +9,6 @@ rust-version = { workspace = true }
 
 [dependencies]
 utils = { path = "../utils" }
+
+[features]
+unsafe = ["utils/unsafe"]

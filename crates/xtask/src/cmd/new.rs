@@ -34,6 +34,9 @@ rust-version = {{ workspace = true }}
 
 [dependencies]
 utils = {{ path = "../utils" }}
+
+[features]
+unsafe = ["utils/unsafe"]
 "#
             ),
         )?;
@@ -44,6 +47,7 @@ utils = {{ path = "../utils" }}
             src_dir.join("lib.rs"),
             format!(
                 r#"#![doc = include_str!("../README.md")]
+#![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 
 utils::year!({year:#} => {{}});"#
             ),

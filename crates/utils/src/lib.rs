@@ -1,12 +1,15 @@
 //! Common utilities used by the [`aoc`](../aoc/) and year crates.
+#![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 
 pub mod date;
 mod framework;
 pub mod input;
 pub mod md5;
+mod multiversion;
 pub mod number;
 pub mod parser;
 pub mod point;
+pub mod simd;
 
 pub use framework::{Puzzle, PuzzleExamples};
 

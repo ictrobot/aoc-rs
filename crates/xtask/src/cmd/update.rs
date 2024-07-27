@@ -5,6 +5,7 @@ use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt::Write;
 use std::fs::{read_dir, read_to_string};
+use std::iter;
 use std::path::Path;
 use utils::date::{Day, Year};
 
@@ -67,6 +68,13 @@ fn update_aoc_cargo_toml(aoc_dir: &Path, years: &[Year]) -> Result<(), Box<dyn E
         replacement += &years
             .iter()
             .map(|&y| format!("\"{}\"", year_create_name(y)))
+            .collect::<Vec<String>>()
+            .join(", ");
+        replacement += "]\nunsafe = [";
+        replacement += &years
+            .iter()
+            .map(|&y| format!("\"{}?/unsafe\"", year_create_name(y)))
+            .chain(iter::once("\"utils/unsafe\"".to_string()))
             .collect::<Vec<String>>()
             .join(", ");
         replacement += "]";

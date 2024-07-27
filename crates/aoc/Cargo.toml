@@ -13,9 +13,10 @@ utils = { path = "../utils" }
 year2015 = { path = "../year2015", optional = true }
 
 [features]
-default = ["all-years"]
+default = ["all-years", "unsafe"]
 # xtask update features
 all-years = ["year2015"]
+unsafe = ["year2015?/unsafe", "utils/unsafe"]
 
 [lints]
 workspace = true
