@@ -85,14 +85,14 @@ fn update_aoc_cargo_toml(aoc_dir: &Path, years: &[Year]) -> Result<(), Box<dyn E
 }
 
 fn update_aoc_years_rs(aoc_dir: &Path, years: &[Year]) -> Result<(), Box<dyn Error>> {
-    let years_file = aoc_dir.join("src").join("puzzles.rs");
+    let years_file = aoc_dir.join("src").join("years.rs");
 
     replace_in_file(&years_file, "// xtask update all_puzzles", "\n\n", &{
         let mut replacement = String::new();
         for &year in years {
             write!(
                 &mut replacement,
-                "\n                $crate::puzzles::{},",
+                "\n                $crate::years::{},",
                 year_create_name(year)
             )?;
         }

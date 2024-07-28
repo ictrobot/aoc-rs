@@ -1,26 +1,12 @@
 use crate::date::{Day, Year};
 use std::fmt::{Debug, Display};
-use std::fs::read_to_string;
-use std::io;
-use std::path::PathBuf;
 
-/// Common trait implemented by puzzles to provide [`Year`], [`Day`] and read input.
+/// Common trait implemented by puzzles to provide [`Year`] and [`Day`].
 ///
 /// [`year!`](crate::year!) implements this automatically.
 pub trait Puzzle {
     const YEAR: Year;
     const DAY: Day;
-
-    fn read_input() -> io::Result<String> {
-        fn read(year: Year, day: Day) -> io::Result<String> {
-            let mut path = PathBuf::new();
-            path.push("inputs");
-            path.push(format!("year{year:#}"));
-            path.push(format!("day{day:#}.txt"));
-            read_to_string(path).map(|s| s.trim_ascii_end().replace("\r\n", "\n"))
-        }
-        read(Self::YEAR, Self::DAY)
-    }
 }
 
 /// Trait implemented by puzzles to provide example inputs and answers.
