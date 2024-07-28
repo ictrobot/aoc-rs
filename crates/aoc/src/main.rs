@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::time::{Duration, Instant};
 use utils::date::{Day, Year};
+use utils::multithreading::set_thread_count;
 use utils::multiversion::Version;
 
 mod cli;
@@ -23,6 +24,9 @@ fn main() {
     }
     if let Some(version) = args.version_override {
         Version::set_override(version);
+    }
+    if let Some(threads) = args.threads_override {
+        set_thread_count(threads);
     }
 
     let puzzles = args.matching_puzzles();

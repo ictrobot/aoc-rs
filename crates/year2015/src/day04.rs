@@ -1,5 +1,6 @@
+use std::sync::atomic::{AtomicU64, Ordering};
 use utils::prelude::*;
-use utils::{md5, multiversion};
+use utils::{md5, multithreading, multiversion};
 
 /// Finding MD5 hashes with leading zeroes.
 #[derive(Clone, Debug)]
@@ -36,7 +37,10 @@ impl<'a> Day04<'a> {
             }
         }
 
-        worker(self.prefix, mask)
+        let counter = AtomicU64::new(1000);
+        let result = AtomicU64::new(u64::MAX);
+        multithreading::worker_pool(|| worker(self.prefix, mask, &counter, &result));
+        result.load(Ordering::Acquire)
     }
 }
 
@@ -44,7 +48,7 @@ multiversion! {
     use {utils::simd::*, utils::md5::*};
 
     #[dyn_dispatch = md5::FASTEST]
-    fn worker(prefix: &str, mask: u32) -> u64 {
+    fn worker(prefix: &str, mask: u32, counter: &AtomicU64, result: &AtomicU64) {
         // Create a vector containing the prefix followed by space for numbers, repeated LANES times
         let lane_size = prefix.len() + 20; // u64::MAX is 20 digits long
         let mut buf = vec![0u8; lane_size * U32Vector::LANES];
@@ -52,7 +56,9 @@ multiversion! {
             buf[(lane_size * i)..(lane_size * i) + prefix.len()].copy_from_slice(prefix.as_bytes());
         }
 
-        for thousands in (1000..).step_by(1000) {
+        while result.load(Ordering::Acquire) == u64::MAX {
+            let thousands = counter.fetch_add(1000, Ordering::AcqRel);
+
             // Populate thousands in ascii in each lane
             let digits = u64_to_ascii(&mut buf[prefix.len()..], thousands);
             for i in 1..U32Vector::LANES {
@@ -72,13 +78,12 @@ multiversion! {
 
                 for (i, &[a, ..]) in hashes.iter().enumerate() {
                     if a & mask == 0 {
-                        return thousands + base + i as u64
+                        result.fetch_min(thousands + base + i as u64, Ordering::AcqRel);
+                        return
                     }
                 }
             }
         }
-
-        panic!("not found");
     }
 }
 

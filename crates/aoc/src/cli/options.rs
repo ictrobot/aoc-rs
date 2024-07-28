@@ -1,6 +1,7 @@
 use aoc::{PuzzleFn, PUZZLES};
 use std::collections::VecDeque;
 use std::error::Error;
+use std::num::NonZeroUsize;
 use utils::date::{Day, Year};
 use utils::multiversion::{Version, VERSIONS};
 
@@ -9,6 +10,7 @@ pub struct Options {
     program_name: Option<String>,
     pub help: bool,
     pub version_override: Option<Version>,
+    pub threads_override: Option<NonZeroUsize>,
     pub year: Option<Year>,
     pub day: Option<Day>,
 }
@@ -100,6 +102,9 @@ Options:
     --multiversion/-m $version
         Override which implementation of multiversioned functions should be used.
         Supported versions: {multiversion_options:?}
+        
+    --threads/-t $threads
+        Override the number of threads to use for multithreaded solutions.
 
     --help/-h
         Print this help
@@ -115,6 +120,7 @@ Options:
         match name {
             "help" => self.option_help(value),
             "multiversion" => self.option_multiversion(value),
+            "threads" => self.option_threads(value),
             _ => Err("unknown option".into()),
         }
     }
@@ -123,6 +129,7 @@ Options:
         match name {
             'h' => self.option_help(value),
             'm' => self.option_multiversion(value),
+            't' => self.option_threads(value),
             _ => Err("unknown option".into()),
         }
     }
@@ -139,6 +146,15 @@ Options:
             return Err("option provided more than once".into());
         }
         self.version_override = Some(value.parse()?);
+        Ok(())
+    }
+
+    fn option_threads(&mut self, value: ArgumentValue) -> Result<(), Box<dyn Error>> {
+        let value = value.required()?;
+        if self.threads_override.is_some() {
+            return Err("option provided more than once".into());
+        }
+        self.threads_override = Some(value.parse()?);
         Ok(())
     }
 
