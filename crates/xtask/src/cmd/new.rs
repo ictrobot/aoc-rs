@@ -49,7 +49,8 @@ unsafe = ["utils/unsafe"]
                 r#"#![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 
-utils::year!({year:#} => {{}});"#
+utils::year!({year:#} => {{}});
+"#
             ),
         )?;
 

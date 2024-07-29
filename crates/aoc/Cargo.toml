@@ -11,12 +11,13 @@ rust-version = { workspace = true }
 utils = { path = "../utils" }
 # xtask update dependencies
 year2015 = { path = "../year2015", optional = true }
+year2016 = { path = "../year2016", optional = true }
 
 [features]
 default = ["all-years", "unsafe"]
 # xtask update features
-all-years = ["year2015"]
-unsafe = ["year2015?/unsafe", "utils/unsafe"]
+all-years = ["year2015", "year2016"]
+unsafe = ["year2015?/unsafe", "year2016?/unsafe", "utils/unsafe"]
 
 [lints]
 workspace = true

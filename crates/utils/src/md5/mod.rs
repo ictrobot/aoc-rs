@@ -2,10 +2,16 @@
 //!
 //! **WARNING: Don't use MD5 for anything remotely security-sensitive!**
 //! This implementation is meant to be used for Advent of Code puzzles only.
+//!
+//! The vectorized versions hash multiple inputs of the same length at once, which provides a
+//! significant performance increase for the brute force puzzle solutions.
 use crate::multiversion;
 use crate::multiversion::Version;
 use std::array;
 use std::sync::LazyLock;
+
+mod bruteforce;
+pub use bruteforce::find_hash_with_appended_count;
 
 #[cfg(test)]
 mod tests;
