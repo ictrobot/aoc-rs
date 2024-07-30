@@ -53,7 +53,7 @@ macro_rules! multiversion {
         use {$($($path:ident::)+*),*};
 
         #[dyn_dispatch = $dispatch:path]
-        $(#[$m:meta])* $v:vis fn $name:ident($($arg_name:ident: $arg_type:ty),*) $(-> $ret:ty)? $body:block
+        $(#[$m:meta])* $v:vis fn $name:ident($($arg_name:ident: $arg_type:ty),*$(,)?) $(-> $ret:ty)? $body:block
 
         $($tail:tt)*
     ) => {

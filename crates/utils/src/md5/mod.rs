@@ -11,7 +11,7 @@ use std::array;
 use std::sync::LazyLock;
 
 mod bruteforce;
-pub use bruteforce::find_hash_with_appended_count;
+pub use bruteforce::{find_hash_with_appended_count, find_stretched_hash_with_appended_count};
 
 #[cfg(test)]
 mod tests;
@@ -262,3 +262,61 @@ multiversion! {
 }
 
 const BENCH_STRING: [u8; 256] = *b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefABCDEF\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3\xb4\xb5\xb6";
+
+/// Convert an MD5 hash to ASCII hex.
+///
+/// Implemented using bitwise operations on each [`u32`] to spread each nibble into separate bytes,
+/// followed by adding either '0' or 'a' to each byte using a bitmask.
+///
+/// When using the vectorized AVX2 MD5 implementation, this makes
+/// [2016 day 14](../../year2016/struct.Day14.html) roughly 4x faster compared to using a naive
+/// [`format!`] implementation `format!("{a:08x}{b:08x}{c:08x}{d:08x}")`.
+///
+/// # Examples
+///
+/// ```
+/// # use utils::md5::to_hex;
+/// assert_eq!(
+///     to_hex([0xd41d8cd9, 0x8f00b204, 0xe9800998, 0xecf8427e]),
+///     *b"d41d8cd98f00b204e9800998ecf8427e",
+/// );
+/// ```
+#[inline]
+#[must_use]
+pub fn to_hex([a, b, c, d]: [u32; 4]) -> [u8; 32] {
+    let mut result = [0u8; 32];
+    result[0..8].copy_from_slice(&u32_to_hex(a));
+    result[8..16].copy_from_slice(&u32_to_hex(b));
+    result[16..24].copy_from_slice(&u32_to_hex(c));
+    result[24..32].copy_from_slice(&u32_to_hex(d));
+    result
+}
+
+#[inline]
+fn u32_to_hex(n: u32) -> [u8; 8] {
+    const SPLAT: u64 = 0x0101_0101_0101_0101;
+
+    let mut n = u64::from(n);
+    // n = 0x0000_0000_1234_ABCD
+
+    n = ((n & 0x0000_0000_FFFF_0000) << 16) | (n & 0x0000_0000_0000_FFFF);
+    // n = 0x0000_1234_0000_ABCD
+
+    n = ((n & 0x0000_FF00_0000_FF00) << 8) | (n & 0x0000_00FF_0000_00FF);
+    // n = 0x0012_0034_00AB_00CD
+
+    n = ((n & 0x00F0_00F0_00F0_00F0) << 4) | (n & 0x000F_000F_000F_000F);
+    // n = 0x0102_0304_0A0B_0C0D
+
+    let letter_positions = (n + ((128 - 10) * SPLAT)) & (128 * SPLAT);
+    // letter_positions = 0x0000_0000_8080_8080
+
+    let letter_mask = letter_positions - (letter_positions >> 7);
+    // letter_mask = 0x0000_0000_7F7F_7F7F
+
+    let hex = letter_mask & (n + u64::from(b'a' - 10) * SPLAT)
+        | !letter_mask & (n + u64::from(b'0') * SPLAT);
+    // hex = 0x3132_3334_6162_6364
+
+    hex.to_be_bytes()
+}

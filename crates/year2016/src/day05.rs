@@ -11,19 +11,19 @@ use utils::prelude::*;
 /// See [`md5::find_hash_with_appended_count()`].
 #[derive(Clone, Debug)]
 pub struct Day05<'a> {
-    input: &'a str,
+    prefix: &'a str,
 }
 
 impl<'a> Day05<'a> {
     pub fn new(input: &'a str, _: InputType) -> Result<Self, InputError> {
-        Ok(Self { input })
+        Ok(Self { prefix: input })
     }
 
     #[must_use]
     pub fn part1(&self) -> String {
         let mutex = Mutex::new(Vec::new());
 
-        md5::find_hash_with_appended_count(self.input, |i, [a, ..]| {
+        md5::find_hash_with_appended_count(self.prefix, |i, [a, ..]| {
             if a & 0xFFFF_F000 != 0 {
                 return false;
             }
@@ -49,7 +49,7 @@ impl<'a> Day05<'a> {
     pub fn part2(&self) -> String {
         let mutex = Mutex::new(([0u8; 8], [0u64; 8]));
 
-        md5::find_hash_with_appended_count(self.input, |i, [a, ..]| {
+        md5::find_hash_with_appended_count(self.prefix, |i, [a, ..]| {
             if a & 0xFFFF_F800 != 0 {
                 return false;
             }

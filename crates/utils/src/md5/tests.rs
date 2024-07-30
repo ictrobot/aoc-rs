@@ -1,3 +1,4 @@
+use crate::md5::to_hex;
 use crate::multiversion_test;
 use std::array;
 
@@ -18,8 +19,8 @@ multiversion_test! {
     }
 }
 
-fn to_hex_string([a, b, c, d]: [u32; 4]) -> String {
-    format!("{a:08x}{b:08x}{c:08x}{d:08x}")
+fn to_hex_string(hash: [u32; 4]) -> String {
+    String::from_utf8(to_hex(hash).to_vec()).unwrap()
 }
 
 pub const STRINGS: [[u8; 330]; 8] = [
