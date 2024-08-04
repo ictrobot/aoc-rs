@@ -10,7 +10,7 @@ multiversion_test! {
         let mut buf = Vec::new();
         for len in 0..=STRINGS[0].len() {
             if len > 0 {
-                for s in &STRINGS[..U32Vector::LANES] {
+                for s in STRINGS.iter().cycle().take(U32Vector::LANES) {
                     buf.push(s[len - 1]);
                 }
             }
@@ -18,7 +18,7 @@ multiversion_test! {
 
             assert_eq!(
                 results.map(to_hex_string),
-                array::from_fn(|i| HASHES[i][len]),
+                array::from_fn(|i| HASHES[i % 8][len]),
                 "length {len}"
             );
         }

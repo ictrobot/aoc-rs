@@ -78,6 +78,7 @@ macro_rules! multiversion {
                 Scalar => $name::scalar::$name($($arg_name),*),
                 Array128 => $name::array128::$name($($arg_name),*),
                 Array256 => $name::array256::$name($($arg_name),*),
+                Array4096 => $name::array4096::$name($($arg_name),*),
                 #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
                 AVX2 => unsafe { $name::avx2::$name($($arg_name),*) },
             }
@@ -115,6 +116,15 @@ macro_rules! multiversion {
             $($tail)*
         }
 
+        /// [`multiversion!`] array4096 implementation.
+        #[allow(clippy::large_types_passed_by_value)]
+        pub mod array4096 {
+            #[allow(unused_imports, clippy::wildcard_imports)]
+            use {super::*, $($($path::)+array4096::*),*};
+
+            $($tail)*
+        }
+
         /// [`multiversion!`] avx2 implementation.
         #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
         #[allow(clippy::missing_safety_doc)]
@@ -143,6 +153,7 @@ macro_rules! multiversion {
                         Scalar => scalar::$name(),
                         Array128 => array128::$name(),
                         Array256 => array256::$name(),
+                        Array4096 => array4096::$name(),
                         #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
                         AVX2 => unsafe { avx2::$name() },
                     });
@@ -238,6 +249,15 @@ macro_rules! multiversion_test {
         }
 
         #[test]
+        $(#[$m])*
+        fn array4096() {
+            #[allow(unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+array4096::*),*};
+
+            $body
+        }
+
+        #[test]
         #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
         $(#[$m])*
         fn avx2() {
@@ -306,6 +326,7 @@ versions_impl! {
     Scalar,
     Array128,
     Array256,
+    Array4096,
     #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
     AVX2 if std::arch::is_x86_feature_detected!("avx2"),
 }

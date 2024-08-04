@@ -107,3 +107,10 @@ pub mod array256 {
     /// Array vector with eight [u32] lanes.
     pub type U32Vector = super::U32Vector<8>;
 }
+
+/// 4096-bit wide vector implementations using arrays.
+#[allow(clippy::module_name_repetitions)] // Reexported
+pub mod array4096 {
+    /// Array vector with 128 [u32] lanes.
+    pub type U32Vector = super::U32Vector<128>;
+}

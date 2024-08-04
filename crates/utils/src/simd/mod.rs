@@ -4,7 +4,7 @@
 //! once stabilized.
 
 mod array;
-pub use array::{array128, array256};
+pub use array::{array128, array256, array4096};
 pub mod scalar;
 
 #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
