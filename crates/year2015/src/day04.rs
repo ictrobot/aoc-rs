@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 use utils::md5;
 use utils::prelude::*;
 
@@ -16,19 +16,19 @@ impl<'a> Day04<'a> {
     }
 
     #[must_use]
-    pub fn part1(&self) -> u64 {
+    pub fn part1(&self) -> u32 {
         self.find_hash_matching(0xFFFF_F000)
     }
 
     #[must_use]
-    pub fn part2(&self) -> u64 {
+    pub fn part2(&self) -> u32 {
         self.find_hash_matching(0xFFFF_FF00)
     }
 
-    fn find_hash_matching(&self, mask: u32) -> u64 {
-        let result = AtomicU64::new(u64::MAX);
+    fn find_hash_matching(&self, mask: u32) -> u32 {
+        let result = AtomicU32::new(u32::MAX);
 
-        md5::find_hash_with_appended_count(self.prefix, |i, [a, ..]| {
+        md5::find_hash_with_appended_count(self.prefix, 0, |i, [a, ..]| {
             if i > 0 && a & mask == 0 {
                 result.fetch_min(i, Ordering::AcqRel);
                 true
@@ -41,7 +41,7 @@ impl<'a> Day04<'a> {
     }
 }
 
-examples!(Day04<'_> -> (u64, u64) [
+examples!(Day04<'_> -> (u32, u32) [
     {input: "abcdef", part1: 609043},
     {input: "pqrstuv", part1: 1048970},
 ]);

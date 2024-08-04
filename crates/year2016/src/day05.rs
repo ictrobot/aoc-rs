@@ -23,7 +23,7 @@ impl<'a> Day05<'a> {
     pub fn part1(&self) -> String {
         let mutex = Mutex::new(Vec::new());
 
-        md5::find_hash_with_appended_count(self.prefix, |i, [a, ..]| {
+        md5::find_hash_with_appended_count(self.prefix, 0, |i, [a, ..]| {
             if a & 0xFFFF_F000 != 0 {
                 return false;
             }
@@ -47,9 +47,9 @@ impl<'a> Day05<'a> {
 
     #[must_use]
     pub fn part2(&self) -> String {
-        let mutex = Mutex::new(([0u8; 8], [0u64; 8]));
+        let mutex = Mutex::new(([0u8; 8], [0u32; 8]));
 
-        md5::find_hash_with_appended_count(self.prefix, |i, [a, ..]| {
+        md5::find_hash_with_appended_count(self.prefix, 0, |i, [a, ..]| {
             if a & 0xFFFF_F800 != 0 {
                 return false;
             }

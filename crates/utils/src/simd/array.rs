@@ -13,6 +13,20 @@ use std::ops::{Add, BitAnd, BitOr, BitXor, Not};
 #[repr(transparent)]
 pub struct U32Vector<const N: usize>([u32; N]);
 
+impl<const N: usize> From<[u32; N]> for U32Vector<N> {
+    #[inline]
+    fn from(value: [u32; N]) -> Self {
+        U32Vector(value)
+    }
+}
+
+impl<const N: usize> From<U32Vector<N>> for [u32; N] {
+    #[inline]
+    fn from(value: U32Vector<N>) -> Self {
+        value.0
+    }
+}
+
 impl<const N: usize> Add for U32Vector<N> {
     type Output = Self;
 
@@ -60,18 +74,6 @@ impl<const N: usize> Not for U32Vector<N> {
 
 impl<const N: usize> U32Vector<N> {
     pub const LANES: usize = N;
-
-    #[inline(always)]
-    #[must_use]
-    #[allow(clippy::trivially_copy_pass_by_ref)]
-    pub fn load(from: &[u32; N]) -> Self {
-        Self(*from)
-    }
-
-    #[inline(always)]
-    pub fn store(self, to: &mut [u32; N]) {
-        *to = self.0;
-    }
 
     #[inline(always)]
     #[must_use]

@@ -10,8 +10,7 @@ use utils::prelude::*;
 /// even more complex logic to assemble the answer from the matching hashes and key stretching for
 /// part 2.
 ///
-/// See [`md5::find_hash_with_appended_count()`] and
-/// [`md5::find_stretched_hash_with_appended_count()`].
+/// See [`md5::find_hash_with_appended_count()`].
 #[derive(Clone, Debug)]
 pub struct Day14<'a> {
     prefix: &'a str,
@@ -23,20 +22,20 @@ impl<'a> Day14<'a> {
     }
 
     #[must_use]
-    pub fn part1(&self) -> u64 {
+    pub fn part1(&self) -> u32 {
         // TODO using multiple threads is not worth it for ~10,000 hashes
         self.find_64th_key(0)
     }
 
     #[must_use]
-    pub fn part2(&self) -> u64 {
+    pub fn part2(&self) -> u32 {
         self.find_64th_key(2016)
     }
 
-    fn find_64th_key(&self, additional_hashes: u32) -> u64 {
+    fn find_64th_key(&self, additional: u32) -> u32 {
         let mutex = Mutex::new((BTreeSet::new(), BTreeMap::new(), BTreeMap::new()));
 
-        let predicate = |i: u64, [a, b, c, d]: [u32; 4]| {
+        md5::find_hash_with_appended_count(self.prefix, additional, |i, [a, b, c, d]: [u32; 4]| {
             // Spread each nibble into bytes like utils::md5::u32_to_hex, but without the
             // unnecessary mapping to ASCII hex
             let mut nibble_bytes = [0u8; 32];
@@ -85,13 +84,7 @@ impl<'a> Day14<'a> {
             }
 
             keys.len() >= 64
-        };
-
-        if additional_hashes == 0 {
-            md5::find_hash_with_appended_count(self.prefix, predicate);
-        } else {
-            md5::find_stretched_hash_with_appended_count(self.prefix, additional_hashes, predicate);
-        }
+        });
 
         let (keys, ..) = mutex.into_inner().unwrap();
         *keys.iter().nth(63).unwrap()
@@ -114,6 +107,6 @@ fn spread_nibbles(n: u32) -> u64 {
     n
 }
 
-examples!(Day14<'_> -> (u64, u64) [
+examples!(Day14<'_> -> (u32, u32) [
     {input: "abc", part1: 22728, part2: 22551},
 ]);

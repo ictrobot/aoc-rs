@@ -11,7 +11,7 @@ use std::array;
 use std::sync::LazyLock;
 
 mod bruteforce;
-pub use bruteforce::{find_hash_with_appended_count, find_stretched_hash_with_appended_count};
+pub use bruteforce::find_hash_with_appended_count;
 
 #[cfg(test)]
 mod tests;
@@ -34,74 +34,80 @@ pub static FASTEST: LazyLock<Version> = multiversion! { fastest(microbenchmark()
 /// ```
 #[must_use]
 pub fn hash(buf: &[u8]) -> [u32; 4] {
-    scalar::hash(buf, buf.len(), buf.len())[0]
+    scalar::hash(buf)[0]
 }
 
 multiversion! {
     use {crate::simd::*};
 
+    // The length of 1/2/3/4 bytes for each lane
+    const ONE_BYTE: usize = U32Vector::LANES;
+    const TWO_BYTES: usize = 2 * U32Vector::LANES;
+    const THREE_BYTES: usize = 3 * U32Vector::LANES;
+    const FOUR_BYTES: usize = 4 * U32Vector::LANES;
+
     /// [`multiversion!`] MD5 hash implementation.
     ///
-    /// Hash the first `bytes` of each lane in the buffer.
-    /// The buffer must be exactly `lane_width` * [`U32Vector::LANES`] long.
+    /// The bytes for each lane must be interweaved, and each lane must be the same length.
+    ///
+    /// # Examples
+    ///
+    /// For [`array128`](crate::simd::array128) with four lanes:
+    /// ```
+    /// # use utils::md5::{self, array128};
+    /// assert_eq!(
+    ///     array128::hash(b"hwafeobglrchlldiodej"),
+    ///     [
+    ///         md5::hash(b"hello"),
+    ///         md5::hash(b"world"),
+    ///         md5::hash(b"abcde"),
+    ///         md5::hash(b"fghij"),
+    ///     ],
+    /// );
     #[must_use]
-    pub fn hash(buf: &[u8], lane_width: usize, bytes: usize) -> [[u32; 4]; U32Vector::LANES] {
-        assert_eq!(buf.len(), lane_width * U32Vector::LANES);
-        assert!(bytes <= lane_width);
+    pub fn hash(mut buf: &[u8]) -> [[u32; 4]; U32Vector::LANES] {
+        assert_eq!(buf.len() % U32Vector::LANES, 0);
+        let bytes = buf.len() / U32Vector::LANES;
 
-        let mut pos = 0;
         let mut state = [
             U32Vector::splat(0x6745_2301),
             U32Vector::splat(0xefcd_ab89),
             U32Vector::splat(0x98ba_dcfe),
             U32Vector::splat(0x1032_5476),
         ];
-        let mut words = [U32Vector::splat(0); 16];
 
         let mut end_marker_written = false;
         let mut bit_count_written = false;
         while !bit_count_written {
-            if pos + 64 <= bytes {
-                for w in &mut words {
-                    *w = gather(buf, lane_width, pos);
-                    pos += 4;
-                }
-            } else if !end_marker_written {
-                words = [U32Vector::splat(0); 16];
-                let mut i = 0;
-                while pos + 4 <= bytes {
-                    words[i] = gather(buf, lane_width, pos);
-                    pos += 4;
-                    i += 1;
-                }
+            let mut words = [U32Vector::splat(0); 16];
 
-                // 0x80 end marker after final byte
-                words[i] = gather_remaining(buf, lane_width, pos, bytes - pos);
-                end_marker_written = true;
-
-                // If the remainder of the data and the end marker fit inside words[0..=13] then the
-                // bit count goes in the same block
-                bit_count_written = i <= 13;
-            } else {
-                // Block only contains the bit count
-                words = [U32Vector::splat(0); 16];
-                bit_count_written = true;
+            let remaining = (buf.len() / FOUR_BYTES).min(16);
+            for (w, chunk) in words.iter_mut().zip(buf.chunks_exact(FOUR_BYTES)) {
+                *w = gather(chunk.try_into().unwrap());
             }
+            buf = &buf[remaining * FOUR_BYTES..];
 
-            if bit_count_written {
-                let bits = bytes as u64 * 8;
-                words[14] = U32Vector::splat((bits & 0xFFFF_FFFF) as u32);
-                words[15] = U32Vector::splat((bits >> 32) as u32);
+            if remaining < 16 {
+                if !end_marker_written {
+                    // 0x80 end marker after final byte
+                    words[remaining] = gather_remaining(buf);
+                    buf = &[];
+                    end_marker_written = true;
+                }
+
+                if !bit_count_written && remaining <= 13 {
+                    let bits = bytes as u64 * 8;
+                    words[14] = U32Vector::splat((bits & 0xFFFF_FFFF) as u32);
+                    words[15] = U32Vector::splat((bits >> 32) as u32);
+                    bit_count_written = true;
+                }
             }
 
             state = md5_block(state, &words);
         }
 
-        let state = state.map(|x| {
-            let mut arr = [0; U32Vector::LANES];
-            x.store(&mut arr);
-            arr
-        });
+        // `state.map(|x| x.into());` doesn't always get vectorised
+        let state: [[u32; U32Vector::LANES]; 4] = array::from_fn(|i| state[i].into());
 
         array::from_fn(|i| {
             [
@@ -113,36 +119,41 @@ multiversion! {
         })
     }
 
-    fn gather(buf: &[u8], lane_width: usize, pos: usize) -> U32Vector {
+    #[inline]
+    #[allow(clippy::trivially_copy_pass_by_ref)]
+    fn gather(buf: &[u8; FOUR_BYTES]) -> U32Vector {
         let mut values = [0u32; U32Vector::LANES];
-        for (v, chunk) in values.iter_mut().zip(buf.chunks_exact(lane_width)) {
-            *v = u32::from_le_bytes(chunk[pos..pos + 4].try_into().unwrap());
+        for (i, v) in values.iter_mut().enumerate() {
+            *v = u32::from_le_bytes([
+                buf[i], buf[ONE_BYTE + i], buf[TWO_BYTES + i], buf[THREE_BYTES + i]
+            ]);
         }
-        U32Vector::load(&values)
+        values.into()
     }
 
-    fn gather_remaining(buf: &[u8], lane_width: usize, pos: usize, count: usize) -> U32Vector {
-        match count {
-            3 => {
+    #[inline]
+    fn gather_remaining(buf: &[u8]) -> U32Vector {
+        match buf.len() {
+            THREE_BYTES => {
                 let mut values = [0u32; U32Vector::LANES];
-                for (v, chunk) in values.iter_mut().zip(buf.chunks_exact(lane_width)) {
-                    *v = u32::from_le_bytes([chunk[pos], chunk[pos + 1], chunk[pos + 2], 0x80]);
+                for (i, v) in values.iter_mut().enumerate() {
+                    *v = u32::from_le_bytes([buf[i], buf[ONE_BYTE + i], buf[TWO_BYTES + i], 0x80]);
                 }
-                U32Vector::load(&values)
+                values.into()
             }
-            2 => {
+            TWO_BYTES => {
                 let mut values = [0u32; U32Vector::LANES];
-                for (v, chunk) in values.iter_mut().zip(buf.chunks_exact(lane_width)) {
-                    *v = u32::from_le_bytes([chunk[pos], chunk[pos + 1], 0x80, 0]);
+                for (i, v) in values.iter_mut().enumerate() {
+                    *v = u32::from_le_bytes([buf[i], buf[ONE_BYTE + i], 0x80, 0]);
                 }
-                U32Vector::load(&values)
+                values.into()
             }
-            1 => {
+            ONE_BYTE => {
                 let mut values = [0u32; U32Vector::LANES];
-                for (v, chunk) in values.iter_mut().zip(buf.chunks_exact(lane_width)) {
-                    *v = u32::from_le_bytes([chunk[pos], 0x80, 0, 0]);
+                for (i, v) in values.iter_mut().enumerate() {
+                    *v = u32::from_le_bytes([buf[i], 0x80, 0, 0]);
                 }
-                U32Vector::load(&values)
+                values.into()
             }
             0 => U32Vector::splat(0x80),
             _ => unreachable!("less than 4 bytes left"),
@@ -254,7 +265,7 @@ multiversion! {
         for max_len in [4, 8, 16, 32] {
             for chunk in BENCH_STRING.chunks(max_len * U32Vector::LANES) {
                 for len in 1..=max_len {
-                    std::hint::black_box(hash(chunk, max_len, len));
+                    std::hint::black_box(hash(&chunk[..len * U32Vector::LANES]));
                 }
             }
         }
@@ -314,8 +325,7 @@ fn u32_to_hex(n: u32) -> [u8; 8] {
     let letter_mask = letter_positions - (letter_positions >> 7);
     // letter_mask = 0x0000_0000_7F7F_7F7F
 
-    let hex = letter_mask & (n + u64::from(b'a' - 10) * SPLAT)
-        | !letter_mask & (n + u64::from(b'0') * SPLAT);
+    let hex = (n + u64::from(b'0') * SPLAT) + (letter_mask & (u64::from(b'a' - b'0' - 10) * SPLAT));
     // hex = 0x3132_3334_6162_6364
 
     hex.to_be_bytes()

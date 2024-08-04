@@ -7,8 +7,14 @@ multiversion_test! {
 
     #[test]
     fn multiversion() {
+        let mut buf = Vec::new();
         for len in 0..=STRINGS[0].len() {
-            let results = hash(STRINGS[..U32Vector::LANES].as_flattened(), STRINGS[0].len(), len);
+            if len > 0 {
+                for s in &STRINGS[..U32Vector::LANES] {
+                    buf.push(s[len - 1]);
+                }
+            }
+            let results = hash(&buf);
 
             assert_eq!(
                 results.map(to_hex_string),

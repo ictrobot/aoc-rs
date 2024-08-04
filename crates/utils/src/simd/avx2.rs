@@ -15,6 +15,30 @@ use std::arch::x86::*;
 #[repr(transparent)]
 pub struct U32Vector(__m256i);
 
+impl From<[u32; U32Vector::LANES]> for U32Vector {
+    #[inline]
+    fn from(value: [u32; U32Vector::LANES]) -> Self {
+        Self(unsafe {
+            // _mm256_loadu_si256 is an unaligned load which requires no alignment
+            #[allow(clippy::cast_ptr_alignment)]
+            _mm256_loadu_si256(value.as_ptr().cast::<__m256i>())
+        })
+    }
+}
+
+impl From<U32Vector> for [u32; U32Vector::LANES] {
+    #[inline]
+    fn from(value: U32Vector) -> Self {
+        let mut result = [0; U32Vector::LANES];
+        unsafe {
+            // _mm256_storeu_si256 is an unaligned store which requires no alignment
+            #[allow(clippy::cast_ptr_alignment)]
+            _mm256_storeu_si256(result.as_mut_ptr().cast::<__m256i>(), value.0);
+        }
+        result
+    }
+}
+
 impl Add for U32Vector {
     type Output = Self;
 
@@ -62,25 +86,6 @@ impl Not for U32Vector {
 
 impl U32Vector {
     pub const LANES: usize = 8;
-
-    #[inline]
-    #[must_use]
-    pub fn load(from: &[u32; Self::LANES]) -> Self {
-        Self(unsafe {
-            // _mm256_loadu_si256 is an unaligned load which requires no alignment
-            #[allow(clippy::cast_ptr_alignment)]
-            _mm256_loadu_si256(from.as_ptr().cast::<__m256i>())
-        })
-    }
-
-    #[inline]
-    pub fn store(self, to: &mut [u32; Self::LANES]) {
-        unsafe {
-            // _mm256_storeu_si256 is an unaligned store which requires no alignment
-            #[allow(clippy::cast_ptr_alignment)]
-            _mm256_storeu_si256(to.as_mut_ptr().cast::<__m256i>(), self.0);
-        }
-    }
 
     #[inline]
     #[must_use]

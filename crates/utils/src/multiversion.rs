@@ -91,7 +91,7 @@ macro_rules! multiversion {
         $($tail:tt)+
     ) => {
         /// [`multiversion!`] scalar implementation.
-        #[allow(clippy::reversed_empty_ranges, clippy::range_plus_one)]
+        #[allow(clippy::reversed_empty_ranges, clippy::range_plus_one, clippy::modulo_one)]
         pub mod scalar {
             #[allow(unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+scalar::*),*};
@@ -160,6 +160,7 @@ macro_rules! multiversion {
     (@helper $t:meta) => {};
     // Replace #[inline(always)] which is incompatible with target_feature with normal #[inline]
     (@helper $t:meta #[inline(always)] $($tail:tt)*) => {$crate::multiversion!{@helper $t #[inline] $($tail)*}};
+    (@helper $t:meta $(#[$m:meta])* $v:vis const $n:ident: $ty:ty = $e:expr; $($tail:tt)*) => {$(#[$m])* $v const $n: $ty = $e; $crate::multiversion!{@helper $t $($tail)*}};
     (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $b $crate::multiversion!{@helper $t $($tail)*}};
     (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $b $crate::multiversion!{@helper $t $($tail)*}};
     (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $b $crate::multiversion!{@helper $t $($tail)*}};
@@ -209,7 +210,7 @@ macro_rules! multiversion_test {
         $(#[$m:meta])* $v:vis fn multiversion() $body:block
     ) => {
         #[test]
-        #[allow(clippy::reversed_empty_ranges, clippy::range_plus_one)]
+        #[allow(clippy::reversed_empty_ranges, clippy::range_plus_one, clippy::modulo_one)]
         $(#[$m])*
         fn scalar() {
             #[allow(unused_imports, clippy::wildcard_imports)]
