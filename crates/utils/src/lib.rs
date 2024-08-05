@@ -3,6 +3,7 @@
 
 pub mod date;
 mod framework;
+pub mod grid;
 pub mod input;
 pub mod md5;
 pub mod multithreading;
