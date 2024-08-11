@@ -22,4 +22,5 @@ utils::year!(2015 => year2015, ${
     18 => day18::Day18,
     19 => day19::Day19<'_>,
     20 => day20::Day20,
+    21 => day21::Day21,
 });

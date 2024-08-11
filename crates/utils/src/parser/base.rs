@@ -296,6 +296,22 @@ pub trait Parser<'i>: Sized {
 
         LineParser(self).parse_all(input)
     }
+
+    /// Apply this parser once, checking the provided input is fully consumed.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// assert_eq!(parser::u32().parse_complete("1234").unwrap(), 1234);
+    /// assert!(parser::u32().parse_complete("1234abc").is_err());
+    /// ```
+    fn parse_complete(&self, input: &'i str) -> Result<Self::Output, InputError> {
+        match self.parse(input.as_bytes()) {
+            Ok((v, [])) => Ok(v),
+            Ok((_, remaining)) => Err(InputError::new(input, remaining, "Expected end of input")),
+            Err((err, position)) => Err(InputError::new(input, position, err)),
+        }
+    }
 }
 
 /// Matches the string literal exactly.
