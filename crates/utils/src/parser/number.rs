@@ -46,12 +46,12 @@ impl<'i, S: Signed> Parser<'i> for SignedParser<S> {
     #[inline]
     fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         let (mut n, positive) = match input {
-            [d @ b'0'..=b'9', ..] => {
-                input = &input[1..];
+            [d @ b'0'..=b'9', rem @ ..] | [b'+', d @ b'0'..=b'9', rem @ ..] => {
+                input = rem;
                 (S::from((d - b'0') as i8), true)
             }
-            [b'-', d @ b'0'..=b'9', ..] => {
-                input = &input[2..];
+            [b'-', d @ b'0'..=b'9', rem @ ..] => {
+                input = rem;
                 (S::from(-((d - b'0') as i8)), false)
             }
             _ => return Err((ParseError::Expected(type_name::<S>()), input)),
