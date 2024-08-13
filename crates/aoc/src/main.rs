@@ -54,8 +54,13 @@ fn main() {
                 let elapsed = start.elapsed();
                 total += elapsed;
 
+                // Hack to treat "🎄" as two characters wide
+                // ("🎄" is 1 wide in Unicode 8 but 2 wide in Unicode 9+)
+                let part1_width = if part1 == "🎄" { 26 } else { 27 };
+                let part2_width = if part2 == "🎄" { 26 } else { 27 };
+
                 println!(
-                    "{year:#} {day:#} │ {part1:<27} │ {part2:<27} │ {}",
+                    "{year:#} {day:#} │ {part1:<part1_width$} │ {part2:<part2_width$} │ {}",
                     format_duration(elapsed)
                 );
             }
