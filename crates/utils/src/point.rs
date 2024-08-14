@@ -12,10 +12,19 @@ macro_rules! point_impl {
         }
 
         impl<T: Number> $s<T> {
+            pub const ORIGIN: Self = Self{$($f: T::ZERO),+};
+
             #[inline]
             #[must_use]
             pub const fn new($($f: T),+) -> Self {
                 Self{$($f),+}
+            }
+
+            /// Returns the manhattan distance from the origin.
+            #[inline]
+            #[must_use]
+            pub fn manhattan_distance(self) -> T {
+                T::ZERO $(+ self.$f.abs())+
             }
         }
 
@@ -97,6 +106,26 @@ impl<T: Signed> Point2D<T> {
         x: T::MINUS_ONE,
         y: T::ZERO,
     };
+
+    /// Rotate this vector 90 degrees clockwise.
+    #[inline]
+    #[must_use]
+    pub fn turn_right(self) -> Self {
+        Self {
+            x: self.y,
+            y: -self.x,
+        }
+    }
+
+    /// Rotate this vector 90 degrees counterclockwise.
+    #[inline]
+    #[must_use]
+    pub fn turn_left(self) -> Self {
+        Self {
+            x: -self.y,
+            y: self.x,
+        }
+    }
 }
 
 // point_impl! {pub struct Point3D{x, y, z}}

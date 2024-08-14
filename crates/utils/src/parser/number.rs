@@ -1,12 +1,12 @@
-use crate::number::{Signed, Unsigned};
+use crate::number::{SignedInteger, UnsignedInteger};
 use crate::parser::then::Then2;
 use crate::parser::{ParseError, ParseResult, Parser};
 use std::any::type_name;
 use std::marker::PhantomData;
 
 #[derive(Copy, Clone)]
-pub struct UnsignedParser<U: Unsigned>(PhantomData<U>);
-impl<'i, U: Unsigned> Parser<'i> for UnsignedParser<U> {
+pub struct UnsignedParser<U: UnsignedInteger>(PhantomData<U>);
+impl<'i, U: UnsignedInteger> Parser<'i> for UnsignedParser<U> {
     type Output = U;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
@@ -37,8 +37,8 @@ impl<'i, U: Unsigned> Parser<'i> for UnsignedParser<U> {
 }
 
 #[derive(Copy, Clone)]
-pub struct SignedParser<S: Signed>(PhantomData<S>);
-impl<'i, S: Signed> Parser<'i> for SignedParser<S> {
+pub struct SignedParser<S: SignedInteger>(PhantomData<S>);
+impl<'i, S: SignedInteger> Parser<'i> for SignedParser<S> {
     type Output = S;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
