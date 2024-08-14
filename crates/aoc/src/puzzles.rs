@@ -1,7 +1,12 @@
 use crate::all_puzzles;
 use utils::date::{Day, Year};
-use utils::input::{InputError, InputType};
-use utils::Puzzle;
+
+// These imports are unused if none of the year features are enabled
+#[allow(unused_imports)]
+use utils::{
+    input::{InputError, InputType},
+    Puzzle,
+};
 
 /// Represents a wrapper function around a puzzle solution.
 ///
