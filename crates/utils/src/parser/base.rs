@@ -1,5 +1,5 @@
 use crate::input::InputError;
-use crate::parser::combinator::{Map, MapResult, Optional, Or, WithPrefix, WithSuffix};
+use crate::parser::combinator::{Map, MapResult, Optional, Or, Repeat, WithPrefix, WithSuffix};
 use crate::parser::error::WithErrorMsg;
 use crate::parser::simple::Eol;
 use crate::parser::then::Then2;
@@ -146,6 +146,26 @@ pub trait Parser<'i>: Sized {
     /// ```
     fn optional(self) -> Optional<Self> {
         Optional { parser: self }
+    }
+
+    /// Repeat this parser `N` times, returning an array.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// assert_eq!(
+    ///     parser::u32()
+    ///         .with_suffix(",".optional())
+    ///         .repeat() // N = 3 is inferred
+    ///         .parse(b"12,34,56"),
+    ///     Ok(([12, 34, 56], &b""[..]))
+    /// );
+    /// ```
+    fn repeat<const N: usize>(self) -> Repeat<N, Self>
+    where
+        Self::Output: Copy + Default,
+    {
+        Repeat { parser: self }
     }
 
     /// Parse a prefix (normally a string literal) before this parser.

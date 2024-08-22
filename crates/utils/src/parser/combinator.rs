@@ -74,6 +74,34 @@ impl<'i, P: Parser<'i>> Parser<'i> for Optional<P> {
 }
 
 #[derive(Copy, Clone)]
+pub struct Repeat<const N: usize, P> {
+    pub(super) parser: P,
+}
+impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>> Parser<'i> for Repeat<N, P> {
+    type Output = [P::Output; N];
+    type Then<T: Parser<'i>> = Then2<Self, T>;
+
+    #[inline]
+    fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+        let mut output = [P::Output::default(); N];
+        for item in &mut output {
+            match self.parser.parse(input) {
+                Ok((v, remaining)) => {
+                    *item = v;
+                    input = remaining;
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        Ok((output, input))
+    }
+
+    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+        Then2::new(self, next)
+    }
+}
+
+#[derive(Copy, Clone)]
 pub struct Or<A, B> {
     pub(super) first: A,
     pub(super) second: B,
