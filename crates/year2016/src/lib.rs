@@ -9,5 +9,6 @@ utils::year!(2016 => year2016, ${
     5 => day05::Day05<'_>,
     6 => day06::Day06,
     7 => day07::Day07,
+    8 => day08::Day08,
     14 => day14::Day14<'_>,
 });
