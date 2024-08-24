@@ -47,6 +47,7 @@ impl<'i, P: Parser<'i>> Parser<'i> for WithErrorMsg<P> {
     type Output = P::Output;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
+    #[inline]
     fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.parser.parse(input) {
             Ok(v) => Ok(v),

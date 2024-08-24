@@ -7,6 +7,7 @@ impl<'i, V: Copy> Parser<'i> for Constant<V> {
     type Output = V;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
+    #[inline]
     fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         Ok((self.0, input))
     }
@@ -36,6 +37,7 @@ impl<'i> Parser<'i> for Eol {
     type Output = ();
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
+    #[inline]
     fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match input {
             [b'\n', remaining @ ..] | [b'\r', b'\n', remaining @ ..] => Ok(((), remaining)),

@@ -336,6 +336,7 @@ impl<'i> Parser<'i> for &'static str {
     type Output = Self;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
+    #[inline]
     fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         if let Some(remainder) = input.strip_prefix(self.as_bytes()) {
             Ok((self, remainder))
@@ -356,6 +357,7 @@ impl<'i> Parser<'i> for u8 {
     type Output = Self;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
+    #[inline]
     fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         if input.first() == Some(self) {
             Ok((*self, &input[1..]))
