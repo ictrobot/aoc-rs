@@ -114,14 +114,14 @@ impl<'i, A: Parser<'i>, B: Parser<'i, Output = A::Output>> Parser<'i> for Or<A, 
     fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.first.parse(input) {
             Ok(v) => Ok(v),
-            Err((fn1, remaining1)) => match self.second.parse(input) {
+            Err((err1, remaining1)) => match self.second.parse(input) {
                 Ok(v) => Ok(v),
-                Err((fn2, remaining2)) => {
+                Err((err2, remaining2)) => {
                     // Return error from the parser which processed further, or the first if equal
                     Err(if remaining1.len() <= remaining2.len() {
-                        (fn1, remaining1)
+                        (err1, remaining1)
                     } else {
-                        (fn2, remaining2)
+                        (err2, remaining2)
                     })
                 }
             },

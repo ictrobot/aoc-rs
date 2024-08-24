@@ -1,4 +1,4 @@
-use crate::input::InputError;
+use crate::input::{InputError, MapWithInputExt};
 use crate::parser::combinator::{Map, MapResult, Optional, Or, Repeat, WithPrefix, WithSuffix};
 use crate::parser::error::WithErrorMsg;
 use crate::parser::simple::Eol;
@@ -255,19 +255,15 @@ pub trait Parser<'i>: Sized {
         let mut results = Vec::new();
         let mut remaining = input.as_bytes();
         while !remaining.is_empty() {
-            match self.parse(remaining) {
-                Ok((v, new_remaining)) => {
-                    if results.is_empty() {
-                        let length = remaining.len() - new_remaining.len();
-                        results.reserve(2 + ((remaining.len() / length) * 6 / 5));
-                    }
-                    remaining = new_remaining;
-                    results.push(v);
-                }
-                Err((err, position)) => {
-                    return Err(InputError::new(input, position, err));
-                }
+            let (v, new_remaining) = self.parse(remaining).map_with_input(input)?;
+
+            if results.is_empty() {
+                let length = remaining.len() - new_remaining.len();
+                results.reserve(2 + ((remaining.len() / length) * 6 / 5));
             }
+
+            remaining = new_remaining;
+            results.push(v);
         }
         Ok(results)
     }
@@ -326,10 +322,9 @@ pub trait Parser<'i>: Sized {
     /// assert!(parser::u32().parse_complete("1234abc").is_err());
     /// ```
     fn parse_complete(&self, input: &'i str) -> Result<Self::Output, InputError> {
-        match self.parse(input.as_bytes()) {
-            Ok((v, [])) => Ok(v),
-            Ok((_, remaining)) => Err(InputError::new(input, remaining, "Expected end of input")),
-            Err((err, position)) => Err(InputError::new(input, position, err)),
+        match self.parse(input.as_bytes()).map_with_input(input)? {
+            (v, []) => Ok(v),
+            (_, remaining) => Err(InputError::new(input, remaining, "expected end of input")),
         }
     }
 }

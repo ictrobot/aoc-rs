@@ -18,6 +18,6 @@ pub use framework::{Puzzle, PuzzleExamples};
 /// Standard imports for puzzle solutions.
 pub mod prelude {
     pub use crate::examples;
-    pub use crate::input::{InputError, InputType};
+    pub use crate::input::{InputError, InputType, MapWithInputExt as _};
     pub use crate::parser::{self, Parser as _};
 }
