@@ -1,0 +1,67 @@
+name: Rust
+on: [push]
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  RUSTDOCFLAGS: -Dwarnings
+  RUSTFLAGS: -Dwarnings
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - i686-unknown-linux-gnu
+          - s390x-unknown-linux-gnu # Big-endian
+    env:
+      CARGO_CMD: "${{ matrix.target == 'x86_64-unknown-linux-gnu' && 'cargo' || 'cross' }}"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "${{ matrix.target == 'x86_64-unknown-linux-gnu' && '0' || '1' }}"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: |
+          rustup update --no-self-update stable
+          rustup component add --toolchain stable rustc cargo rust-std clippy
+          rustup target add ${{ matrix.target }}
+          rustup default stable
+      - name: Install cross
+        run: cargo install --locked cross
+        if: "${{ env.CARGO_CMD == 'CROSS' }}"
+      - name: "${{ env.CARGO_CMD }} build --target=${{matrix.target}}"
+        run: "${{ env.CARGO_CMD }} build --target=${{ matrix.target }} --all --release"
+      - name: "${{ env.CARGO_CMD }} test --target=${{matrix.target}}"
+        run: "${{ env.CARGO_CMD }} test --target=${{ matrix.target }} --all"
+      - name: "${{ env.CARGO_CMD }} clippy --target=${{matrix.target}}"
+        run: "${{ env.CARGO_CMD }} clippy --target=${{ matrix.target }} --all"
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        run: |
+          rustup update --no-self-update stable
+          rustup component add --toolchain stable rustc
+          rustup default stable
+      - name: Build documentation
+        run: |
+          cargo doc --no-deps
+          printf '<meta http-equiv="refresh" content="0; url=aoc/">' > target/doc/index.html
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/doc
+  deploy:
+    needs: doc
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
