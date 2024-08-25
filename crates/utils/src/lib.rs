@@ -1,6 +1,7 @@
 //! Common utilities used by the [`aoc`](../aoc/) and year crates.
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 
+pub mod bit;
 pub mod date;
 mod framework;
 pub mod grid;

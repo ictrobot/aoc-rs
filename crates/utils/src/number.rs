@@ -4,7 +4,8 @@
 
 use std::fmt::Debug;
 use std::ops::{
-    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
+    Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 
 /// Trait implemented by the primitive number types, combining common supertraits.
@@ -12,6 +13,7 @@ pub trait Number:
     Copy
     + Debug
     + Default
+    + PartialEq
     + Add<Output = Self>
     + AddAssign
     + Div<Output = Self>
@@ -36,13 +38,34 @@ pub trait Signed: Number + Neg<Output = Self> + From<i8> {
 }
 
 /// Trait implemented by the primitive integer types.
-pub trait Integer: Number {
+pub trait Integer:
+    Number
+    + Not<Output = Self>
+    + BitAnd<Output = Self>
+    + BitAndAssign
+    + BitOr<Output = Self>
+    + BitOrAssign
+    + BitXor<Output = Self>
+    + BitXorAssign
+    + Shl<Output = Self>
+    + Shl<u32, Output = Self>
+    + ShlAssign
+    + ShlAssign<u32>
+    + Shr<Output = Self>
+    + Shr<u32, Output = Self>
+    + ShrAssign
+    + ShrAssign<u32>
+{
     #[must_use]
     fn checked_add(self, rhs: Self) -> Option<Self>;
     #[must_use]
     fn checked_sub(self, rhs: Self) -> Option<Self>;
     #[must_use]
     fn checked_mul(self, rhs: Self) -> Option<Self>;
+    #[must_use]
+    fn trailing_ones(self) -> u32;
+    #[must_use]
+    fn trailing_zeros(self) -> u32;
 }
 
 /// Trait implemented by the primitive unsigned integer types.
@@ -114,6 +137,14 @@ macro_rules! number_impl {
             #[inline]
             fn checked_mul(self, rhs: Self) -> Option<Self> {
                 self.checked_mul(rhs)
+            }
+            #[inline]
+            fn trailing_ones(self) -> u32 {
+                self.trailing_ones()
+            }
+            #[inline]
+            fn trailing_zeros(self) -> u32 {
+                self.trailing_zeros()
             }
         })+
     };

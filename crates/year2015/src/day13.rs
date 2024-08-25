@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use utils::bit::BitIterator;
 use utils::prelude::*;
 
 /// Seating plan.
@@ -91,15 +92,10 @@ impl Visitor {
             return;
         }
 
-        let mut checked = seated;
-        while checked != Seated::MAX {
-            let next = checked.trailing_ones();
-
+        for (next, next_bit) in BitIterator::zeroes(seated) {
             let edge = self.matrix[(prev * self.people + next) as usize]
                 + self.matrix[(next * self.people + prev) as usize];
-            self.visit(next, seated | (1 << next), total + edge, min_edge.min(edge));
-
-            checked |= 1 << next;
+            self.visit(next, seated | next_bit, total + edge, min_edge.min(edge));
         }
     }
 }

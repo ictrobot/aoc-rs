@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use utils::bit::BitIterator;
 use utils::prelude::*;
 
 /// Finding the shortest and longest path.
@@ -91,20 +92,15 @@ impl Visitor {
             return;
         }
 
-        let mut checked = visited;
-        while checked != Visited::MAX {
-            let next = checked.trailing_ones();
-
+        for (next, next_bit) in BitIterator::zeroes(visited) {
             let edge = self.matrix[(prev * self.locations + next) as usize];
             self.visit(
                 next,
-                visited | (1 << next),
+                visited | next_bit,
                 distance + edge,
                 min_edge.min(edge),
                 max_edge.max(edge),
             );
-
-            checked |= 1 << next;
         }
     }
 }
