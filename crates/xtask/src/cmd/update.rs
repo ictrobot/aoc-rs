@@ -92,7 +92,7 @@ fn update_aoc_years_rs(aoc_dir: &Path, years: &[Year]) -> Result<(), Box<dyn Err
         for &year in years {
             write!(
                 &mut replacement,
-                "\n                $crate::years::{},",
+                "\n                $crate::{}::puzzles,",
                 year_create_name(year)
             )?;
         }
@@ -109,13 +109,15 @@ fn update_aoc_years_rs(aoc_dir: &Path, years: &[Year]) -> Result<(), Box<dyn Err
                 &mut year_reexports,
                 r#"
 #[cfg(feature = "{crate_name}")]
-pub use ::{crate_name}::puzzles as {crate_name};"#
+pub use ::{crate_name};"#
             )?;
             write!(
                 &mut noop_reexports,
                 r#"
 #[cfg(not(feature = "{crate_name}"))]
-pub use ::utils::puzzles_noop as {crate_name};"#
+pub mod {crate_name} {{
+    pub use ::utils::puzzles_noop as puzzles;
+}}"#
             )?;
         }
 

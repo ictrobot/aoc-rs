@@ -23,9 +23,9 @@ pub trait PuzzleExamples<P1: Debug + Display + 'static, P2: Debug + Display + 's
 ///
 /// A `puzzle!` macro is defined and exported, which takes one or more callback macro paths and a
 /// list of arguments captured as `tt` fragments. The macro expands to calling the first callback
-/// with the remaining callback paths, the provided arguments and paths to all the day
-/// structs defined in this crate. These macros are then chained across all year crates to implement
-/// [`aoc::all_puzzles!`](../aoc/macro.all_puzzles.html).
+/// with the remaining callback paths and the provided arguments followed by the year number, crate
+/// name and a list of day numbers and structs. These macros are then chained across all year
+/// crates to implement [`aoc::all_puzzles!`](../aoc/macro.all_puzzles.html).
 ///
 /// Running `cargo xtask update` will automatically update the list of days inside macro invocations
 /// in files matching `crates/year????/src/lib.rs`.
@@ -67,7 +67,9 @@ macro_rules! year {
                 $dollar callback!{
                     $dollar([$dollar($dollar callbacks),+])?
                     $dollar($dollar args)*
-                    $([::$crate_name::$day_struct])+
+                    $year => $crate_name{$(
+                        $day => $day_struct,
+                    )+}
                 }
             }
         }

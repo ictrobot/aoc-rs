@@ -14,21 +14,25 @@ use utils::{
 pub type PuzzleFn = fn(&str) -> Result<(String, String), InputError>;
 
 macro_rules! matcher {
-    ($([$(::$p:ident)+])*) => {
+    ($(
+        $y:literal => $year:ident{$(
+            $d:literal => $day:ident,
+        )*}
+    )*) => {
         /// Constant containing each puzzle solution.
         ///
         /// Each puzzle is represented by a tuple of [`Year`], [`Day`] and [`PuzzleFn`], which takes
         /// a input string and returns the part 1 and 2 solutions as strings, or an [`InputError`].
         ///
         /// Generated from [`all_puzzles!`].
-        pub const PUZZLES: &[(Year, Day, PuzzleFn)] = &[$(
-            ($(::$p)+::YEAR, $(::$p)+::DAY, |input: &str| {
-                let solution = $(::$p)+::new(input, InputType::Real)?;
+        pub const PUZZLES: &[(Year, Day, PuzzleFn)] = &[$($(
+            (crate::$year::$day::YEAR, crate::$year::$day::DAY, |input: &str| {
+                let solution = crate::$year::$day::new(input, InputType::Real)?;
                 let part1 = solution.part1();
                 let part2 = solution.part2();
                 Ok((part1.to_string(), part2.to_string()))
-            })
-        ),*];
+            }),
+        )*)*];
     };
 }
 all_puzzles!(matcher);
