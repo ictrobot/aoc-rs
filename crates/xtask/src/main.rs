@@ -13,6 +13,7 @@ fn main() {
         "new" => cmd::new::main(args),
         "update" => cmd::update::main(args),
         "wait" => cmd::wait::main(args),
+        "web" => cmd::web::main(args),
         _ => panic!("unknown subcommand"),
     } {
         eprintln!("error: {e}");

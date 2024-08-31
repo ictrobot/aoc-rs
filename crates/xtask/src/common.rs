@@ -1,7 +1,8 @@
-use std::env;
 use std::error::Error;
-use std::fs::{create_dir_all, read_to_string, write};
+use std::fs::{create_dir_all, read_to_string, remove_dir_all, write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::{env, fs};
 use utils::date::{Day, Year};
 
 pub fn create_dir(path: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
@@ -12,6 +13,51 @@ pub fn create_dir(path: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
             .to_string_lossy()
     );
     create_dir_all(path)?;
+    Ok(())
+}
+
+pub fn delete_dir(path: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
+    println!(
+        "deleting {}",
+        path.as_ref()
+            .strip_prefix(repo_dir_path())?
+            .to_string_lossy()
+    );
+    remove_dir_all(path)?;
+    Ok(())
+}
+
+pub fn copy_dir(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
+    create_dir(dst.as_ref())?;
+
+    for entry_result in src.as_ref().read_dir()? {
+        let entry = entry_result?;
+        let file_type = entry.file_type()?;
+        let src_child = entry.path();
+        let dst_child = dst.as_ref().join(entry.file_name());
+        if file_type.is_file() {
+            copy_file(src_child, dst_child)?;
+        } else if file_type.is_dir() {
+            copy_dir(&src_child, &dst_child)?;
+        }
+    }
+
+    Ok(())
+}
+
+pub fn copy_file(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
+    println!(
+        "copying {} to {}",
+        src.as_ref()
+            .strip_prefix(repo_dir_path())?
+            .to_string_lossy(),
+        dst.as_ref()
+            .strip_prefix(repo_dir_path())?
+            .to_string_lossy(),
+    );
+
+    fs::copy(src, dst)?;
+
     Ok(())
 }
 
@@ -96,4 +142,14 @@ pub fn day_struct_name(day: Day) -> String {
 fn cargo_var(key: &str) -> String {
     env::var(key)
         .unwrap_or_else(|_| panic!("expected {key} environment variable to be set by cargo"))
+}
+
+pub fn run_cargo(args: &[&str]) -> Result<(), Box<dyn Error>> {
+    println!("running cargo with {args:?}");
+    let status = Command::new(cargo_var("CARGO")).args(args).status()?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("command exited with {status}").into())
+    }
 }

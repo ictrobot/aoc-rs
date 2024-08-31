@@ -35,7 +35,7 @@ jobs:
         run: "${{ env.CARGO_CMD }} test --target=${{ matrix.target }} --all"
       - name: "${{ env.CARGO_CMD }} clippy --target=${{matrix.target}}"
         run: "${{ env.CARGO_CMD }} clippy --target=${{ matrix.target }} --all"
-  doc:
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,16 +44,15 @@ jobs:
           rustup update --no-self-update stable
           rustup component add --toolchain stable rustc
           rustup default stable
+          rustup target add wasm32-unknown-unknown
       - name: Build documentation
-        run: |
-          cargo doc --no-deps
-          printf '<meta http-equiv="refresh" content="0; url=aoc/">' > target/doc/index.html
+        run: cargo x web
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: target/doc
+          path: target/web
   deploy:
-    needs: doc
+    needs: web
     runs-on: ubuntu-latest
     permissions:
       pages: write

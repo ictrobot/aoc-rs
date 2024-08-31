@@ -7,6 +7,7 @@ mod framework;
 pub mod grid;
 pub mod input;
 pub mod md5;
+#[cfg_attr(target_family = "wasm", path = "multithreading_wasm.rs")]
 pub mod multithreading;
 pub mod multiversion;
 pub mod number;

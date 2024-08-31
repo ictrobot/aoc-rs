@@ -3,7 +3,7 @@
 //! The main purpose of this module is to allow the number of worker threads used by each puzzle
 //! solution to be controlled by a CLI argument.
 
-use std::num::{NonZero, NonZeroUsize};
+use std::num::NonZeroUsize;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 
@@ -19,7 +19,7 @@ pub fn get_thread_count() -> NonZeroUsize {
         let default = std::thread::available_parallelism().unwrap_or(NonZeroUsize::new(8).unwrap());
         match NUM_THREADS.compare_exchange(0, default.get(), Relaxed, Relaxed) {
             Ok(_) => default,
-            Err(not_zero) => NonZero::new(not_zero).unwrap(),
+            Err(not_zero) => NonZeroUsize::new(not_zero).unwrap(),
         }
     }
 }

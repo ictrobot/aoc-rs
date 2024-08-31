@@ -78,6 +78,7 @@ macro_rules! multiversion {
                 Scalar => $name::scalar::$name($($arg_name),*),
                 Array128 => $name::array128::$name($($arg_name),*),
                 Array256 => $name::array256::$name($($arg_name),*),
+                #[cfg(not(target_family = "wasm"))]
                 Array4096 => $name::array4096::$name($($arg_name),*),
                 #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
                 AVX2 => unsafe { $name::avx2::$name($($arg_name),*) },
@@ -117,6 +118,7 @@ macro_rules! multiversion {
         }
 
         /// [`multiversion!`] array4096 implementation.
+        #[cfg(not(target_family = "wasm"))]
         #[allow(clippy::large_types_passed_by_value)]
         pub mod array4096 {
             #[allow(unused_imports, clippy::wildcard_imports)]
@@ -138,8 +140,13 @@ macro_rules! multiversion {
 
     // Microbenchmark for dynamic dispatch
     (fastest($name:ident())) => {
-        ::std::sync::LazyLock::new(|| {
+        ::std::sync::LazyLock::new(#[cfg_attr(target_family = "wasm", allow(unreachable_code))] || {
             use $crate::multiversion::Version::*;
+
+            #[cfg(all(target_family = "wasm", target_feature = "simd128"))]
+            return Array256;
+            #[cfg(all(target_family = "wasm"))]
+            return Array128;
 
             if let Some(version) = $crate::multiversion::Version::get_override() {
                 return version;
@@ -153,6 +160,7 @@ macro_rules! multiversion {
                         Scalar => scalar::$name(),
                         Array128 => array128::$name(),
                         Array256 => array256::$name(),
+                        #[cfg(not(target_family = "wasm"))]
                         Array4096 => array4096::$name(),
                         #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
                         AVX2 => unsafe { avx2::$name() },
@@ -326,6 +334,7 @@ versions_impl! {
     Scalar,
     Array128,
     Array256,
+    #[cfg(not(target_family = "wasm"))]
     Array4096,
     #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
     AVX2 if std::arch::is_x86_feature_detected!("avx2"),

@@ -12,6 +12,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc_wasm"
+version = "0.0.0"
+dependencies = [
+ "aoc",
+]
+
+[[package]]
 name = "utils"
 version = "0.0.0"
 

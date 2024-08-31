@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ictrobot/aoc-rs</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/1.0.2/css/bulma.min.css" integrity="sha512-RpeJZX3aH5oZN3U3JhE7Sd+HG8XQsqmP3clIbu4G28p668yNsRNj3zMASKe1ATjl/W80wuEtCx2dFA8xaebG5w==" crossorigin="anonymous">
+    <style>
+        body {
+            min-height: 100vh;
+        }
+
+        #aoc-examples .control.is-expanded {
+            min-width: 8em;
+            flex-basis: 0;
+        }
+
+        .columns > .column {
+            min-width: 0;
+        }
+
+        #aoc-output article {
+            min-width: 50%;
+            flex-basis: fit-content;
+        }
+
+        #aoc-output article .message-body {
+            overflow-x: auto;
+        }
+
+        #aoc-input textarea {
+            /* is-skeleton sets pointer-events: none, breaking drag & drop */
+            pointer-events: unset;
+        }
+
+        @media (min-width: 1024px) { /* >= Desktop */
+            .navbar .navbar-dropdown {
+                max-height: calc(75vh);
+                overflow: auto;
+            }
+        }
+
+        @media (max-width: 1023px) { /* < Desktop */
+            /* Put year and day next to each other */
+            #aoc-navbar .navbar-start {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: stretch;
+                gap: 1em;
+            }
+            #aoc-navbar .navbar-start > * {
+                flex-grow: 1;
+            }
+            #aoc-navbar .navbar-start .navbar-item {
+                padding-bottom: 0;
+            }
+            #aoc-navbar .navbar-link::after {
+                content: none;
+            }
+        }
+    </style>
+    <script src="web.mjs" type="module"></script>
+    <link rel="modulepreload" href="aoc.mjs" />
+    <link rel="modulepreload" href="worker.mjs" />
+    <link rel="preload" href="aoc_wasm.wasm" as="fetch" crossorigin />
+</head>
+<body class="is-flex is-flex-direction-column">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <div class="navbar-item is-family-monospace">
+                ictrobot/aoc-rs
+            </div>
+
+            <div class="navbar-item is-hidden-desktop aoc-current-year">
+                Year 2015
+            </div>
+
+            <div class="navbar-item is-hidden-desktop aoc-current-day">
+                Day 01
+            </div>
+
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="aoc-navbar">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div id="aoc-navbar" class="navbar-menu">
+            <div class="navbar-start">
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link is-hidden-touch aoc-current-year">
+                        Year 2015
+                    </a>
+                    <a class="navbar-link is-hidden-desktop">
+                        Year
+                    </a>
+
+                    <div id="aoc-navbar-years" class="navbar-dropdown">
+                        <a class="navbar-item">2015</a>
+                    </div>
+                </div>
+
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link is-hidden-touch aoc-current-day">
+                        Day 01
+                    </a>
+                    <a class="navbar-link is-hidden-desktop">
+                        Day
+                    </a>
+
+                    <div id="aoc-navbar-days" class="navbar-dropdown">
+                        <a class="navbar-item">01</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <div class="buttons">
+                        <a class="button" href="https://github.com/ictrobot/aoc-rs">
+                            GitHub
+                        </a>
+                        <a class="button" href="doc/aoc">
+                            Rustdoc
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="columns p-3 is-flex-grow-1">
+        <div class="column">
+            <div id="aoc-input" class="card">
+                <header class="card-header">
+                    <div class="card-header-title is-justify-content-space-between">
+                        Input
+                        <div class="buttons has-addons">
+                            <button class="button aoc-run" data-run-part="1" data-run-input="input">Part 1</button>
+                            <button class="button aoc-run" data-run-part="2" data-run-input="input">Part 2</button>
+                            <button class="button is-link aoc-run" data-run-part="0" data-run-input="input">Both</button>
+                        </div>
+                    </div>
+                </header>
+                <div class="card-content">
+                    <div class="content">
+                        <div class="field">
+                            <div class="control">
+                                <textarea class="textarea has-fixed-size" placeholder="Paste/drag and drop input here"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="aoc-examples" class="card">
+                <header class="card-header">
+                    <p class="card-header-title">Examples</p>
+                </header>
+                <div class="card-content">
+                    <div class="content"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="column">
+            <div id="aoc-output" class="card">
+                <header class="card-header">
+                    <p class="card-header-title">Outputs</p>
+                </header>
+                <div class="card-content">
+                    <div class="content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer p-6">
+        <div class="content has-text-centered">
+            <p>
+                This page is meant to serve as a demo of WebAssembly and its performance.
+                <br>Native executables are significantly faster, particularly for solutions using multithreading and vectorization.
+                <br>I encourage you to solve the puzzles on your own before exploring the solutions here.
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

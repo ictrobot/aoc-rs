@@ -1,0 +1,17 @@
+[package]
+name = "aoc_wasm"
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+repository = { workspace = true }
+rust-version = { workspace = true }
+
+[dependencies]
+aoc = { path = "../aoc" }
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["cdylib"]
