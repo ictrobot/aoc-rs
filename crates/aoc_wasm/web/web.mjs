@@ -81,11 +81,11 @@ async function run(input, isExample, part) {
 
 function updateNavbar() {
     document.querySelectorAll(".aoc-current-year").forEach((elem) => {
-        elem.innerText = `Year ${YEAR}`
+        elem.innerText = YEAR.toString();
     });
 
     document.querySelectorAll(".aoc-current-day").forEach((elem) => {
-        elem.innerText = `Day ${DAY.toString().padStart(2, "0")}`
+        elem.innerText = DAY.toString().padStart(2, "0");
     });
 
     const years = document.getElementById("aoc-navbar-years");

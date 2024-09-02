@@ -33,6 +33,10 @@
             pointer-events: unset;
         }
 
+        .navbar-link, .navbar-item {
+            gap: 0.25rem;
+        }
+
         @media (min-width: 1024px) { /* >= Desktop */
             .navbar .navbar-dropdown {
                 max-height: calc(75vh);
@@ -71,12 +75,8 @@
                 ictrobot/aoc-rs
             </div>
 
-            <div class="navbar-item is-hidden-desktop aoc-current-year">
-                Year 2015
-            </div>
-
-            <div class="navbar-item is-hidden-desktop aoc-current-day">
-                Day 01
+            <div class="navbar-item is-hidden-desktop">
+                <span class="aoc-current-year">2015</span> Day <span class="aoc-current-day">01</span>
             </div>
 
             <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="aoc-navbar">
@@ -90,11 +90,8 @@
         <div id="aoc-navbar" class="navbar-menu">
             <div class="navbar-start">
                 <div class="navbar-item has-dropdown is-hoverable">
-                    <a class="navbar-link is-hidden-touch aoc-current-year">
-                        Year 2015
-                    </a>
-                    <a class="navbar-link is-hidden-desktop">
-                        Year
+                    <a class="navbar-link">
+                        Year <span class="aoc-current-year is-hidden-touch">2015</span>
                     </a>
 
                     <div id="aoc-navbar-years" class="navbar-dropdown">
@@ -103,11 +100,8 @@
                 </div>
 
                 <div class="navbar-item has-dropdown is-hoverable">
-                    <a class="navbar-link is-hidden-touch aoc-current-day">
-                        Day 01
-                    </a>
-                    <a class="navbar-link is-hidden-desktop">
-                        Day
+                    <a class="navbar-link">
+                        Day <span class="aoc-current-day is-hidden-touch">01</span>
                     </a>
 
                     <div id="aoc-navbar-days" class="navbar-dropdown">
@@ -131,7 +125,7 @@
         </div>
     </nav>
 
-    <div class="columns p-3 is-flex-grow-1">
+    <div class="columns m-1 is-flex-grow-1">
         <div class="column">
             <div id="aoc-input" class="card">
                 <header class="card-header">
