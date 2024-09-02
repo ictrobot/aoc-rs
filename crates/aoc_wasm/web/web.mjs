@@ -1,7 +1,7 @@
 import {Aoc} from "./aoc.mjs";
 
-const module = await WebAssembly.compileStreaming(fetch("aoc_wasm.wasm"));
-const worker = new Worker("worker.mjs", {type: "module"});
+const module = await WebAssembly.compileStreaming(fetch("./aoc.wasm"));
+const worker = new Worker("./worker.mjs", {type: "module"});
 worker.postMessage(["init", module]);
 
 const puzzles = Aoc.puzzleList(module);
