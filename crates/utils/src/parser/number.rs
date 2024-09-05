@@ -42,7 +42,7 @@ impl<'i, S: SignedInteger> Parser<'i> for SignedParser<S> {
     type Output = S;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[allow(clippy::cast_possible_wrap)]
+    #[expect(clippy::cast_possible_wrap)]
     #[inline]
     fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         let (mut n, positive) = match input {

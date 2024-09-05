@@ -111,7 +111,10 @@ impl<'i, A: Parser<'i>, B: Parser<'i, Output = A::Output>> Parser<'i> for Or<A, 
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline(always)]
-    #[allow(clippy::inline_always)] // Required for parsing of long or chains to be inlined
+    #[expect(
+        clippy::inline_always,
+        reason = "required for parsing of long or chains to be inlined"
+    )]
     fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.first.parse(input) {
             Ok(v) => Ok(v),

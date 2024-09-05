@@ -3,7 +3,6 @@
 use crate::number::UnsignedInteger;
 
 /// Iterator which yields all the set or unset bits in a provided number.
-#[allow(clippy::module_name_repetitions)]
 pub struct BitIterator<T: UnsignedInteger> {
     n: T,
 }

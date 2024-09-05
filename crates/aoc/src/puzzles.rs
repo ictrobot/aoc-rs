@@ -2,7 +2,7 @@ use crate::all_puzzles;
 use utils::date::{Day, Year};
 
 // These imports are unused if none of the year features are enabled
-#[allow(unused_imports)]
+#[allow(clippy::allow_attributes, unused_imports)]
 use utils::{
     input::{InputError, InputType},
     Puzzle,

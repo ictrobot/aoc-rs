@@ -10,7 +10,6 @@ use std::fmt::{Display, Formatter};
 /// `y=10` in the example, but `y=2000000` for real inputs.
 ///
 /// Most puzzle solutions should ignore this value.
-#[allow(clippy::module_name_repetitions)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum InputType {
     Example,
@@ -33,7 +32,6 @@ pub enum InputType {
 ///   |    ^
 /// ".trim_start());
 /// ```
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug)]
 pub struct InputError {
     line_number: usize,

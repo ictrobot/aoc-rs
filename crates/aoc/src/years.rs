@@ -83,7 +83,6 @@ pub use ::year2016;
 ///     all_puzzles!{callback}
 /// }
 /// ```
-#[allow(clippy::module_name_repetitions)] // Once exported name is aoc::all_puzzles
 #[macro_export]
 macro_rules! all_puzzles {
     ($callback:path $(,$arg:tt)*$(,)?) => {

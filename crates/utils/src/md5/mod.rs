@@ -120,7 +120,6 @@ multiversion! {
     }
 
     #[inline]
-    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn gather(buf: &[u8; FOUR_BYTES]) -> U32Vector {
         let mut values = [0u32; U32Vector::LANES];
         for (i, v) in values.iter_mut().enumerate() {
@@ -160,7 +159,7 @@ multiversion! {
         }
     }
 
-    #[allow(clippy::many_single_char_names)]
+    #[expect(clippy::many_single_char_names)]
     fn md5_block([a0, b0, c0, d0]: [U32Vector; 4], m: &[U32Vector; 16]) -> [U32Vector; 4] {
         let (mut a, mut b, mut c, mut d) = (a0, b0, c0, d0);
 
@@ -236,7 +235,7 @@ multiversion! {
     }
 
     #[inline]
-    #[allow(clippy::many_single_char_names)]
+    #[expect(clippy::many_single_char_names)]
     fn md5_round(f: U32Vector, a: U32Vector, b: U32Vector, m: U32Vector, s: u32, k: u32) -> U32Vector {
         (f + a + m + U32Vector::splat(k)).rotate_left(s) + b
     }
@@ -275,7 +274,7 @@ const BENCH_STRING: [[u8; 32]; 128] = {
     let mut out = [*b"abcdefghijklmnopqrstuvwxyz012345"; 128];
     let mut i = 0;
 
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     while i < out.len() {
         out[i][i % 32] = i as u8;
         i += 1;

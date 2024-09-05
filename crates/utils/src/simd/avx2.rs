@@ -3,11 +3,11 @@
 use std::ops::{Add, BitAnd, BitOr, BitXor, Not};
 
 #[cfg(target_arch = "x86_64")]
-#[allow(clippy::wildcard_imports)]
+#[expect(clippy::wildcard_imports)]
 use std::arch::x86_64::*;
 
 #[cfg(target_arch = "x86")]
-#[allow(clippy::wildcard_imports)]
+#[expect(clippy::wildcard_imports)]
 use std::arch::x86::*;
 
 /// AVX2 vector with eight [u32] lanes.
@@ -19,8 +19,10 @@ impl From<[u32; U32Vector::LANES]> for U32Vector {
     #[inline]
     fn from(value: [u32; U32Vector::LANES]) -> Self {
         Self(unsafe {
-            // _mm256_loadu_si256 is an unaligned load which requires no alignment
-            #[allow(clippy::cast_ptr_alignment)]
+            #[expect(
+                clippy::cast_ptr_alignment,
+                reason = "_mm256_loadu_si256 is an unaligned load which requires no alignment"
+            )]
             _mm256_loadu_si256(value.as_ptr().cast::<__m256i>())
         })
     }
@@ -31,8 +33,10 @@ impl From<U32Vector> for [u32; U32Vector::LANES] {
     fn from(value: U32Vector) -> Self {
         let mut result = [0; U32Vector::LANES];
         unsafe {
-            // _mm256_storeu_si256 is an unaligned store which requires no alignment
-            #[allow(clippy::cast_ptr_alignment)]
+            #[expect(
+                clippy::cast_ptr_alignment,
+                reason = "_mm256_storeu_si256 is an unaligned store which requires no alignment"
+            )]
             _mm256_storeu_si256(result.as_mut_ptr().cast::<__m256i>(), value.0);
         }
         result
@@ -97,7 +101,7 @@ impl U32Vector {
     #[must_use]
     pub fn splat(v: u32) -> Self {
         Self(unsafe {
-            #[allow(clippy::cast_possible_wrap)]
+            #[expect(clippy::cast_possible_wrap)]
             _mm256_set1_epi32(v as i32)
         })
     }
@@ -106,7 +110,7 @@ impl U32Vector {
     #[must_use]
     pub fn rotate_left(self, n: u32) -> Self {
         Self(unsafe {
-            #[allow(clippy::cast_possible_wrap)]
+            #[expect(clippy::cast_possible_wrap)]
             _mm256_or_si256(
                 _mm256_sll_epi32(self.0, _mm_cvtsi32_si128(n as i32)),
                 _mm256_srl_epi32(self.0, _mm_cvtsi32_si128(32 - n as i32)),

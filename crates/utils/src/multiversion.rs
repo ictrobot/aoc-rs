@@ -59,7 +59,7 @@ macro_rules! multiversion {
     ) => {
         /// [`multiversion!`] dynamic dispatch implementations.
         mod $name {
-            #[allow(unused_imports)]
+            #[allow(clippy::allow_attributes, unused_imports)]
             use {super::*, $crate::multiversion}; // multiversion import needed for rustdoc links
 
             $crate::multiversion!{
@@ -93,9 +93,15 @@ macro_rules! multiversion {
         $($tail:tt)+
     ) => {
         /// [`multiversion!`] scalar implementation.
-        #[allow(clippy::reversed_empty_ranges, clippy::range_plus_one, clippy::modulo_one)]
         pub mod scalar {
-            #[allow(unused_imports, clippy::wildcard_imports)]
+            #![allow(
+                clippy::reversed_empty_ranges,
+                clippy::range_plus_one,
+                clippy::modulo_one,
+                clippy::trivially_copy_pass_by_ref
+            )]
+
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+scalar::*),*};
 
             $($tail)*
@@ -103,7 +109,7 @@ macro_rules! multiversion {
 
         /// [`multiversion!`] array128 implementation.
         pub mod array128 {
-            #[allow(unused_imports, clippy::wildcard_imports)]
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+array128::*),*};
 
             $($tail)*
@@ -111,7 +117,7 @@ macro_rules! multiversion {
 
         /// [`multiversion!`] array256 implementation.
         pub mod array256 {
-            #[allow(unused_imports, clippy::wildcard_imports)]
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+array256::*),*};
 
             $($tail)*
@@ -119,9 +125,10 @@ macro_rules! multiversion {
 
         /// [`multiversion!`] array4096 implementation.
         #[cfg(not(target_family = "wasm"))]
-        #[allow(clippy::large_types_passed_by_value)]
         pub mod array4096 {
-            #[allow(unused_imports, clippy::wildcard_imports)]
+            #![allow(clippy::large_types_passed_by_value)]
+
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+array4096::*),*};
 
             $($tail)*
@@ -129,9 +136,10 @@ macro_rules! multiversion {
 
         /// [`multiversion!`] avx2 implementation.
         #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
-        #[allow(clippy::missing_safety_doc)]
         pub mod avx2 {
-            #[allow(unused_imports, clippy::wildcard_imports)]
+            #![allow(clippy::missing_safety_doc)]
+
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+avx2::*),*};
 
             $crate::multiversion!{@helper target_feature(enable = "avx2") $($tail)*}
@@ -140,7 +148,7 @@ macro_rules! multiversion {
 
     // Microbenchmark for dynamic dispatch
     (fastest($name:ident())) => {
-        ::std::sync::LazyLock::new(#[cfg_attr(target_family = "wasm", allow(unreachable_code))] || {
+        ::std::sync::LazyLock::new(#[cfg_attr(target_family = "wasm", expect(unreachable_code))] || {
             use $crate::multiversion::Version::*;
 
             #[cfg(all(target_family = "wasm", target_feature = "simd128"))]
@@ -219,7 +227,6 @@ macro_rules! multiversion {
 /// `#[target_feature(...)]` isn't applied to the test functions as the feature-specific code should
 /// be elsewhere, inside a [`multiversion!`] macro.
 #[cfg(test)]
-#[allow(clippy::module_name_repetitions)] // Once exported name is utils::multiversion_test
 #[macro_export]
 macro_rules! multiversion_test {
     (
@@ -229,10 +236,16 @@ macro_rules! multiversion_test {
         $(#[$m:meta])* $v:vis fn multiversion() $body:block
     ) => {
         #[test]
-        #[allow(clippy::reversed_empty_ranges, clippy::range_plus_one, clippy::modulo_one)]
         $(#[$m])*
         fn scalar() {
-            #[allow(unused_imports, clippy::wildcard_imports)]
+            #![allow(
+                clippy::reversed_empty_ranges,
+                clippy::range_plus_one,
+                clippy::modulo_one,
+                clippy::trivially_copy_pass_by_ref
+            )]
+
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+scalar::*),*};
 
             $body
@@ -241,7 +254,7 @@ macro_rules! multiversion_test {
         #[test]
         $(#[$m])*
         fn array128() {
-            #[allow(unused_imports, clippy::wildcard_imports)]
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+array128::*),*};
 
             $body
@@ -250,7 +263,7 @@ macro_rules! multiversion_test {
         #[test]
         $(#[$m])*
         fn array256() {
-            #[allow(unused_imports, clippy::wildcard_imports)]
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+array256::*),*};
 
             $body
@@ -259,7 +272,7 @@ macro_rules! multiversion_test {
         #[test]
         $(#[$m])*
         fn array4096() {
-            #[allow(unused_imports, clippy::wildcard_imports)]
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+array4096::*),*};
 
             $body
@@ -269,7 +282,7 @@ macro_rules! multiversion_test {
         #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
         $(#[$m])*
         fn avx2() {
-            #[allow(unused_imports, clippy::wildcard_imports)]
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+avx2::*),*};
 
             if !std::arch::is_x86_feature_detected!("avx2") {

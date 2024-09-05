@@ -31,7 +31,6 @@ macro_rules! then_impl {
             type Then<T: Parser<'i>> = $next_name<$($t),+, T>;
 
             #[inline(always)]
-            #[allow(clippy::inline_always)] // Required for parsing of long then chains to be inlined
             fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
                 $(let ($t, input) = self.$t.parse(input)?;)+
                 Ok((($($t),+), input))
@@ -55,7 +54,6 @@ macro_rules! then_impl {
             type Then<T: Parser<'i>> = Unimplemented;
 
             #[inline(always)]
-            #[allow(clippy::inline_always)] // Required for parsing of long then chains to be inlined
             fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
                 $(let ($t, input) = self.$t.parse(input)?;)+
                 Ok((($($t),+), input))

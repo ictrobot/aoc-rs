@@ -56,7 +56,7 @@ multiversion! {
     use {crate::simd::*, crate::md5::*};
 
     #[dyn_dispatch = md5::FASTEST]
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     fn worker(
         prefix: &[u8],
         additional_hashes: u32,
@@ -120,7 +120,7 @@ multiversion! {
     }
 
     #[inline]
-    #[allow(clippy::cast_possible_truncation)]
+    #[expect(clippy::cast_possible_truncation)]
     pub fn u32_to_ascii_multi(buf: &mut [u8], base: u32) -> Option<NonZeroUsize> {
         assert!(buf.len() >= U32Vector::LANES * 10);
 

@@ -34,7 +34,6 @@ impl Day03 {
             .sum()
     }
 
-    #[allow(clippy::overflow_check_conditional)]
     fn valid_triangle(a: u32, b: u32, c: u32) -> bool {
         let sum = a + b + c;
         let max = a.max(b).max(c);

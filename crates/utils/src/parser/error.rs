@@ -4,7 +4,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 /// Error type returned by [`Parser::parse`].
-#[allow(clippy::module_name_repetitions)]
 #[non_exhaustive]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ParseError {
