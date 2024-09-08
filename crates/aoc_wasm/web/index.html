@@ -15,6 +15,11 @@
             flex-basis: 0;
         }
 
+        #aoc-examples pre:empty::before {
+            content: "\200B"; /* ZWSP */
+            user-select: none;
+        }
+
         .columns > .column {
             min-width: 0;
         }
