@@ -110,10 +110,9 @@ export class Aoc {
      * @return {{success: true, part1: string, part2: string} | {success: false, error: string}}
      */
     run(year, day, input, isExample = false, part1 = true, part2 = true) {
-        this.#write(input);
-
         let success;
         try {
+            this.#write(input);
             success = this.#exports.run_puzzle(year, day, isExample, part1, part2);
         } catch (e) {
             this.#instance = new WebAssembly.Instance(this.#module);
@@ -156,6 +155,9 @@ export class Aoc {
     #write(input) {
         const buffer = this.#buffer("INPUT");
         const result = new TextEncoder().encodeInto(input, buffer);
+        if (result.read < input.length || result.written === buffer.length) {
+            throw new Error("Input string is too long");
+        }
         buffer[result.written] = 0;
     }
 
