@@ -19,11 +19,11 @@ impl Day13 {
         let parsed = parser::take_while1(u8::is_ascii_alphabetic)
             .with_suffix(" would ")
             .then(
-                parser::u16()
-                    .with_prefix("gain ")
-                    .map(i32::from)
-                    .or(parser::u16().with_prefix("lose ").map(|x| -i32::from(x)))
-                    .with_suffix(" happiness units by sitting next to "),
+                parser::one_of((
+                    parser::u16().with_prefix("gain ").map(i32::from),
+                    parser::u16().with_prefix("lose ").map(|x| -i32::from(x)),
+                ))
+                .with_suffix(" happiness units by sitting next to "),
             )
             .then(parser::take_while1(u8::is_ascii_alphabetic).with_suffix(b'.'))
             .parse_lines(input)?;

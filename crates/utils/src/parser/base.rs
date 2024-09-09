@@ -59,6 +59,8 @@ pub trait Parser<'i>: Sized {
     /// from the parser which parsed further into the input is returned (preferring the first error
     /// if both errored at the same position).
     ///
+    /// See also [`parser::one_of`](super::one_of()).
+    ///
     /// # Examples
     /// ```
     /// # use utils::parser::{self, ParseError, Parser};

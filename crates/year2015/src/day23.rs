@@ -27,21 +27,21 @@ impl Day23 {
         let register = b'a'.map(|_| Register::A).or(b'b'.map(|_| Register::B));
 
         Ok(Self {
-            instructions: register
-                .with_prefix("hlf ")
-                .map(Instruction::Half)
-                .or(register.with_prefix("tpl ").map(Instruction::Triple))
-                .or(register.with_prefix("inc ").map(Instruction::Increment))
-                .or(parser::i16().with_prefix("jmp ").map(Instruction::Jump))
-                .or(register
+            instructions: parser::one_of((
+                register.with_prefix("hlf ").map(Instruction::Half),
+                register.with_prefix("tpl ").map(Instruction::Triple),
+                register.with_prefix("inc ").map(Instruction::Increment),
+                parser::i16().with_prefix("jmp ").map(Instruction::Jump),
+                register
                     .with_prefix("jie ")
                     .then(parser::i16().with_prefix(", "))
-                    .map(|(r, o)| Instruction::JumpIfEven(r, o)))
-                .or(register
+                    .map(|(r, o)| Instruction::JumpIfEven(r, o)),
+                register
                     .with_prefix("jio ")
                     .then(parser::i16().with_prefix(", "))
-                    .map(|(r, o)| Instruction::JumpIfOne(r, o)))
-                .parse_lines(input)?,
+                    .map(|(r, o)| Instruction::JumpIfOne(r, o)),
+            ))
+            .parse_lines(input)?,
         })
     }
 

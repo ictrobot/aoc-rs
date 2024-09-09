@@ -35,18 +35,17 @@ enum Action {
 
 impl Day06 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let mut instructions = "turn off "
-            .map(|_| Action::TurnOff)
-            .or("turn on ".map(|_| Action::TurnOn))
-            .or("toggle ".map(|_| Action::Toggle))
-            .then(parser::u16())
-            .then(parser::u16().with_prefix(b','))
-            .then(parser::u16().with_prefix(" through "))
-            .then(parser::u16().with_prefix(b','))
-            .map(|(action, x1, y1, x2, y2)| {
-                (action, (x1.min(x2), y1.min(y2), x1.max(x2), y1.max(y2)))
-            })
-            .parse_lines(input)?;
+        let mut instructions = parser::one_of((
+            "turn off ".map(|_| Action::TurnOff),
+            "turn on ".map(|_| Action::TurnOn),
+            "toggle ".map(|_| Action::Toggle),
+        ))
+        .then(parser::u16())
+        .then(parser::u16().with_prefix(b','))
+        .then(parser::u16().with_prefix(" through "))
+        .then(parser::u16().with_prefix(b','))
+        .map(|(action, x1, y1, x2, y2)| (action, (x1.min(x2), y1.min(y2), x1.max(x2), y1.max(y2))))
+        .parse_lines(input)?;
 
         let mut x_values = Vec::with_capacity(instructions.len() * 2);
         let mut y_values = Vec::with_capacity(instructions.len() * 2);

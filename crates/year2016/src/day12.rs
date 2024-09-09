@@ -39,29 +39,30 @@ enum Instruction {
 
 impl Day12 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let register = b'a'
-            .map(|_| Register::A)
-            .or(b'b'.map(|_| Register::B))
-            .or(b'c'.map(|_| Register::C))
-            .or(b'd'.map(|_| Register::D));
+        let register = parser::one_of((
+            b'a'.map(|_| Register::A),
+            b'b'.map(|_| Register::B),
+            b'c'.map(|_| Register::C),
+            b'd'.map(|_| Register::D),
+        ));
         let value = register
             .map(Value::Register)
             .or(parser::i32().map(Value::Number));
 
         Ok(Self {
-            instructions: register
-                .with_prefix("inc ")
-                .map(Instruction::Increment)
-                .or(register.with_prefix("dec ").map(Instruction::Decrement))
-                .or(value
+            instructions: parser::one_of((
+                register.with_prefix("inc ").map(Instruction::Increment),
+                register.with_prefix("dec ").map(Instruction::Decrement),
+                value
                     .with_prefix("cpy ")
                     .then(register.with_prefix(" "))
-                    .map(|(v, r)| Instruction::Copy(v, r)))
-                .or(value
+                    .map(|(v, r)| Instruction::Copy(v, r)),
+                value
                     .with_prefix("jnz ")
                     .then(parser::i32().with_prefix(" "))
-                    .map(|(v, o)| Instruction::JumpIfNotZero(v, o)))
-                .parse_lines(input)?,
+                    .map(|(v, o)| Instruction::JumpIfNotZero(v, o)),
+            ))
+            .parse_lines(input)?,
         })
     }
 

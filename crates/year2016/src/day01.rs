@@ -17,9 +17,7 @@ enum Turn {
 impl Day01 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
-            instructions: b'L'
-                .map(|_| Turn::L)
-                .or(b'R'.map(|_| Turn::R))
+            instructions: parser::one_of((b'L'.map(|_| Turn::L), b'R'.map(|_| Turn::R)))
                 .then(parser::u16())
                 .with_suffix(", ".optional())
                 .parse_all(input)?,

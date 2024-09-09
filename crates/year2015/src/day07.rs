@@ -38,33 +38,35 @@ impl Day07 {
             return Err(InputError::new(input, 0, "too many wires"));
         }
 
-        let parse_wire = parser::take_while(u8::is_ascii_lowercase)
-            .map_res(|v| indexes.get(v).copied().ok_or("wire not found"))
-            .or(parser::u16().map(|v| Self::U16_CONST_MASK | v as usize));
+        let parse_wire = parser::one_of((
+            parser::take_while(u8::is_ascii_lowercase)
+                .map_res(|v| indexes.get(v).copied().ok_or("wire not found")),
+            parser::u16().map(|v| Self::U16_CONST_MASK | v as usize),
+        ));
 
-        let wires = parse_wire
-            .with_prefix("NOT ")
-            .map(Signal::Not)
-            .or(parse_wire
+        let wires = parser::one_of((
+            parse_wire.with_prefix("NOT ").map(Signal::Not),
+            parse_wire
                 .with_suffix(" AND ")
                 .then(parse_wire)
-                .map(|(a, b)| Signal::And(a, b)))
-            .or(parse_wire
+                .map(|(a, b)| Signal::And(a, b)),
+            parse_wire
                 .with_suffix(" OR ")
                 .then(parse_wire)
-                .map(|(a, b)| Signal::Or(a, b)))
-            .or(parse_wire
+                .map(|(a, b)| Signal::Or(a, b)),
+            parse_wire
                 .with_suffix(" RSHIFT ")
                 .then(parser::u8())
-                .map(|(a, b)| Signal::RShift(a, b)))
-            .or(parse_wire
+                .map(|(a, b)| Signal::RShift(a, b)),
+            parse_wire
                 .with_suffix(" LSHIFT ")
                 .then(parser::u8())
-                .map(|(a, b)| Signal::LShift(a, b)))
-            .or(parse_wire.map(Signal::Wire))
-            .with_suffix(" -> ")
-            .with_suffix(parser::take_while(u8::is_ascii_lowercase))
-            .parse_lines(input)?;
+                .map(|(a, b)| Signal::LShift(a, b)),
+            parse_wire.map(Signal::Wire),
+        ))
+        .with_suffix(" -> ")
+        .with_suffix(parser::take_while(u8::is_ascii_lowercase))
+        .parse_lines(input)?;
 
         let Some(&a_idx) = indexes.get(&b"a"[..]) else {
             return Err(InputError::new(input, 0, "missing 'a' wire"));
