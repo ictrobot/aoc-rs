@@ -18,31 +18,40 @@ pub fn main(args: impl Iterator<Item = String>) -> Result<(), Box<dyn Error>> {
         delete_dir(&output)?;
     }
 
-    run_cargo(&["clean", "--doc"])?;
-    run_cargo(&["doc", "--no-deps"])?;
-    run_cargo(&[
-        "build",
-        "-p",
-        "aoc_wasm",
-        "--lib",
-        "--target=wasm32-unknown-unknown",
-        "--release",
-    ])?;
-
     create_dir(&output)?;
 
-    let output_wasm = output.join("aoc.wasm");
-    copy_file(
-        repo_dir_path()
-            .join("target")
-            .join("wasm32-unknown-unknown")
-            .join("release")
-            .join("aoc_wasm.wasm"),
-        &output_wasm,
-    )?;
+    run_cargo(&["clean", "--doc"], &[])?;
+    run_cargo(&["doc", "--no-deps"], &[])?;
 
     let mut rewrites = vec![];
-    add_rewrite(&mut rewrites, &output_wasm)?;
+    for (features, name) in [
+        ("", "aoc.wasm"),
+        ("-C target_feature=+simd128", "aoc-simd128.wasm"),
+    ] {
+        run_cargo(
+            &[
+                "build",
+                "-p",
+                "aoc_wasm",
+                "--lib",
+                "--target=wasm32-unknown-unknown",
+                "--release",
+            ],
+            &[("RUSTFLAGS", features)],
+        )?;
+
+        let output_wasm = output.join(name);
+        copy_file(
+            repo_dir_path()
+                .join("target")
+                .join("wasm32-unknown-unknown")
+                .join("release")
+                .join("aoc_wasm.wasm"),
+            &output_wasm,
+        )?;
+
+        add_rewrite(&mut rewrites, &output_wasm)?;
+    }
 
     let web = repo_dir_path().join("crates").join("aoc_wasm").join("web");
     for file in ["aoc.mjs", "worker.mjs", "web.mjs", "index.html"] {

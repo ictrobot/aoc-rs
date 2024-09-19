@@ -1,6 +1,28 @@
 import {Aoc} from "./aoc.mjs";
 
-const module = await WebAssembly.compileStreaming(fetch("./aoc.wasm"));
+const MODULE_PATHS = [
+    "./aoc-simd128.wasm",
+    "./aoc.wasm",
+];
+
+let module;
+for (const path of MODULE_PATHS) {
+    try {
+        module = await WebAssembly.compileStreaming(fetch(path));
+        console.log("Using " + path);
+        break;
+    } catch (err) {
+        if (err instanceof WebAssembly.CompileError) {
+            console.warn("Compiling " + path + " failed: " + err);
+        } else {
+            throw err;
+        }
+    }
+}
+if (module === undefined) {
+    throw new Error("Failed to load WebAssembly module");
+}
+
 const worker = new Worker("./worker.mjs", {type: "module"});
 worker.postMessage(["init", module]);
 

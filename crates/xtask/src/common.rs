@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt::Write;
 use std::fs::{create_dir_all, read_to_string, remove_dir_all, write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -144,9 +145,21 @@ fn cargo_var(key: &str) -> String {
         .unwrap_or_else(|_| panic!("expected {key} environment variable to be set by cargo"))
 }
 
-pub fn run_cargo(args: &[&str]) -> Result<(), Box<dyn Error>> {
-    println!("running cargo with {args:?}");
-    let status = Command::new(cargo_var("CARGO")).args(args).status()?;
+pub fn run_cargo(args: &[&str], envs: &[(&str, &str)]) -> Result<(), Box<dyn Error>> {
+    println!(
+        "running \"{}cargo {}\"",
+        envs.iter().fold(String::new(), |mut acc, &(k, v)| {
+            write!(acc, "{k}='{v}' ").unwrap();
+            acc
+        }),
+        args.join(" "),
+    );
+
+    let status = Command::new(cargo_var("CARGO"))
+        .args(args)
+        .envs(envs.iter().copied())
+        .status()?;
+
     if status.success() {
         Ok(())
     } else {

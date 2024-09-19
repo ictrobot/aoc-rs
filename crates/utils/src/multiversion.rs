@@ -151,6 +151,7 @@ macro_rules! multiversion {
         ::std::sync::LazyLock::new(#[cfg_attr(target_family = "wasm", expect(unreachable_code))] || {
             use $crate::multiversion::Version::*;
 
+            // Instant::now() isn't implemented in WebAssembly, so hardcode implementations
             #[cfg(all(target_family = "wasm", target_feature = "simd128"))]
             return Array256;
             #[cfg(all(target_family = "wasm"))]
