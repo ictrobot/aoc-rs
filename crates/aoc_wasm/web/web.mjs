@@ -252,18 +252,32 @@ inputTextarea.addEventListener("dragleave", (e) => {
 });
 inputTextarea.addEventListener("drop", (e) => {
     e.preventDefault();
+    inputTextarea.classList.remove("is-skeleton");
 
     const file = e.dataTransfer.files[0];
-    console.log("Loading input from ", file);
+    if (file !== undefined) {
+        console.log("Loading input from file: ", file);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        inputTextarea.value = event.target.result;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            inputTextarea.value = event.target.result;
+            saveInput();
+        };
+        reader.readAsText(file);
+
+        return;
+    }
+
+    const text = e.dataTransfer.getData("text/plain");
+    if (text !== undefined) {
+        console.log("Loading input from drag text");
+        inputTextarea.value = text;
         saveInput();
-    };
-    reader.readAsText(file);
 
-    inputTextarea.classList.remove("is-skeleton");
+        return;
+    }
+
+    console.warn("No supported drag data");
 });
 inputTextarea.addEventListener("change", saveInput);
 inputTextarea.addEventListener("input", saveInput);
