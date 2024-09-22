@@ -3,18 +3,18 @@ use crate::parser::{ParseResult, Parser};
 
 /// Use a second trait to force usage of the [`one_of`] method, preventing tuples from being used as
 /// parsers directly, which could be confusing.
-pub trait ParserList<'i> {
-    type Output;
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output>;
+pub trait ParserList {
+    type Output<'i>;
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>>;
 }
 
 macro_rules! parserlist_impl {
     ($($l:ident: $n:tt),+) => {
-        impl<'i, A: Parser<'i>, $($l: Parser<'i, Output = A::Output>),+> ParserList<'i> for (A, $($l,)*) {
-            type Output = A::Output;
+        impl<A: Parser, $($l: for<'i> Parser<Output<'i> = A::Output<'i>>),+> ParserList for (A, $($l,)*) {
+            type Output<'i> = A::Output<'i>;
 
             #[inline(always)]
-            fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+            fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
                 let mut err = match self.0.parse(input) {
                     Ok(v) => return Ok(v),
                     Err(err) => err,
@@ -51,16 +51,16 @@ parserlist_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10, L
 pub struct OneOf<L> {
     list: L,
 }
-impl<'i, L: ParserList<'i>> Parser<'i> for OneOf<L> {
-    type Output = L::Output;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<L: ParserList> Parser for OneOf<L> {
+    type Output<'i> = L::Output<'i>;
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         self.list.parse(input)
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
@@ -115,6 +115,6 @@ impl<'i, L: ParserList<'i>> Parser<'i> for OneOf<L> {
 ///     ParseError::OutOfRange("i32")
 /// );
 /// ```
-pub fn one_of<'i, L: ParserList<'i>>(options: L) -> OneOf<L> {
+pub fn one_of<L: ParserList>(options: L) -> OneOf<L> {
     OneOf { list: options }
 }

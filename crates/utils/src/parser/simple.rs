@@ -3,16 +3,16 @@ use crate::parser::{ParseError, ParseResult, Parser};
 
 #[derive(Copy, Clone)]
 pub struct Constant<V: Copy>(V);
-impl<'i, V: Copy> Parser<'i> for Constant<V> {
-    type Output = V;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<V: Copy> Parser for Constant<V> {
+    type Output<'i> = V;
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         Ok((self.0, input))
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
@@ -33,12 +33,12 @@ pub fn constant<T: Copy>(v: T) -> Constant<T> {
 
 #[derive(Copy, Clone)]
 pub struct Eol();
-impl<'i> Parser<'i> for Eol {
-    type Output = ();
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl Parser for Eol {
+    type Output<'i> = ();
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         match input {
             [b'\n', remaining @ ..] | [b'\r', b'\n', remaining @ ..] => Ok(((), remaining)),
             [] => Ok(((), input)),
@@ -46,7 +46,7 @@ impl<'i> Parser<'i> for Eol {
         }
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
@@ -78,12 +78,12 @@ pub fn eol() -> Eol {
 
 #[derive(Copy, Clone)]
 pub struct TakeWhile<const N: usize>(fn(&u8) -> bool);
-impl<'i, const N: usize> Parser<'i> for TakeWhile<N> {
-    type Output = &'i [u8];
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<const N: usize> Parser for TakeWhile<N> {
+    type Output<'i> = &'i [u8];
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         let mut end = 0;
         while end < input.len() && self.0(&input[end]) {
             end += 1;
@@ -95,7 +95,7 @@ impl<'i, const N: usize> Parser<'i> for TakeWhile<N> {
         }
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }

@@ -7,19 +7,19 @@ pub struct Map<P, F> {
     pub(super) map_fn: F,
 }
 
-impl<'i, P: Parser<'i>, F: Fn(P::Output) -> O, O> Parser<'i> for Map<P, F> {
-    type Output = O;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<P: Parser, F: for<'i> Fn(P::Output<'i>) -> O, O> Parser for Map<P, F> {
+    type Output<'i> = O;
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         match self.parser.parse(input) {
             Ok((v, remaining)) => Ok(((self.map_fn)(v), remaining)),
             Err(e) => Err(e),
         }
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
@@ -30,14 +30,14 @@ pub struct MapResult<P, F> {
     pub(super) map_fn: F,
 }
 
-impl<'i, P: Parser<'i>, F: Fn(P::Output) -> Result<O, &'static str>, O> Parser<'i>
+impl<P: Parser, F: for<'i> Fn(P::Output<'i>) -> Result<O, &'static str>, O> Parser
     for MapResult<P, F>
 {
-    type Output = O;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+    type Output<'i> = O;
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         match self.parser.parse(input) {
             Ok((v, remaining)) => match (self.map_fn)(v) {
                 Ok(mapped) => Ok((mapped, remaining)),
@@ -47,7 +47,7 @@ impl<'i, P: Parser<'i>, F: Fn(P::Output) -> Result<O, &'static str>, O> Parser<'
         }
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
@@ -56,19 +56,19 @@ impl<'i, P: Parser<'i>, F: Fn(P::Output) -> Result<O, &'static str>, O> Parser<'
 pub struct Optional<P> {
     pub(super) parser: P,
 }
-impl<'i, P: Parser<'i>> Parser<'i> for Optional<P> {
-    type Output = Option<P::Output>;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<P: Parser> Parser for Optional<P> {
+    type Output<'i> = Option<P::Output<'i>>;
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         match self.parser.parse(input) {
             Ok((v, remaining)) => Ok((Some(v), remaining)),
             Err(_) => Ok((None, input)),
         }
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
@@ -77,12 +77,12 @@ impl<'i, P: Parser<'i>> Parser<'i> for Optional<P> {
 pub struct Repeat<const N: usize, P> {
     pub(super) parser: P,
 }
-impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>> Parser<'i> for Repeat<N, P> {
-    type Output = [P::Output; N];
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>> Parser for Repeat<N, P> {
+    type Output<'i> = [P::Output<'i>; N];
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         let mut output = [P::Output::default(); N];
         for item in &mut output {
             match self.parser.parse(input) {
@@ -96,7 +96,7 @@ impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>> Parser<'i> for R
         Ok((output, input))
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
@@ -106,16 +106,16 @@ pub struct Or<A, B> {
     pub(super) first: A,
     pub(super) second: B,
 }
-impl<'i, A: Parser<'i>, B: Parser<'i, Output = A::Output>> Parser<'i> for Or<A, B> {
-    type Output = A::Output;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<A: Parser, B: for<'i> Parser<Output<'i> = A::Output<'i>>> Parser for Or<A, B> {
+    type Output<'i> = A::Output<'i>;
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline(always)]
     #[expect(
         clippy::inline_always,
         reason = "required for parsing of long or chains to be inlined"
     )]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         match self.first.parse(input) {
             Ok(v) => Ok(v),
             Err((err1, remaining1)) => match self.second.parse(input) {
@@ -132,7 +132,7 @@ impl<'i, A: Parser<'i>, B: Parser<'i, Output = A::Output>> Parser<'i> for Or<A, 
         }
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
@@ -142,19 +142,19 @@ pub struct WithPrefix<A, B> {
     pub(super) parser: A,
     pub(super) prefix: B,
 }
-impl<'i, A: Parser<'i>, B: Parser<'i>> Parser<'i> for WithPrefix<A, B> {
-    type Output = A::Output;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<A: Parser, B: Parser> Parser for WithPrefix<A, B> {
+    type Output<'i> = A::Output<'i>;
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         match self.prefix.parse(input) {
             Ok((_, remaining)) => self.parser.parse(remaining),
             Err(e) => Err(e),
         }
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
@@ -164,12 +164,12 @@ pub struct WithSuffix<A, B> {
     pub(super) parser: A,
     pub(super) suffix: B,
 }
-impl<'i, A: Parser<'i>, B: Parser<'i>> Parser<'i> for WithSuffix<A, B> {
-    type Output = A::Output;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<A: Parser, B: Parser> Parser for WithSuffix<A, B> {
+    type Output<'i> = A::Output<'i>;
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         match self.parser.parse(input) {
             Ok((v, remaining1)) => match self.suffix.parse(remaining1) {
                 Ok((_, remaining2)) => Ok((v, remaining2)),
@@ -179,7 +179,7 @@ impl<'i, A: Parser<'i>, B: Parser<'i>> Parser<'i> for WithSuffix<A, B> {
         }
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }

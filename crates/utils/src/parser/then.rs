@@ -4,15 +4,15 @@ use crate::parser::{ParseResult, Parser};
 
 #[derive(Copy, Clone)]
 pub enum Unimplemented {}
-impl<'i> Parser<'i> for Unimplemented {
-    type Output = Unimplemented;
-    type Then<T: Parser<'i>> = Unimplemented;
+impl Parser for Unimplemented {
+    type Output<'i> = Unimplemented;
+    type Then<T: Parser> = Unimplemented;
 
-    fn parse(&self, _: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, _: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         unimplemented!();
     }
 
-    fn then<T: Parser<'i>>(self, _: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, _: T) -> Self::Then<T> {
         unimplemented!()
     }
 }
@@ -26,17 +26,17 @@ macro_rules! then_impl {
         pub struct $name<$($t),+>{
             $($t: $t,)+
         }
-        impl<'i, $($t: Parser<'i>),+> Parser<'i> for $name<$($t),+> {
-            type Output = ($($t::Output),+);
-            type Then<T: Parser<'i>> = $next_name<$($t),+, T>;
+        impl<$($t: Parser),+> Parser for $name<$($t),+> {
+            type Output<'i> = ($($t::Output<'i>),+);
+            type Then<T: Parser> = $next_name<$($t),+, T>;
 
             #[inline(always)]
-            fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+            fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
                 $(let ($t, input) = self.$t.parse(input)?;)+
                 Ok((($($t),+), input))
             }
 
-            fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+            fn then<T: Parser>(self, next: T) -> Self::Then<T> {
                 $next_name{$($t: self.$t),+, $next_t: next}
             }
         }
@@ -49,17 +49,17 @@ macro_rules! then_impl {
         pub struct $name<$($t),+>{
             $($t: $t,)+
         }
-        impl<'i, $($t: Parser<'i>),+> Parser<'i> for $name<$($t),+> {
-            type Output = ($($t::Output),+);
-            type Then<T: Parser<'i>> = Unimplemented;
+        impl<$($t: Parser),+> Parser for $name<$($t),+> {
+            type Output<'i> = ($($t::Output<'i>),+);
+            type Then<T: Parser> = Unimplemented;
 
             #[inline(always)]
-            fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+            fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
                 $(let ($t, input) = self.$t.parse(input)?;)+
                 Ok((($($t),+), input))
             }
 
-            fn then<T: Parser<'i>>(self, _: T) -> Self::Then<T> {
+            fn then<T: Parser>(self, _: T) -> Self::Then<T> {
                 unimplemented!()
             }
         }
@@ -76,7 +76,7 @@ then_impl! {
     Then8<H> => [A, B, C, D, E, F, G, H],
 }
 
-impl<'i, A: Parser<'i>, B: Parser<'i>> Then2<A, B> {
+impl<A: Parser, B: Parser> Then2<A, B> {
     pub(super) fn new(first: A, second: B) -> Self {
         Self {
             A: first,

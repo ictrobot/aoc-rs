@@ -6,12 +6,12 @@ use std::marker::PhantomData;
 
 #[derive(Copy, Clone)]
 pub struct UnsignedParser<U: UnsignedInteger>(PhantomData<U>);
-impl<'i, U: UnsignedInteger> Parser<'i> for UnsignedParser<U> {
-    type Output = U;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<U: UnsignedInteger> Parser for UnsignedParser<U> {
+    type Output<'i> = U;
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         let mut n = match input {
             [d @ b'0'..=b'9', ..] => {
                 input = &input[1..];
@@ -31,20 +31,20 @@ impl<'i, U: UnsignedInteger> Parser<'i> for UnsignedParser<U> {
         Ok((n, input))
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
 
 #[derive(Copy, Clone)]
 pub struct SignedParser<S: SignedInteger>(PhantomData<S>);
-impl<'i, S: SignedInteger> Parser<'i> for SignedParser<S> {
-    type Output = S;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
+impl<S: SignedInteger> Parser for SignedParser<S> {
+    type Output<'i> = S;
+    type Then<T: Parser> = Then2<Self, T>;
 
     #[expect(clippy::cast_possible_wrap)]
     #[inline]
-    fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse<'i>(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         let (mut n, positive) = match input {
             [d @ b'0'..=b'9', rem @ ..] | [b'+', d @ b'0'..=b'9', rem @ ..] => {
                 input = rem;
@@ -78,7 +78,7 @@ impl<'i, S: SignedInteger> Parser<'i> for SignedParser<S> {
         Ok((n, input))
     }
 
-    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
     }
 }
