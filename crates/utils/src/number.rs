@@ -64,7 +64,11 @@ pub trait Integer:
     + Shr<u32, Output = Self>
     + ShrAssign
     + ShrAssign<u32>
+    + TryInto<i128>
 {
+    const MIN: Self;
+    const MAX: Self;
+
     #[must_use]
     fn checked_add(self, rhs: Self) -> Option<Self>;
     #[must_use]
@@ -150,6 +154,9 @@ macro_rules! number_impl {
     };
     (@common integer => $($t:ty),+) => {
         $(impl Integer for $t {
+            const MIN: Self = Self::MIN;
+            const MAX: Self = Self::MAX;
+
             #[inline]
             fn checked_add(self, rhs: Self) -> Option<Self> {
                 self.checked_add(rhs)

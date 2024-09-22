@@ -1,5 +1,94 @@
 use crate::parser::then::Then2;
 use crate::parser::{ParseError, ParseResult, Parser};
+use std::ops::RangeInclusive;
+
+#[derive(Copy, Clone)]
+pub struct Byte();
+impl Parser for Byte {
+    type Output<'i> = u8;
+    type Then<T: Parser> = Then2<Self, T>;
+
+    #[inline]
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+        if let [byte, remaining @ ..] = input {
+            Ok((*byte, remaining))
+        } else {
+            Err((ParseError::Expected("byte"), input))
+        }
+    }
+
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
+        Then2::new(self, next)
+    }
+}
+
+/// Parser that consumes a single byte.
+///
+/// Not to be confused with [`u8`](super::u8), which parses a number in the range 0-255.
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{self, Parser};
+/// assert_eq!(
+///     parser::byte().parse(b"abcdef"),
+///     Ok((b'a', &b"bcdef"[..]))
+/// );
+/// assert_eq!(
+///     parser::byte().parse(b"123"),
+///     Ok((b'1', &b"23"[..]))
+/// );
+/// ```
+#[must_use]
+pub fn byte() -> Byte {
+    Byte()
+}
+
+#[derive(Copy, Clone)]
+pub struct ByteRange {
+    min: u8,
+    max: u8,
+}
+impl Parser for ByteRange {
+    type Output<'i> = u8;
+    type Then<T: Parser> = Then2<Self, T>;
+
+    #[inline]
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+        if let [byte, remaining @ ..] = input {
+            if *byte >= self.min && *byte <= self.max {
+                Ok((*byte, remaining))
+            } else {
+                Err((ParseError::ExpectedByteRange(self.min, self.max), input))
+            }
+        } else {
+            Err((ParseError::Expected("byte"), input))
+        }
+    }
+
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
+        Then2::new(self, next)
+    }
+}
+
+/// Parser that consumes a single byte in the supplied range.
+///
+/// See also [`number_range`](super::number_range) and [`byte`].
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{self, Parser};
+/// assert_eq!(
+///     parser::byte_range(b'a'..=b'z').parse(b"hello world"),
+///     Ok((b'h', &b"ello world"[..]))
+/// );
+/// ```
+#[must_use]
+pub fn byte_range(range: RangeInclusive<u8>) -> ByteRange {
+    let min = *range.start();
+    let max = *range.end();
+    assert!(min <= max);
+    ByteRange { min, max }
+}
 
 #[derive(Copy, Clone)]
 pub struct Constant<V: Copy>(V);
@@ -27,6 +116,7 @@ impl<V: Copy> Parser for Constant<V> {
 ///     Ok((1, &b"abc"[..]))
 /// );
 /// ```
+#[must_use]
 pub fn constant<T: Copy>(v: T) -> Constant<T> {
     Constant(v)
 }

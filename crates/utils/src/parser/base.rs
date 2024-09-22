@@ -374,3 +374,9 @@ impl Parser for u8 {
         Then2::new(self, next)
     }
 }
+
+/// Trait for types that have a canonical parser.
+pub trait Parseable {
+    type Parser: for<'i> Parser<Output<'i> = Self>;
+    const PARSER: Self::Parser;
+}

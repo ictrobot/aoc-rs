@@ -1,8 +1,8 @@
-use crate::number::{SignedInteger, UnsignedInteger};
+use crate::number::{Integer, SignedInteger, UnsignedInteger};
 use crate::parser::then::Then2;
-use crate::parser::{ParseError, ParseResult, Parser};
-use std::any::type_name;
+use crate::parser::{ParseError, ParseResult, Parseable, Parser};
 use std::marker::PhantomData;
+use std::ops::RangeInclusive;
 
 #[derive(Copy, Clone)]
 pub struct UnsignedParser<U: UnsignedInteger>(PhantomData<U>);
@@ -17,14 +17,14 @@ impl<U: UnsignedInteger> Parser for UnsignedParser<U> {
                 input = &input[1..];
                 U::from(d - b'0')
             }
-            _ => return Err((ParseError::Expected(type_name::<U>()), input)),
+            _ => return Err((ParseError::Expected("unsigned integer"), input)),
         };
 
         while let Some(d @ b'0'..=b'9') = input.first() {
             n = n
                 .checked_mul(U::from(10))
                 .and_then(|n| n.checked_add(U::from(d - b'0')))
-                .ok_or((ParseError::OutOfRange(type_name::<U>()), input))?;
+                .ok_or((ParseError::too_large(U::MAX), input))?;
             input = &input[1..];
         }
 
@@ -54,7 +54,7 @@ impl<S: SignedInteger> Parser for SignedParser<S> {
                 input = rem;
                 (S::from(-((d - b'0') as i8)), false)
             }
-            _ => return Err((ParseError::Expected(type_name::<S>()), input)),
+            _ => return Err((ParseError::Expected("signed integer"), input)),
         };
 
         if positive {
@@ -62,7 +62,7 @@ impl<S: SignedInteger> Parser for SignedParser<S> {
                 n = n
                     .checked_mul(S::from(10))
                     .and_then(|n| n.checked_add(S::from((d - b'0') as i8)))
-                    .ok_or((ParseError::OutOfRange(type_name::<S>()), input))?;
+                    .ok_or((ParseError::too_large(S::MAX), input))?;
                 input = &input[1..];
             }
         } else {
@@ -70,7 +70,7 @@ impl<S: SignedInteger> Parser for SignedParser<S> {
                 n = n
                     .checked_mul(S::from(10))
                     .and_then(|n| n.checked_sub(S::from((d - b'0') as i8)))
-                    .ok_or((ParseError::OutOfRange(type_name::<S>()), input))?;
+                    .ok_or((ParseError::too_small(S::MIN), input))?;
                 input = &input[1..];
             }
         }
@@ -83,14 +83,67 @@ impl<S: SignedInteger> Parser for SignedParser<S> {
     }
 }
 
-macro_rules! parser_fn {
+macro_rules! parser_for {
     ($p:ident => $($n:ident),+) => {$(
+        impl Parseable for std::primitive::$n {
+            type Parser = $p<std::primitive::$n>;
+            const PARSER: Self::Parser = $p(PhantomData);
+        }
+
         #[doc = concat!("Parser for [`prim@", stringify!($n), "`] values.")]
         #[must_use]
         pub fn $n() -> $p<std::primitive::$n> {
-            $p(PhantomData::default())
+            $p(PhantomData)
         }
     )+};
 }
-parser_fn! { UnsignedParser => u8, u16, u32, u64, u128 }
-parser_fn! { SignedParser => i8, i16, i32, i64, i128 }
+parser_for! { UnsignedParser => u8, u16, u32, u64, u128 }
+parser_for! { SignedParser => i8, i16, i32, i64, i128 }
+
+#[derive(Copy, Clone)]
+pub struct NumberRange<I> {
+    min: I,
+    max: I,
+}
+
+impl<I: Integer + Parseable> Parser for NumberRange<I> {
+    type Output<'i> = I;
+    type Then<T: Parser> = Then2<Self, T>;
+
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+        let (v, remaining) = I::PARSER.parse(input)?;
+        if v < self.min {
+            Err((ParseError::too_small(self.min), input))
+        } else if v > self.max {
+            Err((ParseError::too_large(self.max), input))
+        } else {
+            Ok((v, remaining))
+        }
+    }
+
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
+        Then2::new(self, next)
+    }
+}
+
+/// Parser for numbers in the supplied range.
+///
+/// The type of the number to parse is inferred from the range's type.
+///
+/// See also [`byte_range`](super::byte_range).
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{self, Parser};
+/// assert_eq!(
+///     parser::number_range(100u8..=125u8).parse(b"123, 120"),
+///     Ok((123u8, &b", 120"[..]))
+/// );
+/// ```
+#[must_use]
+pub fn number_range<I: Integer + Parseable>(range: RangeInclusive<I>) -> NumberRange<I> {
+    let min = *range.start();
+    let max = *range.end();
+    assert!(min <= max);
+    NumberRange { min, max }
+}

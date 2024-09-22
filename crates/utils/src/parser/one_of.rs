@@ -108,11 +108,11 @@ impl<L: ParserList> Parser for OneOf<L> {
 ///
 /// assert_eq!(
 ///     parser.parse(b"not a number").unwrap_err().0,
-///     ParseError::Expected("u8")
+///     ParseError::Expected("unsigned integer")
 /// );
 /// assert_eq!(
 ///     parser.parse(b"-4294967295").unwrap_err().0,
-///     ParseError::OutOfRange("i32")
+///     ParseError::NumberTooSmall(-2147483648)
 /// );
 /// ```
 pub fn one_of<L: ParserList>(options: L) -> OneOf<L> {
