@@ -42,10 +42,10 @@ jobs:
       - name: Install Rust
         run: |
           rustup update --no-self-update stable
-          rustup component add --toolchain stable rustc
+          rustup component add --toolchain stable rustc rust-src
           rustup default stable
           rustup target add wasm32-unknown-unknown
-      - name: Build documentation
+      - name: Build website
         run: cargo x web
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
