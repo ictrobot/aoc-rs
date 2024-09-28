@@ -7,15 +7,19 @@ mod framework;
 pub mod grid;
 pub mod input;
 pub mod md5;
-#[cfg_attr(target_family = "wasm", path = "multithreading_wasm.rs")]
+#[cfg(not(target_family = "wasm"))]
 pub mod multithreading;
 pub mod multiversion;
 pub mod number;
 pub mod parser;
 pub mod point;
 pub mod simd;
+#[cfg(target_family = "wasm")]
+pub mod wasm;
 
 pub use framework::{Puzzle, PuzzleExamples};
+#[cfg(target_family = "wasm")]
+pub use wasm::multithreading;
 
 /// Standard imports for puzzle solutions.
 pub mod prelude {

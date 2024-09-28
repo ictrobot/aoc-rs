@@ -4,6 +4,9 @@ const MODULE_PATHS = [
     "./aoc-simd128.wasm",
     "./aoc.wasm",
 ];
+if (window.crossOriginIsolated) {
+    MODULE_PATHS.unshift("./aoc-threads.wasm");
+}
 
 let module;
 for (const path of MODULE_PATHS) {

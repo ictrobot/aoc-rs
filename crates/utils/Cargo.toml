@@ -11,6 +11,7 @@ rust-version = { workspace = true }
 
 [features]
 unsafe = []
+wasm-multithreading = ["unsafe"]
 
 [lints]
 workspace = true

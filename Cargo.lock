@@ -16,6 +16,7 @@ name = "aoc_wasm"
 version = "0.0.0"
 dependencies = [
  "aoc",
+ "utils",
 ]
 
 [[package]]

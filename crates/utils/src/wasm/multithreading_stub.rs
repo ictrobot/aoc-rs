@@ -2,6 +2,7 @@
 
 use std::num::NonZeroUsize;
 
+#[must_use]
 pub fn get_thread_count() -> NonZeroUsize {
     NonZeroUsize::new(1).unwrap()
 }

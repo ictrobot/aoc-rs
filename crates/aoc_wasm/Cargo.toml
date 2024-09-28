@@ -9,6 +9,10 @@ rust-version = { workspace = true }
 
 [dependencies]
 aoc = { path = "../aoc" }
+utils = { path = "../utils", optional = true }
+
+[features]
+multithreading = ["utils/wasm-multithreading"]
 
 [lints]
 workspace = true

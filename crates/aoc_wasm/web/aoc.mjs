@@ -6,6 +6,12 @@
  * @property {WebAssembly.Global} PART1
  * @property {WebAssembly.Global} PART2
  * @property {number} PUZZLES
+ * @property {WebAssembly.Global} [__tls_size]                          If multithreaded
+ * @property {WebAssembly.Global} [__tls_align]                         If multithreaded
+ * @property {WebAssembly.Global} [__tls_base]                          If multithreaded
+ * @property {WebAssembly.Global} [__stack_pointer]                     If multithreaded
+ * @property {(size: number, align: number) => number} [allocate_stack] If multithreaded
+ * @property {() => void} [worker_thread]                               If multithreaded
  */
 
 /**
@@ -22,12 +28,16 @@
 const BUFFER_SIZE = 1024 * 1024;
 
 export class Aoc {
+    /** @type {boolean} */
+    #multithreaded;
     /** @type {WebAssembly.Module} */
     #module;
     /** @type {WebAssembly.Instance} */
     #instance;
-    /** @type {Puzzles} */
-    #puzzles;
+    /** @type {WebAssembly.Memory} */
+    #memory;
+    /** @type {Worker[]} */
+    #workers;
 
     /**
      * @param {WebAssembly.Module} module
@@ -90,14 +100,66 @@ export class Aoc {
      * @param {WebAssembly.Instance} [instance]
      */
     constructor(module, instance) {
-        this.#module = module;
-        this.#instance = instance ?? new WebAssembly.Instance(module);
+        const imports = WebAssembly.Module.imports(module);
+        if (imports.length === 0) {
+            this.#multithreaded = false;
+            this.#module = module;
+            this.#instance = instance ?? new WebAssembly.Instance(module);
+            this.#memory = this.#exports.memory;
+        } else if (imports.length === 1 && imports[0].module === "env" && imports[0].name === "memory" && imports[0].kind === "memory") {
+            this.#multithreaded = true;
+            this.#module = module;
+            if (instance) throw new Error("Instance cannot be provided for multithreaded modules");
+            this.newInstance();
+        } else {
+            throw new Error("Unsupported module");
+        }
     }
 
-    /** @return {Puzzles} */
-    get puzzles() {
-        this.#puzzles ??= Aoc.puzzleList(this.#module);
-        return this.#puzzles;
+    /** @param {number} [numWorkers] */
+    newInstance(numWorkers) {
+        if (this.#multithreaded) {
+            if (this.#workers?.length > 0) {
+                // Stop existing workers
+                for (const worker of this.#workers) {
+                    worker.terminate();
+                }
+                numWorkers ??= this.#workers.length;
+                this.#workers = [];
+            }
+            numWorkers ??= navigator.hardwareConcurrency;
+
+            this.#memory = new WebAssembly.Memory({initial: 96, maximum: 2048, shared: true});
+            this.#instance = new WebAssembly.Instance(this.#module, {env: {memory: this.#memory}});
+
+            // Stack alignment must be at least 16 bytes.
+            //
+            // Only aligning the stack to 8 bytes (this.#exports.__tls_align.value at the time of writing) causes 2016
+            // day 14 to inconsistently return wrong answers in release builds as the optimizer uses `i32.or` instead of
+            // `i32.add` when adding on small array indexes.
+            let align = Math.max(16, this.#exports.__tls_align.value);
+            let tlsSize = Math.ceil(this.#exports.__tls_size.value / align) * align;
+            let stackSize = Math.ceil(this.#exports.__stack_pointer.value / align) * align;
+
+            // Use a single allocation for stack & tls, using the first stackSize bytes for the stack and the remaining
+            // tlsSize bytes for thread local storage. This makes __tls_base and __stack_pointer the same value (as
+            // the stack grows downwards and TLS is above __tls_base), similar to the main thread.
+            //
+            // Allocate all the stacks at once to avoid memory growing as workers start, which seems to cause problems.
+            const stacks = [];
+            for (let i = 0; i < numWorkers; i++) {
+                stacks.push(this.#exports.allocate_stack(stackSize + tlsSize, align));
+            }
+
+            this.#workers = [];
+            for (let i = 0; i < numWorkers; i++) {
+                const worker = new Worker("./worker.mjs", {type: "module"});
+                worker.postMessage(["thread", this.#module, this.#memory, stacks[i] + stackSize]);
+                this.#workers.push(worker);
+            }
+        } else {
+            this.#instance = new WebAssembly.Instance(this.#module);
+        }
     }
 
     /**
@@ -115,7 +177,7 @@ export class Aoc {
             this.#write(input);
             success = this.#exports.run_puzzle(year, day, isExample, part1, part2);
         } catch (e) {
-            this.#instance = new WebAssembly.Instance(this.#module);
+            this.newInstance();
             return {
                 success: false,
                 error: "Unexpected error: " + e.toString() + (e.stack ? "\n\n" + e.stack : ""),
@@ -147,18 +209,29 @@ export class Aoc {
      */
     #buffer(type) {
         const address = this.#exports[type].value;
-        return new Uint8Array(this.#exports.memory.buffer)
+        return new Uint8Array(this.#memory.buffer)
             .subarray(address, address + BUFFER_SIZE);
     }
 
     /** @param {string} input */
     #write(input) {
         const buffer = this.#buffer("INPUT");
-        const result = new TextEncoder().encodeInto(input, buffer);
-        if (result.read < input.length || result.written === buffer.length) {
-            throw new Error("Input string is too long");
+        if (this.#multithreaded) {
+            // Can't encode directly into SharedArrayBuffer
+            const temp = new Uint8Array(BUFFER_SIZE);
+            const result = new TextEncoder().encodeInto(input, temp);
+            if (result.read < input.length || result.written === buffer.length) {
+                throw new Error("Input string is too long");
+            }
+            buffer.set(temp.subarray(0, result.written));
+            buffer[result.written] = 0;
+        } else {
+            const result = new TextEncoder().encodeInto(input, buffer);
+            if (result.read < input.length || result.written === buffer.length) {
+                throw new Error("Input string is too long");
+            }
+            buffer[result.written] = 0;
         }
-        buffer[result.written] = 0;
     }
 
     /**
@@ -171,6 +244,13 @@ export class Aoc {
         const end = buffer.indexOf(0);
         if (end !== -1) {
             buffer = buffer.subarray(0, end);
+        }
+
+        if (this.#multithreaded) {
+            // Can't decode directly from SharedArrayBuffer
+            const temp = new Uint8Array(buffer.length);
+            temp.set(buffer);
+            buffer = temp;
         }
 
         return (new TextDecoder()).decode(buffer);

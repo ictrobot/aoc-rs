@@ -1,6 +1,8 @@
 //! Simple WebAssembly interface without external libraries.
 
 mod custom_sections;
+#[cfg(feature = "multithreading")]
+mod multithreading;
 
 use aoc::all_puzzles;
 use aoc::utils::input::InputType;

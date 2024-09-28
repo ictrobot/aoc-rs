@@ -12,6 +12,7 @@ static NUM_THREADS: AtomicUsize = AtomicUsize::new(0);
 /// Get the number of worker threads to use.
 ///
 /// Defaults to [`std::thread::available_parallelism`] unless set by [`set_thread_count`].
+#[must_use]
 pub fn get_thread_count() -> NonZeroUsize {
     if let Some(threads) = NonZeroUsize::new(NUM_THREADS.load(Relaxed)) {
         threads

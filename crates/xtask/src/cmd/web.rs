@@ -24,21 +24,45 @@ pub fn main(args: impl Iterator<Item = String>) -> Result<(), Box<dyn Error>> {
     run_cargo(&["doc", "--no-deps"], &[])?;
 
     let mut rewrites = vec![];
-    for (features, name) in [
-        ("", "aoc.wasm"),
-        ("-C target_feature=+simd128", "aoc-simd128.wasm"),
-    ] {
-        run_cargo(
+    for (env, extra_args, name) in [
+        (&[][..], &[][..], "aoc.wasm"),
+        (
+            &[("RUSTFLAGS", "-C target_feature=+simd128")],
+            &[],
+            "aoc-simd128.wasm",
+        ),
+        // Experimental wasm threads support. This relies on a number of unstable and/or
+        // undocumented features, including `target_feature=+`atomics`, `-Z build-std` and
+        // `RUSTC_BOOTSTRAP=1` to re-use the same stable rust toolchain.
+        (
             &[
-                "build",
-                "-p",
-                "aoc_wasm",
-                "--lib",
-                "--target=wasm32-unknown-unknown",
-                "--release",
+                ("RUSTC_BOOTSTRAP", "1"),
+                (
+                    "RUSTFLAGS",
+                    "-C target_feature=+atomics,+bulk-memory,+mutable-globals,+simd128 \
+                        -C link-args=--export=__stack_pointer",
+                ),
             ],
-            &[("RUSTFLAGS", features)],
-        )?;
+            &[
+                "--features",
+                "multithreading",
+                "-Z",
+                "build-std=panic_abort,std",
+            ],
+            "aoc-threads.wasm",
+        ),
+    ] {
+        let mut args = vec![
+            "build",
+            "-p",
+            "aoc_wasm",
+            "--lib",
+            "--target=wasm32-unknown-unknown",
+            "--release",
+        ];
+        args.extend_from_slice(extra_args);
+
+        run_cargo(&args, env)?;
 
         let output_wasm = output.join(name);
         copy_file(
@@ -70,6 +94,12 @@ pub fn main(args: impl Iterator<Item = String>) -> Result<(), Box<dyn Error>> {
 
         add_rewrite(&mut rewrites, &dst)?;
     }
+
+    // Don't rewrite service worker path
+    copy_file(
+        web.join("cross-origin-isolation-service-worker.js"),
+        output.join("cross-origin-isolation-service-worker.js"),
+    )?;
 
     copy_dir(
         repo_dir_path().join("target").join("doc"),
