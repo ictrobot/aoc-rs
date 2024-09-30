@@ -34,6 +34,43 @@ impl Date {
     pub fn release_time(&self) -> SystemTime {
         SystemTime::UNIX_EPOCH + Duration::from_secs(self.release_timestamp())
     }
+
+    /// The [`Date`] of the next puzzle.
+    #[must_use]
+    #[expect(clippy::cast_possible_truncation)]
+    pub fn next_puzzle() -> Option<Date> {
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        let mut date = Date {
+            year: Year(2015),
+            day: Day(1),
+        };
+
+        // Skip ahead whole years
+        if now > Self::FIRST_RELEASE_TIMESTAMP {
+            let year = 2015 + ((now - Self::FIRST_RELEASE_TIMESTAMP) / 60 / 60 / 24 / 366);
+            if year > 9999 {
+                return None;
+            }
+            date.year = Year(year as u16);
+        }
+
+        while date.release_timestamp() < now {
+            if date.day.0 < 25 {
+                date.day.0 += 1;
+            } else if date.year.0 < 9999 {
+                date.year.0 += 1;
+                date.day.0 = 1;
+            } else {
+                return None;
+            }
+        }
+
+        Some(date)
+    }
 }
 
 impl Display for Date {
