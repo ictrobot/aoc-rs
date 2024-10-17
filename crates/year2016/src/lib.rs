@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 
+mod assembunny;
+
 utils::year!(2016 => year2016, ${
     1 => day01::Day01,
     2 => day02::Day02<'_>,
@@ -24,4 +26,5 @@ utils::year!(2016 => year2016, ${
     20 => day20::Day20,
     21 => day21::Day21,
     22 => day22::Day22,
+    23 => day23::Day23,
 });
