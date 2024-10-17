@@ -1,5 +1,4 @@
 //! Simple WebAssembly interface without external libraries.
-
 mod custom_sections;
 #[cfg(feature = "multithreading")]
 mod multithreading;
@@ -8,18 +7,17 @@ use aoc::all_puzzles;
 use aoc::utils::input::InputType;
 use std::error::Error;
 use std::ffi::CStr;
-use std::ptr::addr_of_mut;
 
 const BUFFER_LENGTH: usize = 1024 * 1024;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 static INPUT: [u8; BUFFER_LENGTH] = [0u8; BUFFER_LENGTH];
-#[no_mangle]
+#[unsafe(no_mangle)]
 static mut PART1: [u8; BUFFER_LENGTH] = [0u8; BUFFER_LENGTH];
-#[no_mangle]
+#[unsafe(no_mangle)]
 static mut PART2: [u8; BUFFER_LENGTH] = [0u8; BUFFER_LENGTH];
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn run_puzzle(
     year: u16,
     day: u8,
@@ -35,8 +33,8 @@ extern "C" fn run_puzzle(
     // SAFETY: No other Rust code accesses these variables or creates references - they're only read
     // from JS.
     unsafe {
-        write_string(addr_of_mut!(PART1).cast(), &part1);
-        write_string(addr_of_mut!(PART2).cast(), &part2);
+        write_string((&raw mut PART1).cast(), &part1);
+        write_string((&raw mut PART2).cast(), &part2);
     }
 
     success

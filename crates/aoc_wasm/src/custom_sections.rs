@@ -49,7 +49,7 @@ macro_rules! matcher {
             mod $day {
                 use aoc::utils::PuzzleExamples;
 
-                #[link_section = "aoc_puzzles"]
+                #[unsafe(link_section = "aoc_puzzles")]
                 #[used]
                 static PUZZLE_LIST: [u8; 6] = [
                     b'0' + ($y / 1000u16) as u8,
@@ -60,7 +60,7 @@ macro_rules! matcher {
                     b'0' + $d % 10,
                 ];
 
-                #[link_section = concat!("aoc_examples_", stringify!($y), "_", stringify!($d))]
+                #[unsafe(link_section = concat!("aoc_examples_", stringify!($y), "_", stringify!($d)))]
                 #[used]
                 static PUZZLE_EXAMPLES: [u8; super::super::examples_len(aoc::$year::$day::EXAMPLES)]
                     = super::super::examples_section(aoc::$year::$day::EXAMPLES);
