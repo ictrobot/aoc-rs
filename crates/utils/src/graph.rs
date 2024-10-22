@@ -69,7 +69,7 @@ use std::marker::PhantomData;
 ///     }
 /// );
 ///
-/// assert_eq!(min_path, 12); // 0 =[6]=> 4 =[4]=> 2 =[1]=> 1 =[2]=> 3
+/// assert_eq!(min_path, 12); // 3 =[3]=> 1 =[1]=> 2 =[2]=> 0 =[6]=> 4
 /// assert_eq!(max_path, 31); // 1 =[7]=> 0 =[6]=> 4 =[9]=> 3 =[9]=> 2
 /// ```
 #[inline]
