@@ -37,7 +37,7 @@ use std::marker::PhantomData;
 ///     }
 /// );
 ///
-/// assert_eq!(min_hamiltonian_path, 14);  // 0 =[6]=> 4 =[4]=> 2 =[1]=> 1 =[2]=> 3
+/// assert_eq!(min_hamiltonian_path, 14);  // 0 =[6]=> 4 =[4]=> 2 =[1]=> 1 =[3]=> 3
 /// assert_eq!(min_hamiltonian_cycle, 21); // 0 =[2]=> 2 =[1]=> 1 =[3]=> 3 =[9]=> 4 =[6]=> 0
 /// ```
 ///
