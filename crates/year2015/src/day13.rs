@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use utils::bit::BitIterator;
+use utils::graph::explore_hamiltonian_paths;
 use utils::prelude::*;
 
 /// Seating plan.
@@ -44,7 +44,21 @@ impl Day13 {
             matrix[indexes[person1] * people + indexes[person2]] = change;
         });
 
-        let (part1, part2) = Visitor::visit_all(matrix, people as u32);
+        let (mut part1, mut part2) = (i32::MIN, i32::MIN);
+        explore_hamiltonian_paths(
+            people as u32,
+            0,
+            (0, i32::MAX),
+            |a, b| {
+                matrix[a as usize * people + b as usize] + matrix[b as usize * people + a as usize]
+            },
+            |(total, min_edge), edge| (total + edge, min_edge.min(edge)),
+            |(total, min_edge), loop_edge| {
+                part1 = part1.max(total + loop_edge);
+                part2 = part2.max(total + loop_edge - min_edge.min(loop_edge));
+            },
+        );
+
         Ok(Self { part1, part2 })
     }
 
@@ -56,47 +70,6 @@ impl Day13 {
     #[must_use]
     pub fn part2(&self) -> i32 {
         self.part2
-    }
-}
-
-struct Visitor {
-    matrix: Vec<i32>,
-    people: u32,
-    part1: i32,
-    part2: i32,
-}
-
-impl Visitor {
-    #[must_use]
-    fn visit_all(matrix: Vec<i32>, people: u32) -> (i32, i32) {
-        let mut v = Self {
-            matrix,
-            people,
-            part1: i32::MIN,
-            part2: i32::MIN,
-        };
-        v.visit(
-            0,
-            !(Seated::MAX >> (Seated::BITS - people)) | 1,
-            0,
-            i32::MAX,
-        );
-        (v.part1, v.part2)
-    }
-
-    fn visit(&mut self, prev: u32, seated: Seated, total: i32, min_edge: i32) {
-        if seated == Seated::MAX {
-            let loop_edge = self.matrix[prev as usize] + self.matrix[(prev * self.people) as usize];
-            self.part1 = self.part1.max(total + loop_edge);
-            self.part2 = self.part2.max(total + loop_edge - min_edge.min(loop_edge));
-            return;
-        }
-
-        for (next, next_bit) in BitIterator::zeroes(seated) {
-            let edge = self.matrix[(prev * self.people + next) as usize]
-                + self.matrix[(next * self.people + prev) as usize];
-            self.visit(next, seated | next_bit, total + edge, min_edge.min(edge));
-        }
     }
 }
 

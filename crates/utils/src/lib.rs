@@ -4,6 +4,7 @@
 pub mod bit;
 pub mod date;
 mod framework;
+pub mod graph;
 pub mod grid;
 pub mod input;
 pub mod md5;

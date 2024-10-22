@@ -33,10 +33,11 @@ pub trait Number:
 {
     const ZERO: Self;
     const ONE: Self;
+    const MIN: Self;
+    const MAX: Self;
 
     #[must_use]
     fn abs(self) -> Self;
-
     #[must_use]
     fn rem_euclid(self, rhs: Self) -> Self;
 }
@@ -66,9 +67,6 @@ pub trait Integer:
     + ShrAssign<u32>
     + TryInto<i128>
 {
-    const MIN: Self;
-    const MAX: Self;
-
     #[must_use]
     fn checked_add(self, rhs: Self) -> Option<Self>;
     #[must_use]
@@ -92,6 +90,8 @@ macro_rules! number_impl {
         $(impl Number for $t {
             const ZERO: Self = 0;
             const ONE: Self = 1;
+            const MIN: Self = Self::MIN;
+            const MAX: Self = Self::MAX;
 
             #[inline]
             fn abs(self) -> Self {
@@ -112,6 +112,8 @@ macro_rules! number_impl {
         $(impl Number for $t {
             const ZERO: Self = 0;
             const ONE: Self = 1;
+            const MIN: Self = Self::MIN;
+            const MAX: Self = Self::MAX;
 
             #[inline]
             fn abs(self) -> Self {
@@ -133,6 +135,8 @@ macro_rules! number_impl {
         $(impl Number for $t {
             const ZERO: Self = 0.0;
             const ONE: Self = 1.0;
+            const MIN: Self = Self::NEG_INFINITY;
+            const MAX: Self = Self::INFINITY;
 
             #[inline]
             fn abs(self) -> Self {
@@ -154,9 +158,6 @@ macro_rules! number_impl {
     };
     (@common integer => $($t:ty),+) => {
         $(impl Integer for $t {
-            const MIN: Self = Self::MIN;
-            const MAX: Self = Self::MAX;
-
             #[inline]
             fn checked_add(self, rhs: Self) -> Option<Self> {
                 self.checked_add(rhs)

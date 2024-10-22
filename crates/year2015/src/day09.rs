@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use utils::bit::BitIterator;
+use utils::graph::explore_hamiltonian_paths;
 use utils::prelude::*;
 
 /// Finding the shortest and longest path.
@@ -31,7 +31,8 @@ impl Day09 {
             indexes.entry(end).or_insert(len);
         });
 
-        if indexes.len() > Visited::BITS as usize {
+        let locations = indexes.len();
+        if locations > Visited::BITS as usize {
             return Err(InputError::new(input, 0, "too many locations"));
         }
 
@@ -43,7 +44,21 @@ impl Day09 {
             matrix[indexes.len() * end + start] = dist;
         });
 
-        let (part1, part2) = Visitor::visit_all(matrix, indexes.len() as u32);
+        let (mut part1, mut part2) = (u32::MAX, 0);
+        explore_hamiltonian_paths(
+            indexes.len() as u32,
+            0,
+            (0, u32::MAX, 0),
+            |a, b| matrix[a as usize * locations + b as usize],
+            |(total, min_edge, max_edge), edge| {
+                (total + edge, min_edge.min(edge), max_edge.max(edge))
+            },
+            |(total, min_edge, max_edge), loop_edge| {
+                part1 = part1.min(total + loop_edge - max_edge.max(loop_edge));
+                part2 = part2.max(total + loop_edge - min_edge.min(loop_edge))
+            },
+        );
+
         Ok(Self { part1, part2 })
     }
 
@@ -55,53 +70,6 @@ impl Day09 {
     #[must_use]
     pub fn part2(&self) -> u32 {
         self.part2
-    }
-}
-
-struct Visitor {
-    matrix: Vec<u32>,
-    locations: u32,
-    min: u32,
-    max: u32,
-}
-
-impl Visitor {
-    #[must_use]
-    fn visit_all(matrix: Vec<u32>, locations: u32) -> (u32, u32) {
-        let mut v = Self {
-            matrix,
-            locations,
-            min: u32::MAX,
-            max: 0,
-        };
-        v.visit(
-            0,
-            !(Visited::MAX >> (Visited::BITS - locations)) | 1,
-            0,
-            u32::MAX,
-            0,
-        );
-        (v.min, v.max)
-    }
-
-    fn visit(&mut self, prev: u32, visited: Visited, distance: u32, min_edge: u32, max_edge: u32) {
-        if visited == Visited::MAX {
-            let loop_edge = self.matrix[prev as usize];
-            self.min = self.min.min(distance + loop_edge - max_edge.max(loop_edge));
-            self.max = self.max.max(distance + loop_edge - min_edge.min(loop_edge));
-            return;
-        }
-
-        for (next, next_bit) in BitIterator::zeroes(visited) {
-            let edge = self.matrix[(prev * self.locations + next) as usize];
-            self.visit(
-                next,
-                visited | next_bit,
-                distance + edge,
-                min_edge.min(edge),
-                max_edge.max(edge),
-            );
-        }
     }
 }
 

@@ -75,7 +75,7 @@ pub fn from_str<T>(
 /// ```
 /// # use utils::grid::from_str_padded;
 /// assert_eq!(
-///     from_str_padded("##.#\n#..#\n#.##", 2, |c| match c {
+///     from_str_padded("##.#\n#..#\n#.##", 2, false, |c| match c {
 ///         b'#' => Some(true),
 ///         b'.' => Some(false),
 ///         _ => None,
@@ -91,9 +91,10 @@ pub fn from_str<T>(
 ///     ]),
 /// );
 /// ```
-pub fn from_str_padded<T: Clone + Default>(
+pub fn from_str_padded<T: Clone>(
     input: &str,
     padding: usize,
+    padding_value: T,
     mut func: impl FnMut(u8) -> Option<T>,
 ) -> Result<(usize, usize, Vec<T>), InputError> {
     let mut data = Vec::with_capacity(input.len());
@@ -107,7 +108,7 @@ pub fn from_str_padded<T: Clone + Default>(
     let padded_columns = columns + 2 * padding;
 
     // Add initial padding rows + padding for start of first actual row
-    data.resize(padded_columns * padding + padding, Default::default());
+    data.resize(padded_columns * padding + padding, padding_value.clone());
 
     for line in lines {
         if line.len() != columns {
@@ -127,13 +128,13 @@ pub fn from_str_padded<T: Clone + Default>(
         }
 
         // Add padding for the end of the current row, and the start of the next row
-        data.resize(data.len() + 2 * padding, Default::default());
+        data.resize(data.len() + 2 * padding, padding_value.clone());
     }
 
     // Add final padding rows, minus the already added padding for the start of a row
     data.resize(
         data.len() + padded_columns * padding - padding,
-        Default::default(),
+        padding_value,
     );
 
     let rows = data.len() / padded_columns;
