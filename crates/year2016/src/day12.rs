@@ -1,4 +1,4 @@
-use crate::assembunny::{Interpreter, InterpreterConfig};
+use crate::assembunny::Interpreter;
 use utils::prelude::*;
 
 /// Interpreting assembly, again.
@@ -13,7 +13,7 @@ use utils::prelude::*;
 /// cycles ~5,000 times for part 1 and ~100,000 times for part 2, to around ~200 cycles each.
 #[derive(Clone, Debug)]
 pub struct Day12 {
-    interpreter: Interpreter<Self>,
+    interpreter: Interpreter<false, false>,
 }
 
 impl Day12 {
@@ -33,8 +33,6 @@ impl Day12 {
         self.interpreter.execute([0, 0, 1, 0])
     }
 }
-
-impl InterpreterConfig for Day12 {}
 
 examples!(Day12 -> (i32, i32) [
     {

@@ -1,4 +1,4 @@
-use crate::assembunny::{Interpreter, InterpreterConfig};
+use crate::assembunny::Interpreter;
 use utils::prelude::*;
 
 /// Interpreting assembunny assembly, again.
@@ -19,7 +19,7 @@ use utils::prelude::*;
 /// See also [2016 day 12](crate::Day12).
 #[derive(Clone, Debug)]
 pub struct Day23 {
-    interpreter: Interpreter<Self>,
+    interpreter: Interpreter<true, false>,
 }
 
 impl Day23 {
@@ -38,10 +38,6 @@ impl Day23 {
     pub fn part2(&self) -> i32 {
         self.interpreter.execute([12, 0, 0, 0])
     }
-}
-
-impl InterpreterConfig for Day23 {
-    const SUPPORTS_TOGGLE: bool = true;
 }
 
 examples!(Day23 -> (i32, i32) [
