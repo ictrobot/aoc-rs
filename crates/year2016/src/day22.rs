@@ -35,7 +35,7 @@ impl Day22 {
                 parser::u32()
                     .with_prefix(parser::take_while1(u8::is_ascii_whitespace))
                     .with_suffix(b'T')
-                    .repeat::<3>(),
+                    .repeat_n::<3>(),
             )
             .map_res(|(x, y, [size, used, avail])| {
                 if size == used + avail {

@@ -1,5 +1,7 @@
 use crate::input::{InputError, MapWithInputExt};
-use crate::parser::combinator::{Map, MapResult, Optional, Or, Repeat, WithPrefix, WithSuffix};
+use crate::parser::combinator::{
+    Map, MapResult, Optional, Or, RepeatN, RepeatVec, WithPrefix, WithSuffix,
+};
 use crate::parser::error::WithErrorMsg;
 use crate::parser::simple::Eol;
 use crate::parser::then::Then2;
@@ -152,7 +154,10 @@ pub trait Parser: Sized {
         Optional { parser: self }
     }
 
-    /// Repeat this parser `N` times, returning an array.
+    /// Repeat this parser `N` times, returning an [`array`].
+    ///
+    /// See also [`repeat`](Self::repeat) which returns a [`Vec`] instead, for unknown or varying
+    /// number of repeats.
     ///
     /// # Examples
     /// ```
@@ -160,16 +165,61 @@ pub trait Parser: Sized {
     /// assert_eq!(
     ///     parser::u32()
     ///         .with_suffix(",".optional())
-    ///         .repeat() // N = 3 is inferred
+    ///         .repeat_n() // N = 3 is inferred
     ///         .parse(b"12,34,56"),
     ///     Ok(([12, 34, 56], &b""[..]))
     /// );
     /// ```
-    fn repeat<const N: usize>(self) -> Repeat<N, Self>
+    fn repeat_n<const N: usize>(self) -> RepeatN<N, Self>
     where
         for<'i> Self::Output<'i>: Copy + Default,
     {
-        Repeat { parser: self }
+        RepeatN { parser: self }
+    }
+
+    /// Repeat this parser while it matches, returning a [`Vec`].
+    ///
+    /// If the number of items is constant and known in advance, prefer [`repeat_n`](Self::repeat_n)
+    /// as it avoids allocating.
+    ///
+    /// See also [`repeat_min`](Self::repeat_min), which ensures at least N items are parsed.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// assert_eq!(
+    ///     parser::u32()
+    ///         .with_suffix(",".optional())
+    ///         .repeat()
+    ///         .parse(b"12,34,56,78"),
+    ///     Ok((vec![12, 34, 56, 78], &b""[..]))
+    /// );
+    /// ```
+    fn repeat(self) -> RepeatVec<Self> {
+        RepeatVec {
+            parser: self,
+            min_elements: 0,
+        }
+    }
+
+    /// Repeat this parser at least N times, returning a [`Vec`].
+    ///
+    /// See also [`repeat`](Self::repeat).
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// let parser = parser::u32()
+    ///     .with_suffix(",".optional())
+    ///     .repeat_min(3);
+    /// assert_eq!(parser.parse(b"12,34,56,78"), Ok((vec![12, 34, 56, 78], &b""[..])));
+    /// assert!(parser.parse(b"12,34").is_err());
+    /// ```
+    fn repeat_min(self, min_elements: usize) -> RepeatVec<Self> {
+        RepeatVec {
+            parser: self,
+            min_elements,
+        }
     }
 
     /// Parse a prefix (normally a string literal) before this parser.

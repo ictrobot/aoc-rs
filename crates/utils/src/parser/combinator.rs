@@ -74,10 +74,10 @@ impl<P: Parser> Parser for Optional<P> {
 }
 
 #[derive(Copy, Clone)]
-pub struct Repeat<const N: usize, P> {
+pub struct RepeatN<const N: usize, P> {
     pub(super) parser: P,
 }
-impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>> Parser for Repeat<N, P> {
+impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>> Parser for RepeatN<N, P> {
     type Output<'i> = [P::Output<'i>; N];
     type Then<T: Parser> = Then2<Self, T>;
 
@@ -94,6 +94,34 @@ impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>> Parser for R
             }
         }
         Ok((output, input))
+    }
+
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
+        Then2::new(self, next)
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct RepeatVec<P> {
+    pub(super) parser: P,
+    pub(super) min_elements: usize,
+}
+impl<P: Parser> Parser for RepeatVec<P> {
+    type Output<'i> = Vec<P::Output<'i>>;
+    type Then<T: Parser> = Then2<Self, T>;
+
+    #[inline]
+    fn parse<'i>(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+        let mut output = Vec::new();
+        while let Ok((v, remaining)) = self.parser.parse(input) {
+            output.push(v);
+            input = remaining;
+        }
+        if output.len() >= self.min_elements {
+            Ok((output, input))
+        } else {
+            Err((ParseError::ExpectedMatches(self.min_elements), input))
+        }
     }
 
     fn then<T: Parser>(self, next: T) -> Self::Then<T> {

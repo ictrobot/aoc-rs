@@ -48,6 +48,7 @@ impl InputError {
     pub fn new(input: &str, index: impl ToIndex, source: impl Into<Box<dyn Error>>) -> Self {
         let index = index.input_index(input);
         let (line_number, column_number, line) = Self::line_position(input, index);
+        let line = line.replace('\t', " ");
 
         InputError {
             line_number,
