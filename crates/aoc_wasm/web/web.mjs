@@ -1,5 +1,7 @@
 import {Aoc} from "./aoc.mjs";
 
+console.log("Commit", "${GIT_COMMIT}");
+
 const MODULE_PATHS = [
     "./aoc-simd128.wasm",
     "./aoc.wasm",

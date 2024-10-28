@@ -4,6 +4,7 @@ use crate::common::{
 use std::error::Error;
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 use std::str;
 use utils::md5;
 
@@ -23,7 +24,14 @@ pub fn main(args: impl Iterator<Item = String>) -> Result<(), Box<dyn Error>> {
     run_cargo(&["clean", "--doc"], &[])?;
     run_cargo(&["doc", "--no-deps"], &[])?;
 
-    let mut rewrites = vec![];
+    let mut rewrites = vec![(
+        "\"${GIT_COMMIT}\"".to_string(),
+        get_commit_commit().unwrap_or_else(|e| {
+            println!("failed to get git commit: {e}");
+            "\"unknown\"".to_string()
+        }),
+    )];
+
     for (env, extra_args, name) in [
         (&[][..], &[][..], "aoc.wasm"),
         (
@@ -122,4 +130,30 @@ fn add_rewrite(rewrites: &mut Vec<(String, String)>, path: &Path) -> Result<(), 
     rewrites.push((from, to));
 
     Ok(())
+}
+
+fn get_commit_commit() -> Result<String, Box<dyn Error>> {
+    let hash = {
+        let output = Command::new("git").args(["rev-parse", "HEAD"]).output()?;
+        if !output.status.success() {
+            return Err(format!("'git rev-parse HEAD' exited with {}", output.status).into());
+        }
+        String::from_utf8(output.stdout)?
+    };
+
+    let modified = {
+        let output = Command::new("git")
+            .args(["status", "--porcelain"])
+            .output()?;
+        if !output.status.success() {
+            return Err(format!("'git status' exited with {}", output.status).into());
+        }
+        !output.stdout.is_empty()
+    };
+
+    if modified {
+        Ok(format!("\"{} (modified)\"", hash.trim()))
+    } else {
+        Ok(format!("\"{}\"", hash.trim()))
+    }
 }
