@@ -10,11 +10,7 @@ pub struct Day12 {
 
 impl Day12 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let (part1, part2) = match Self::parse(input.as_bytes()) {
-            Ok(((part1, part2), &[])) => Ok((part1, part2)),
-            Ok((_, remaining)) => Err(InputError::new(input, remaining, "expected end of input")),
-            Err((err, position)) => Err(InputError::new(input, position, err)),
-        }?;
+        let (part1, part2) = Self::parse.parse_complete(input)?;
         Ok(Self { part1, part2 })
     }
 

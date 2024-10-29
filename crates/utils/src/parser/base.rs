@@ -425,6 +425,20 @@ impl Parser for u8 {
     }
 }
 
+/// Allow custom functions and closures to be used as parsers.
+impl<O, F: Fn(&[u8]) -> ParseResult<O>> Parser for F {
+    type Output<'i> = O;
+    type Then<T: Parser> = Then2<Self, T>;
+
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+        self(input)
+    }
+
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
+        Then2::new(self, next)
+    }
+}
+
 /// Trait for types that have a canonical parser.
 pub trait Parseable {
     type Parser: for<'i> Parser<Output<'i> = Self>;
