@@ -10,8 +10,7 @@ impl Day02 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
             rows: parser::u32()
-                .with_suffix(b' '.or(b'\t').optional())
-                .repeat_min(2)
+                .repeat(b' '.or(b'\t'), 2)
                 .map(|mut v| {
                     v.sort_unstable();
                     v

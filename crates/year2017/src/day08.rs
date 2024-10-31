@@ -21,14 +21,14 @@ impl Day08 {
             )
             .then(parser::take_while1(u8::is_ascii_lowercase).with_suffix(" "))
             .then(
-                parser::one_of((
-                    "==".map(|_| i32::eq as fn(&i32, &i32) -> bool),
-                    "!=".map(|_| i32::ne as fn(&i32, &i32) -> bool),
-                    "<=".map(|_| i32::le as fn(&i32, &i32) -> bool),
-                    ">=".map(|_| i32::ge as fn(&i32, &i32) -> bool),
-                    "<".map(|_| i32::lt as fn(&i32, &i32) -> bool),
-                    ">".map(|_| i32::gt as fn(&i32, &i32) -> bool),
-                ))
+                parser::literal_map!(
+                    "==" => i32::eq as fn(&i32, &i32) -> bool,
+                    "!=" => i32::ne as fn(&i32, &i32) -> bool,
+                    "<=" => i32::le as fn(&i32, &i32) -> bool,
+                    ">=" => i32::ge as fn(&i32, &i32) -> bool,
+                    "<" => i32::lt as fn(&i32, &i32) -> bool,
+                    ">" => i32::gt as fn(&i32, &i32) -> bool,
+                )
                 .with_suffix(" "),
             )
             .then(parser::i32())

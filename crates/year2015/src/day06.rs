@@ -35,11 +35,11 @@ enum Action {
 
 impl Day06 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let mut instructions = parser::one_of((
-            "turn off ".map(|_| Action::TurnOff),
-            "turn on ".map(|_| Action::TurnOn),
-            "toggle ".map(|_| Action::Toggle),
-        ))
+        let mut instructions = parser::literal_map!(
+            "turn off " => Action::TurnOff,
+            "turn on " => Action::TurnOn,
+            "toggle " => Action::Toggle,
+        )
         .then(parser::u16())
         .then(parser::u16().with_prefix(b','))
         .then(parser::u16().with_prefix(" through "))

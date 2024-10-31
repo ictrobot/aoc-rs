@@ -24,7 +24,7 @@ enum Instruction {
 
 impl Day23 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let register = b'a'.map(|_| Register::A).or(b'b'.map(|_| Register::B));
+        let register = parser::literal_map!("a" => Register::A, "b" => Register::B);
 
         Ok(Self {
             instructions: parser::one_of((

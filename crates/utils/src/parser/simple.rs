@@ -91,7 +91,7 @@ pub fn byte_range(range: RangeInclusive<u8>) -> ByteRange {
 }
 
 #[derive(Copy, Clone)]
-pub struct Constant<V: Copy>(V);
+pub struct Constant<V: Copy>(pub(super) V);
 impl<V: Copy> Parser for Constant<V> {
     type Output<'i> = V;
     type Then<T: Parser> = Then2<Self, T>;
@@ -119,6 +119,24 @@ impl<V: Copy> Parser for Constant<V> {
 #[must_use]
 pub fn constant<T: Copy>(v: T) -> Constant<T> {
     Constant(v)
+}
+
+/// Parser that consumes no input and always succeeds, returning [`()`](unit).
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{self, Parser};
+/// assert_eq!(
+///     parser::noop().parse(b"abc"),
+///     Ok(((), &b"abc"[..]))
+/// );
+/// ```
+#[must_use]
+pub fn noop() -> Constant<()> {
+    const {
+        assert!(size_of::<Constant<()>>() == 0);
+    }
+    Constant(())
 }
 
 #[derive(Copy, Clone)]

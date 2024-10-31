@@ -70,6 +70,8 @@ impl<L: ParserList> Parser for OneOf<L> {
 /// Similar to [`Parser::or`], each parser will be tried in order until one succeeds. If no parsers
 /// succeed, the error from the parser furthest into the input is returned.
 ///
+/// Prefer [`parser::literal_map`](super::literal_map) if all the parsers are string literals.
+///
 /// # Examples
 /// ```
 /// # use utils::input::InputError;

@@ -23,11 +23,7 @@ impl<'a> Day07<'a> {
         let lines = name
             .with_suffix(" (")
             .then(parser::u32().with_suffix(")"))
-            .then(
-                name.with_prefix(", ".optional())
-                    .repeat()
-                    .with_prefix(" -> ".optional()),
-            )
+            .then(name.repeat(", ", 0).with_prefix(" -> ".optional()))
             .parse_lines(input)?;
 
         let mut programs = lines

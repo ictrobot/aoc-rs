@@ -3,8 +3,8 @@ use crate::parser::combinator::{
     Map, MapResult, Optional, Or, RepeatN, RepeatVec, WithPrefix, WithSuffix,
 };
 use crate::parser::error::WithErrorMsg;
-use crate::parser::simple::Eol;
-use crate::parser::then::Then2;
+use crate::parser::simple::{Constant, Eol};
+use crate::parser::then::{Then2, Unimplemented};
 use crate::parser::ParseError;
 
 /// [`Result`] type returned by [`Parser::parse`].
@@ -182,42 +182,18 @@ pub trait Parser: Sized {
     /// If the number of items is constant and known in advance, prefer [`repeat_n`](Self::repeat_n)
     /// as it avoids allocating.
     ///
-    /// See also [`repeat_min`](Self::repeat_min), which ensures at least N items are parsed.
-    ///
-    /// # Examples
-    /// ```
-    /// # use utils::parser::{self, Parser};
-    /// assert_eq!(
-    ///     parser::u32()
-    ///         .with_suffix(",".optional())
-    ///         .repeat()
-    ///         .parse(b"12,34,56,78"),
-    ///     Ok((vec![12, 34, 56, 78], &b""[..]))
-    /// );
-    /// ```
-    fn repeat(self) -> RepeatVec<Self> {
-        RepeatVec {
-            parser: self,
-            min_elements: 0,
-        }
-    }
-
-    /// Repeat this parser at least N times, returning a [`Vec`].
-    ///
-    /// See also [`repeat`](Self::repeat).
-    ///
     /// # Examples
     /// ```
     /// # use utils::parser::{self, Parser};
     /// let parser = parser::u32()
-    ///     .with_suffix(",".optional())
-    ///     .repeat_min(3);
+    ///     .repeat(",", 3);
     /// assert_eq!(parser.parse(b"12,34,56,78"), Ok((vec![12, 34, 56, 78], &b""[..])));
     /// assert!(parser.parse(b"12,34").is_err());
     /// ```
-    fn repeat_min(self, min_elements: usize) -> RepeatVec<Self> {
+    fn repeat<S: Parser>(self, separator: S, min_elements: usize) -> RepeatVec<Self, S> {
         RepeatVec {
             parser: self,
+            separator,
             min_elements,
         }
     }
@@ -287,7 +263,24 @@ pub trait Parser: Sized {
         }
     }
 
+    /// Apply this parser once, checking the provided input is fully consumed.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// assert_eq!(parser::u32().parse_complete("1234").unwrap(), 1234);
+    /// assert!(parser::u32().parse_complete("1234abc").is_err());
+    /// ```
+    fn parse_complete<'i>(&self, input: &'i str) -> Result<Self::Output<'i>, InputError> {
+        match self.parse(input.as_bytes()).map_with_input(input)? {
+            (v, []) => Ok(v),
+            (_, remaining) => Err(InputError::new(input, remaining, "expected end of input")),
+        }
+    }
+
     /// Apply this parser repeatedly until the provided input is fully consumed.
+    ///
+    /// Equivalent to `parser.repeat(parser::noop(), 0).parse_complete(input)`.
     ///
     /// # Examples
     /// ```
@@ -306,20 +299,9 @@ pub trait Parser: Sized {
     /// );
     /// ```
     fn parse_all<'i>(&self, input: &'i str) -> Result<Vec<Self::Output<'i>>, InputError> {
-        let mut results = Vec::new();
-        let mut remaining = input.as_bytes();
-        while !remaining.is_empty() {
-            let (v, new_remaining) = self.parse(remaining).map_with_input(input)?;
-
-            if results.is_empty() {
-                let length = remaining.len() - new_remaining.len();
-                results.reserve(2 + ((remaining.len() / length) * 6 / 5));
-            }
-
-            remaining = new_remaining;
-            results.push(v);
-        }
-        Ok(results)
+        ParserRef(self)
+            .repeat(Constant(()), 0)
+            .parse_complete(input)
     }
 
     /// Similar to [`parse_all`](Self::parse_all) but expects a newline after each item.
@@ -342,44 +324,26 @@ pub trait Parser: Sized {
     /// );
     /// ```
     fn parse_lines<'i>(&self, input: &'i str) -> Result<Vec<Self::Output<'i>>, InputError> {
-        // Can't use WithSuffix as it consumes the input parser
-        struct LineParser<'a, P>(&'a P);
-        impl<'a, P: Parser> Parser for LineParser<'a, P> {
-            type Output<'i> = P::Output<'i>;
-            type Then<T: Parser> = Then2<Self, T>;
+        ParserRef(self)
+            .with_suffix(Eol())
+            .repeat(Constant(()), 0)
+            .parse_complete(input)
+    }
+}
 
-            #[inline]
-            fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
-                match self.0.parse(input) {
-                    Ok((v, remaining)) => match Eol().parse(remaining) {
-                        Ok(((), remaining)) => Ok((v, remaining)),
-                        Err(e) => Err(e),
-                    },
-                    Err(e) => Err(e),
-                }
-            }
+// Workaround to allow using methods which consume a parser in methods which take references.
+struct ParserRef<'a, P>(&'a P);
+impl<'a, P: Parser> Parser for ParserRef<'a, P> {
+    type Output<'i> = P::Output<'i>;
+    type Then<T: Parser> = Unimplemented;
 
-            fn then<T: Parser>(self, _: T) -> Self::Then<T> {
-                unreachable!();
-            }
-        }
-
-        LineParser(self).parse_all(input)
+    #[inline]
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+        self.0.parse(input)
     }
 
-    /// Apply this parser once, checking the provided input is fully consumed.
-    ///
-    /// # Examples
-    /// ```
-    /// # use utils::parser::{self, Parser};
-    /// assert_eq!(parser::u32().parse_complete("1234").unwrap(), 1234);
-    /// assert!(parser::u32().parse_complete("1234abc").is_err());
-    /// ```
-    fn parse_complete<'i>(&self, input: &'i str) -> Result<Self::Output<'i>, InputError> {
-        match self.parse(input.as_bytes()).map_with_input(input)? {
-            (v, []) => Ok(v),
-            (_, remaining) => Err(InputError::new(input, remaining, "expected end of input")),
-        }
+    fn then<T: Parser>(self, _: T) -> Self::Then<T> {
+        unreachable!();
     }
 }
 

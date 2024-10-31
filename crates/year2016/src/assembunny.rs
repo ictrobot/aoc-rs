@@ -37,12 +37,12 @@ enum Instruction {
 
 impl<const TGL: bool, const OUT: bool> Interpreter<TGL, OUT> {
     pub fn new(input: &str) -> Result<Self, InputError> {
-        let register = parser::one_of((
-            b'a'.map(|_| Register::A),
-            b'b'.map(|_| Register::B),
-            b'c'.map(|_| Register::C),
-            b'd'.map(|_| Register::D),
-        ));
+        let register = parser::literal_map!(
+            "a" => Register::A,
+            "b" => Register::B,
+            "c" => Register::C,
+            "d" => Register::D,
+        );
         let value = register
             .map(Value::Register)
             .or(parser::i32().map(Value::Number));

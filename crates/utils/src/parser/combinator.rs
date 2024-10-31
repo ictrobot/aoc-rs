@@ -1,3 +1,4 @@
+use crate::input::{InputError, MapWithInputExt};
 use crate::parser::then::Then2;
 use crate::parser::{ParseError, ParseResult, Parser};
 
@@ -102,30 +103,66 @@ impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>> Parser for R
 }
 
 #[derive(Copy, Clone)]
-pub struct RepeatVec<P> {
+pub struct RepeatVec<P, S> {
     pub(super) parser: P,
+    pub(super) separator: S,
     pub(super) min_elements: usize,
 }
-impl<P: Parser> Parser for RepeatVec<P> {
-    type Output<'i> = Vec<P::Output<'i>>;
-    type Then<T: Parser> = Then2<Self, T>;
-
+impl<P: Parser, S: Parser> RepeatVec<P, S> {
     #[inline]
-    fn parse<'i>(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn helper<'i>(
+        &self,
+        mut input: &'i [u8],
+        consume_all: bool,
+    ) -> ParseResult<'i, Vec<P::Output<'i>>> {
         let mut output = Vec::new();
+
         while let Ok((v, remaining)) = self.parser.parse(input) {
+            let consumed = input.len() - remaining.len();
+            assert!(consumed > 0, "parsing item consumed no input");
+
+            // When parsing the complete input, after parsing the first item use the proportion of
+            // consumed bytes for one item to reserve capacity for the output vec
+            if consume_all && output.is_empty() {
+                output.reserve(((remaining.len() / consumed) * 7 / 5) + 2);
+            }
+
             output.push(v);
-            input = remaining;
+
+            if let Ok((_, remaining)) = self.separator.parse(remaining) {
+                input = remaining;
+            } else {
+                input = remaining;
+                break;
+            }
         }
+
         if output.len() >= self.min_elements {
             Ok((output, input))
         } else {
             Err((ParseError::ExpectedMatches(self.min_elements), input))
         }
     }
+}
+impl<P: Parser, S: Parser> Parser for RepeatVec<P, S> {
+    type Output<'i> = Vec<P::Output<'i>>;
+    type Then<T: Parser> = Then2<Self, T>;
+
+    #[inline]
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+        self.helper(input, false)
+    }
 
     fn then<T: Parser>(self, next: T) -> Self::Then<T> {
         Then2::new(self, next)
+    }
+
+    // Override the default implementation to set consume_all to true
+    fn parse_complete<'i>(&self, input: &'i str) -> Result<Self::Output<'i>, InputError> {
+        match self.helper(input.as_bytes(), true).map_with_input(input)? {
+            (v, []) => Ok(v),
+            (_, remaining) => Err(InputError::new(input, remaining, "expected end of input")),
+        }
     }
 }
 
