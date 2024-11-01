@@ -17,6 +17,8 @@ pub enum ParseError {
     ExpectedByteRange(u8, u8),
     /// Expected at least $n matches.
     ExpectedMatches(usize),
+    /// Expected $n items or less.
+    ExpectedLessItems(usize),
     /// Expected number <= $num.
     NumberTooLarge(i128),
     /// Expected number >= $num.
@@ -65,6 +67,7 @@ impl Display for ParseError {
                 )
             }
             ParseError::ExpectedMatches(x) => write!(f, "expected at least {x} match"),
+            ParseError::ExpectedLessItems(x) => write!(f, "expected {x} items or less"),
             ParseError::NumberTooLarge(x) => write!(f, "expected number <= {x}"),
             ParseError::NumberTooSmall(x) => write!(f, "expected number >= {x}"),
             ParseError::NumberOutOfRange() => write!(f, "number out of range"),

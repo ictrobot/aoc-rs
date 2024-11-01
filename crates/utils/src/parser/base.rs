@@ -1,6 +1,6 @@
 use crate::input::{InputError, MapWithInputExt};
 use crate::parser::combinator::{
-    Map, MapResult, Optional, Or, RepeatN, RepeatVec, WithPrefix, WithSuffix,
+    Map, MapResult, Optional, Or, RepeatArrayVec, RepeatN, RepeatVec, WithPrefix, WithSuffix,
 };
 use crate::parser::error::WithErrorMsg;
 use crate::parser::simple::{Constant, Eol};
@@ -156,8 +156,8 @@ pub trait Parser: Sized {
 
     /// Repeat this parser `N` times, returning an [`array`].
     ///
-    /// See also [`repeat`](Self::repeat) which returns a [`Vec`] instead, for unknown or varying
-    /// number of repeats.
+    /// If the number of items is variable use [`repeat_arrayvec`](Self::repeat_arrayvec) or
+    /// [`repeat`](Self::repeat).
     ///
     /// # Examples
     /// ```
@@ -177,10 +177,41 @@ pub trait Parser: Sized {
         RepeatN { parser: self }
     }
 
+    /// Repeat this parser while it matches, returning a [`ArrayVec`](crate::array::ArrayVec).
+    ///
+    /// This parser can parse up to `N` items. If more items match, it will return an error.
+    ///
+    /// See [`repeat`](Self::repeat) if the upper bound is large or not known, and
+    /// [`repeat_n`](Self::repeat_n) if the number of items is consistent.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// let parser = parser::u32()
+    ///     .repeat(",", 3);
+    /// assert_eq!(parser.parse(b"12,34,56,78"), Ok((vec![12, 34, 56, 78], &b""[..])));
+    /// assert!(parser.parse(b"12,34").is_err());
+    /// ```
+    fn repeat_arrayvec<const N: usize, S: Parser>(
+        self,
+        separator: S,
+        min_elements: usize,
+    ) -> RepeatArrayVec<N, Self, S>
+    where
+        for<'a> Self::Output<'a>: Copy + Default,
+    {
+        RepeatArrayVec {
+            parser: self,
+            separator,
+            min_elements,
+        }
+    }
+
     /// Repeat this parser while it matches, returning a [`Vec`].
     ///
-    /// If the number of items is constant and known in advance, prefer [`repeat_n`](Self::repeat_n)
-    /// as it avoids allocating.
+    /// To avoid allocating, prefer [`repeat_n`](Self::repeat_n) if the number of items is
+    /// consistent and known in advance, or [`repeat_arrayvec`](Self::repeat_arrayvec) if the number
+    /// of items is variable but has a known upper bound.
     ///
     /// # Examples
     /// ```
@@ -356,8 +387,10 @@ impl Parser for &'static str {
 
     #[inline]
     fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
-        if let Some(remainder) = input.strip_prefix(self.as_bytes()) {
-            Ok((self, remainder))
+        // This is faster than using strip_prefix for the common case where the string is a short
+        // string literal known at compile time.
+        if input.len() >= self.len() && self.bytes().zip(input).all(|(a, &b)| a == b) {
+            Ok((self, &input[self.len()..]))
         } else {
             Err((ParseError::ExpectedLiteral(self), input))
         }

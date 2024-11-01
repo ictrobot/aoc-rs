@@ -1,3 +1,4 @@
+use crate::array::ArrayVec;
 use crate::input::{InputError, MapWithInputExt};
 use crate::parser::then::Then2;
 use crate::parser::{ParseError, ParseResult, Parser};
@@ -103,6 +104,54 @@ impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>> Parser for R
 }
 
 #[derive(Copy, Clone)]
+pub struct RepeatArrayVec<const N: usize, P, S> {
+    pub(super) parser: P,
+    pub(super) separator: S,
+    pub(super) min_elements: usize,
+}
+impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>, S: Parser> Parser
+    for RepeatArrayVec<N, P, S>
+{
+    type Output<'i> = ArrayVec<P::Output<'i>, N>;
+    type Then<T: Parser> = Then2<Self, T>;
+
+    #[inline]
+    fn parse<'i>(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+        let mut output = ArrayVec::new();
+
+        let err = loop {
+            let (v, remaining) = match self.parser.parse(input) {
+                Ok(v) => v,
+                Err(err) => break err,
+            };
+
+            let consumed = input.len() - remaining.len();
+            assert!(consumed > 0, "parsing item consumed no input");
+
+            if output.push(v).is_err() {
+                return Err((ParseError::ExpectedLessItems(N), input));
+            }
+            input = remaining;
+
+            match self.separator.parse(input) {
+                Ok((_, remaining)) => input = remaining,
+                Err(err) => break err,
+            }
+        };
+
+        if output.len() >= self.min_elements {
+            Ok((output, input))
+        } else {
+            Err(err)
+        }
+    }
+
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
+        Then2::new(self, next)
+    }
+}
+
+#[derive(Copy, Clone)]
 pub struct RepeatVec<P, S> {
     pub(super) parser: P,
     pub(super) separator: S,
@@ -117,7 +166,12 @@ impl<P: Parser, S: Parser> RepeatVec<P, S> {
     ) -> ParseResult<'i, Vec<P::Output<'i>>> {
         let mut output = Vec::new();
 
-        while let Ok((v, remaining)) = self.parser.parse(input) {
+        let err = loop {
+            let (v, remaining) = match self.parser.parse(input) {
+                Ok(v) => v,
+                Err(err) => break err,
+            };
+
             let consumed = input.len() - remaining.len();
             assert!(consumed > 0, "parsing item consumed no input");
 
@@ -128,19 +182,20 @@ impl<P: Parser, S: Parser> RepeatVec<P, S> {
             }
 
             output.push(v);
+            input = remaining;
 
-            if let Ok((_, remaining)) = self.separator.parse(remaining) {
-                input = remaining;
-            } else {
-                input = remaining;
-                break;
+            match self.separator.parse(input) {
+                Ok((_, remaining)) => input = remaining,
+                Err(err) => break err,
             }
-        }
+        };
 
-        if output.len() >= self.min_elements {
-            Ok((output, input))
+        if (consume_all && !input.is_empty()) || output.len() < self.min_elements {
+            // Return the last parsing error if this parser should consume the entire input and it
+            // hasn't, or if the minimum number of elements isn't met.
+            Err(err)
         } else {
-            Err((ParseError::ExpectedMatches(self.min_elements), input))
+            Ok((output, input))
         }
     }
 }
