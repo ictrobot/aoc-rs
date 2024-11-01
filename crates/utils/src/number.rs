@@ -255,6 +255,23 @@ pub fn egcd<T: SignedInteger>(mut a: T, mut b: T) -> (T, T, T) {
     (a, x0, y0)
 }
 
+/// Computes the lowest common multiple (LCM).
+///
+/// # Examples
+/// ```
+/// # use utils::number::lcm;
+/// assert_eq!(lcm(6, 4), 12);
+/// assert_eq!(lcm(21, 6), 42);
+/// ```
+pub fn lcm<T: SignedInteger>(a: T, b: T) -> T {
+    if a == T::ZERO || b == T::ZERO {
+        return T::ZERO;
+    }
+
+    let (gcd, ..) = egcd(a, b);
+    (a / gcd).abs() * b.abs()
+}
+
 /// Computes the modular inverse of `a` modulo `b` if it exists.
 ///
 /// # Examples
