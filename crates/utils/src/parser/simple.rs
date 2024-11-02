@@ -16,10 +16,6 @@ impl Parser for Byte {
             Err((ParseError::Expected("byte"), input))
         }
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 /// Parser that consumes a single byte.
@@ -64,10 +60,6 @@ impl Parser for ByteRange {
             Err((ParseError::Expected("byte"), input))
         }
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 /// Parser that consumes a single byte in the supplied range.
@@ -99,10 +91,6 @@ impl<V: Copy> Parser for Constant<V> {
     #[inline]
     fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         Ok((self.0, input))
-    }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
     }
 }
 
@@ -197,10 +185,6 @@ impl Parser for Eol {
             _ => Err((ParseError::Expected("newline or end of input"), input)),
         }
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 /// Parser which matches newlines or the end of the input.
@@ -245,10 +229,6 @@ impl<const N: usize> Parser for TakeWhile<N> {
         } else {
             Err((ParseError::ExpectedMatches(N), &input[end..]))
         }
-    }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
     }
 }
 

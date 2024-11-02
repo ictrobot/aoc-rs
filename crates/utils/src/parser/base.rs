@@ -5,7 +5,7 @@ use crate::parser::combinator::{
 use crate::parser::error::{ParseError, WithErrorMsg};
 use crate::parser::iterator::ParserIterator;
 use crate::parser::simple::{Constant, Eol};
-use crate::parser::then::{Then2, Unimplemented};
+use crate::parser::then::{Then, Then2, Unimplemented};
 
 /// [`Result`] type returned by [`Parser::parse`].
 pub type ParseResult<'i, T> = Result<(T, &'i [u8]), (ParseError, &'i [u8])>;
@@ -23,7 +23,7 @@ pub trait Parser: Sized {
     ///
     /// This is used to allow multiple [`then`](Self::then) calls to extend one tuple, instead of
     /// nesting tuples inside each other.
-    type Then<T: Parser>: Parser;
+    type Then<T: Parser>: Then<Self, T>;
 
     /// Parse the given sequence of bytes.
     ///
@@ -41,6 +41,8 @@ pub trait Parser: Sized {
     /// ```
     fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>>;
 
+    // Provided methods
+
     /// Sequence another parser after this one.
     ///
     /// # Examples
@@ -53,9 +55,9 @@ pub trait Parser: Sized {
     ///     Ok(((123, -123), &b""[..]))
     /// );
     /// ```
-    fn then<T: Parser>(self, next: T) -> Self::Then<T>;
-
-    // Provided methods
+    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
+        Then::then(self, next)
+    }
 
     /// Attempt to parse using this parser, followed by provided parser.
     ///
@@ -422,10 +424,6 @@ impl<'a, P: Parser> Parser for ParserRef<'a, P> {
     fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         self.0.parse(input)
     }
-
-    fn then<T: Parser>(self, _: T) -> Self::Then<T> {
-        unreachable!();
-    }
 }
 
 /// Matches the string literal exactly.
@@ -445,10 +443,6 @@ impl Parser for &'static str {
             Err((ParseError::ExpectedLiteral(self), input))
         }
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 /// Matches the byte exactly.
@@ -466,10 +460,6 @@ impl Parser for u8 {
             Err((ParseError::ExpectedByte(*self), input))
         }
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 /// Allow custom functions and closures to be used as parsers.
@@ -480,10 +470,6 @@ impl<O, F: Fn(&[u8]) -> ParseResult<O>> Parser for F {
     #[inline]
     fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         self(input)
-    }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
     }
 }
 

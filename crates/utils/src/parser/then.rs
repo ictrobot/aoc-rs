@@ -2,6 +2,10 @@
 
 use crate::parser::{ParseResult, Parser};
 
+pub trait Then<P: Parser, T: Parser>: Parser {
+    fn then(parser: P, then: T) -> Self;
+}
+
 #[derive(Copy, Clone)]
 pub enum Unimplemented {}
 impl Parser for Unimplemented {
@@ -11,9 +15,10 @@ impl Parser for Unimplemented {
     fn parse<'i>(&self, _: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         unimplemented!();
     }
-
-    fn then<T: Parser>(self, _: T) -> Self::Then<T> {
-        unimplemented!()
+}
+impl<P: Parser, T: Parser> Then<P, T> for Unimplemented {
+    fn then(_: P, _: T) -> Self {
+        unimplemented!();
     }
 }
 
@@ -35,9 +40,10 @@ macro_rules! then_impl {
                 $(let ($t, input) = self.$t.parse(input)?;)+
                 Ok((($($t),+), input))
             }
-
-            fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-                $next_name{$($t: self.$t),+, $next_t: next}
+        }
+        impl<$($t: Parser),+, T: Parser> Then<$name<$($t),+>, T> for $next_name<$($t),+, T> {
+            fn then(parser: $name<$($t),+>, next: T) -> Self {
+                Self{$($t: parser.$t),+, $next_t: next}
             }
         }
         then_impl!{$next_name<$next_t> => $($tail)*}
@@ -58,10 +64,6 @@ macro_rules! then_impl {
                 $(let ($t, input) = self.$t.parse(input)?;)+
                 Ok((($($t),+), input))
             }
-
-            fn then<T: Parser>(self, _: T) -> Self::Then<T> {
-                unimplemented!()
-            }
         }
     };
 }
@@ -76,11 +78,8 @@ then_impl! {
     Then8<H> => [A, B, C, D, E, F, G, H],
 }
 
-impl<A: Parser, B: Parser> Then2<A, B> {
-    pub(super) fn new(first: A, second: B) -> Self {
-        Self {
-            A: first,
-            B: second,
-        }
+impl<A: Parser, B: Parser> Then<A, B> for Then2<A, B> {
+    fn then(parser: A, then: B) -> Self {
+        Then2 { A: parser, B: then }
     }
 }

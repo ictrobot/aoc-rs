@@ -59,10 +59,6 @@ impl<L: ParserList> Parser for OneOf<L> {
     fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         self.list.parse(input)
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 /// Attempt to parse using a list of parsers.

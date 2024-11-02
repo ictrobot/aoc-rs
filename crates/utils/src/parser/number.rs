@@ -30,10 +30,6 @@ impl<U: UnsignedInteger> Parser for UnsignedParser<U> {
 
         Ok((n, input))
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 #[derive(Copy, Clone)]
@@ -77,10 +73,6 @@ impl<S: SignedInteger> Parser for SignedParser<S> {
 
         Ok((n, input))
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 macro_rules! parser_for {
@@ -119,10 +111,6 @@ impl<I: Integer + Parseable> Parser for NumberRange<I> {
         } else {
             Ok((v, remaining))
         }
-    }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
     }
 }
 

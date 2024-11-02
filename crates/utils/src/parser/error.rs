@@ -94,8 +94,4 @@ impl<P: Parser> Parser for WithErrorMsg<P> {
             Err((_, pos)) => Err((ParseError::Custom(self.message), pos)),
         }
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }

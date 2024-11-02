@@ -20,10 +20,6 @@ impl<P: Parser, F: for<'i> Fn(P::Output<'i>) -> O, O> Parser for Map<P, F> {
             Err(e) => Err(e),
         }
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 #[derive(Copy, Clone)]
@@ -48,10 +44,6 @@ impl<P: Parser, F: for<'i> Fn(P::Output<'i>) -> Result<O, &'static str>, O> Pars
             Err(e) => Err(e),
         }
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 #[derive(Copy, Clone)]
@@ -68,10 +60,6 @@ impl<P: Parser> Parser for Optional<P> {
             Ok((v, remaining)) => Ok((Some(v), remaining)),
             Err(_) => Ok((None, input)),
         }
-    }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
     }
 }
 
@@ -96,10 +84,6 @@ impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>> Parser for R
             }
         }
         Ok((output, input))
-    }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
     }
 }
 
@@ -144,10 +128,6 @@ impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>, S: Parser> P
         } else {
             Err(err)
         }
-    }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
     }
 }
 
@@ -208,10 +188,6 @@ impl<P: Parser, S: Parser> Parser for RepeatVec<P, S> {
         self.helper(input, false)
     }
 
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
-
     // Override the default implementation to set consume_all to true
     fn parse_complete<'i>(&self, input: &'i str) -> Result<Self::Output<'i>, InputError> {
         match self.helper(input.as_bytes(), true).map_with_input(input)? {
@@ -251,10 +227,6 @@ impl<A: Parser, B: for<'i> Parser<Output<'i> = A::Output<'i>>> Parser for Or<A, 
             },
         }
     }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
-    }
 }
 
 #[derive(Copy, Clone)]
@@ -272,10 +244,6 @@ impl<A: Parser, B: Parser> Parser for WithPrefix<A, B> {
             Ok((_, remaining)) => self.parser.parse(remaining),
             Err(e) => Err(e),
         }
-    }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
     }
 }
 
@@ -297,9 +265,5 @@ impl<A: Parser, B: Parser> Parser for WithSuffix<A, B> {
             },
             Err(e) => Err(e),
         }
-    }
-
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
-        Then2::new(self, next)
     }
 }
