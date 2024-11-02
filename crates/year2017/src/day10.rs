@@ -16,7 +16,7 @@ impl<'a> Day10<'a> {
     #[must_use]
     pub fn part1(&self) -> u32 {
         let lengths = parser::u8()
-            .with_suffix(b','.optional())
+            .with_suffix(b','.or(parser::eof()))
             .parse_all(self.input)
             .expect("input invalid for part 1");
 

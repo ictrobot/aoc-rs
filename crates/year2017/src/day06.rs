@@ -13,7 +13,7 @@ pub struct Day06 {
 impl Day06 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let banks = parser::u32()
-            .with_suffix(b' '.or(b'\t').optional())
+            .with_suffix(parser::one_of((b' ', b'\t', parser::eof())))
             .parse_all(input)?;
 
         let (mut power, mut lambda) = (1, 1);

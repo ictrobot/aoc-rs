@@ -1,4 +1,4 @@
-use crate::parser::then::Then2;
+use crate::parser::then::{Then2, Unimplemented};
 use crate::parser::{ParseError, ParseResult, Parser};
 use std::ops::RangeInclusive;
 
@@ -137,6 +137,50 @@ pub fn noop() -> Constant<()> {
         assert!(size_of::<Constant<()>>() == 0);
     }
     Constant(())
+}
+
+#[derive(Copy, Clone)]
+pub struct Eof();
+impl Parser for Eof {
+    type Output<'i> = ();
+    type Then<T: Parser> = Unimplemented;
+
+    #[inline]
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+        match input {
+            [] => Ok(((), input)),
+            _ => Err((ParseError::Expected("end of input"), input)),
+        }
+    }
+
+    fn then<T: Parser>(self, _next: T) -> Self::Then<T> {
+        panic!("chaining after eof will never match");
+    }
+}
+
+/// Parser which matches the end of the input.
+///
+/// Useful when parsing a list and each item is separated by a separator, unless it is at the end of
+/// the input.
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{self, Parser};
+/// assert_eq!(
+///     parser::eof().parse(b""),
+///     Ok(((), &b""[..]))
+/// );
+/// assert_eq!(
+///     parser::u32()
+///         .with_suffix(b','.or(parser::eof()))
+///         .repeat_n()
+///         .parse(b"12,34,56"),
+///     Ok(([12, 34, 56], &b""[..]))
+/// );
+/// ```
+#[must_use]
+pub fn eof() -> Eof {
+    Eof()
 }
 
 #[derive(Copy, Clone)]

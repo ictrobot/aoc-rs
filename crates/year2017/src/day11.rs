@@ -22,13 +22,13 @@ impl Day11 {
             "n" => Point2D::new(0, -1),
             "s" => Point2D::new(0, 1),
         )
-        .repeat(b',', 1)
-        .parse_complete(input)?;
+        .with_suffix(b','.or(parser::eof()))
+        .parse_iterator(input);
 
         let mut pos = Point2D::new(0, 0);
         let mut max = 0;
         for step in steps {
-            pos += step;
+            pos += step?;
             max = max.max(Self::hex_dist_to_origin(pos));
         }
 

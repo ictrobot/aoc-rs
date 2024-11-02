@@ -2,10 +2,10 @@ use crate::input::{InputError, MapWithInputExt};
 use crate::parser::combinator::{
     Map, MapResult, Optional, Or, RepeatArrayVec, RepeatN, RepeatVec, WithPrefix, WithSuffix,
 };
-use crate::parser::error::WithErrorMsg;
+use crate::parser::error::{ParseError, WithErrorMsg};
+use crate::parser::iterator::ParserIterator;
 use crate::parser::simple::{Constant, Eol};
 use crate::parser::then::{Then2, Unimplemented};
-use crate::parser::ParseError;
 
 /// [`Result`] type returned by [`Parser::parse`].
 pub type ParseResult<'i, T> = Result<(T, &'i [u8]), (ParseError, &'i [u8])>;
@@ -164,7 +164,7 @@ pub trait Parser: Sized {
     /// # use utils::parser::{self, Parser};
     /// assert_eq!(
     ///     parser::u32()
-    ///         .with_suffix(",".optional())
+    ///         .with_suffix(",".or(parser::eof()))
     ///         .repeat_n() // N = 3 is inferred
     ///         .parse(b"12,34,56"),
     ///     Ok(([12, 34, 56], &b""[..]))
@@ -319,7 +319,7 @@ pub trait Parser: Sized {
     /// assert_eq!(
     ///     parser::u32()
     ///         .then(parser::u32().with_prefix("x"))
-    ///         .with_suffix(",".optional())
+    ///         .with_suffix(",".or(parser::eof()))
     ///         .parse_all("1x2,3x4,1234x5678")
     ///         .unwrap(),
     ///     vec![
@@ -360,6 +360,56 @@ pub trait Parser: Sized {
             .repeat(Constant(()), 0)
             .parse_complete(input)
     }
+
+    /// Create an iterator which applies this parser repeatedly until the provided input is fully
+    /// consumed.
+    ///
+    /// The returned iterator will lazily parse the provided input string, producing a sequence of
+    /// [`Result`] values. Once the end of input is reached, or an error is returned, the parser
+    /// will always return [`None`].
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::input::InputError;
+    /// # use utils::parser::{self, Parser};
+    /// let iterator = parser::u32()
+    ///     .with_suffix(parser::eol())
+    ///     .parse_iterator("12\n34\n56\n78");
+    /// for item in iterator {
+    ///     println!("{}", item?);
+    /// }
+    /// # Ok::<(), InputError>(())
+    /// ```
+    ///
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// let mut iterator = parser::u32()
+    ///     .with_suffix(parser::eol())
+    ///     .parse_iterator("12\n34\nnot a integer");
+    /// assert_eq!(iterator.next().unwrap().unwrap(), 12);
+    /// assert_eq!(iterator.next().unwrap().unwrap(), 34);
+    /// assert!(iterator.next().unwrap().is_err());
+    /// assert!(iterator.next().is_none());
+    /// ```
+    ///
+    /// ```
+    /// # use utils::input::InputError;
+    /// # use utils::parser::{self, Parser};
+    /// let filtered = parser::u32()
+    ///     .with_suffix(parser::eol())
+    ///     .parse_iterator("11\n22\n33\n44\n55")
+    ///     .filter(|r| r.is_err() || r.as_ref().is_ok_and(|v| v % 2 == 0))
+    ///     .collect::<Result<Vec<u32>, InputError>>()?;
+    /// assert_eq!(filtered, vec![22, 44]);
+    /// # Ok::<(), InputError>(())
+    /// ```
+    fn parse_iterator(self, input: &str) -> ParserIterator<Self> {
+        ParserIterator {
+            input,
+            remaining: input.as_bytes(),
+            parser: self,
+        }
+    }
 }
 
 // Workaround to allow using methods which consume a parser in methods which take references.
@@ -382,7 +432,7 @@ impl<'a, P: Parser> Parser for ParserRef<'a, P> {
 ///
 /// Normally used with [`with_prefix`](Parser::with_prefix)/[`with_suffix`](Parser::with_suffix).
 impl Parser for &'static str {
-    type Output<'i> = Self;
+    type Output<'i> = ();
     type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
@@ -390,7 +440,7 @@ impl Parser for &'static str {
         // This is faster than using strip_prefix for the common case where the string is a short
         // string literal known at compile time.
         if input.len() >= self.len() && self.bytes().zip(input).all(|(a, &b)| a == b) {
-            Ok((self, &input[self.len()..]))
+            Ok(((), &input[self.len()..]))
         } else {
             Err((ParseError::ExpectedLiteral(self), input))
         }
@@ -405,13 +455,13 @@ impl Parser for &'static str {
 ///
 /// Normally used with [`with_prefix`](Parser::with_prefix)/[`with_suffix`](Parser::with_suffix).
 impl Parser for u8 {
-    type Output<'i> = Self;
+    type Output<'i> = ();
     type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
     fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         if input.first() == Some(self) {
-            Ok((*self, &input[1..]))
+            Ok(((), &input[1..]))
         } else {
             Err((ParseError::ExpectedByte(*self), input))
         }
@@ -427,6 +477,7 @@ impl<O, F: Fn(&[u8]) -> ParseResult<O>> Parser for F {
     type Output<'i> = O;
     type Then<T: Parser> = Then2<Self, T>;
 
+    #[inline]
     fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         self(input)
     }

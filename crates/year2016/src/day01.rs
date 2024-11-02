@@ -19,7 +19,7 @@ impl Day01 {
         Ok(Self {
             instructions: parser::literal_map!("L" => Turn::L, "R" => Turn::R)
                 .then(parser::u16())
-                .with_suffix(", ".optional())
+                .with_suffix(", ".or(parser::eof()))
                 .parse_all(input)?,
         })
     }

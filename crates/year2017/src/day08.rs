@@ -10,7 +10,7 @@ pub struct Day08 {
 
 impl Day08 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let parsed = parser::take_while1(u8::is_ascii_lowercase)
+        let parse_iterator = parser::take_while1(u8::is_ascii_lowercase)
             .with_suffix(" ")
             .then(
                 parser::one_of((
@@ -32,11 +32,13 @@ impl Day08 {
                 .with_suffix(" "),
             )
             .then(parser::i32())
-            .parse_lines(input)?;
+            .with_suffix(parser::eol())
+            .parse_iterator(input);
 
         let mut registers = HashMap::new();
         let mut max = 0;
-        for (reg, value, cond_reg, comparison, cond_value) in parsed {
+        for item in parse_iterator {
+            let (reg, value, cond_reg, comparison, cond_value) = item?;
             if comparison(registers.entry(cond_reg).or_insert(0), &cond_value) {
                 let entry = registers.entry(reg).or_insert(0);
                 *entry += value;

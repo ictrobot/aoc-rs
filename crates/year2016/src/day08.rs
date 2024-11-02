@@ -31,11 +31,12 @@ impl Day08 {
             .then(parser::u32())
             .map(|(x, by)| Instruction::RotateCol { x, by });
 
-        let instructions = rect.or(rotate_row).or(rotate_col).parse_lines(input)?;
-
         let mut grid = [[false; 50]; 6];
-        for &instruction in &instructions {
-            match instruction {
+        for item in parser::one_of((rect, rotate_row, rotate_col))
+            .with_suffix(parser::eol())
+            .parse_iterator(input)
+        {
+            match item? {
                 Instruction::Rect { width, height } => {
                     for row in &mut grid[..height as usize] {
                         row[..width as usize].fill(true);
