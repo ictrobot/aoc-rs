@@ -74,6 +74,7 @@ impl Parser for ByteRange {
 ///     Ok((b'h', &b"ello world"[..]))
 /// );
 /// ```
+#[inline]
 #[must_use]
 pub fn byte_range(range: RangeInclusive<u8>) -> ByteRange {
     let min = *range.start();

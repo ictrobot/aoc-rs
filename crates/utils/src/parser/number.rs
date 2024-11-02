@@ -128,6 +128,7 @@ impl<I: Integer + Parseable> Parser for NumberRange<I> {
 ///     Ok((123u8, &b", 120"[..]))
 /// );
 /// ```
+#[inline]
 #[must_use]
 pub fn number_range<I: Integer + Parseable>(range: RangeInclusive<I>) -> NumberRange<I> {
     let min = *range.start();
