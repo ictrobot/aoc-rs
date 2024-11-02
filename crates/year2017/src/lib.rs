@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 
+mod knot_hash;
+
 utils::year!(2017 => year2017, ${
     1 => day01::Day01<'_>,
     2 => day02::Day02,
@@ -15,4 +17,5 @@ utils::year!(2017 => year2017, ${
     11 => day11::Day11,
     12 => day12::Day12,
     13 => day13::Day13,
+    14 => day14::Day14,
 });
