@@ -1,3 +1,4 @@
+use utils::number::mod_pow;
 use utils::prelude::*;
 
 /// Modular exponentiation.
@@ -30,21 +31,6 @@ impl Day25 {
     pub fn part2(&self) -> &'static str {
         "🎄"
     }
-}
-
-fn mod_pow(base: u64, exponent: u64, modulus: u64) -> u64 {
-    let mut result = 1;
-    let mut base = base % modulus;
-    let mut exponent = exponent;
-
-    while exponent > 0 {
-        if exponent % 2 == 1 {
-            result = (result * base) % modulus;
-        }
-        exponent >>= 1;
-        base = (base * base) % modulus;
-    }
-    result
 }
 
 examples!(Day25 -> (u64, &'static str) [

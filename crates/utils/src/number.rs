@@ -324,3 +324,28 @@ pub fn chinese_remainder<T: SignedInteger>(
 
     Some(sum.rem_euclid(product))
 }
+
+/// Calculates `base.pow(exponent) % modulus`.
+///
+/// # Examples
+/// ```
+/// # use utils::number::mod_pow;
+/// assert_eq!(mod_pow::<u64>(2, 10, 1000), 24);
+/// assert_eq!(mod_pow::<u64>(65, 100000, 2147483647), 1085966926);
+/// ```
+#[inline]
+pub fn mod_pow<T: UnsignedInteger>(base: T, exponent: T, modulus: T) -> T {
+    let mut result = T::ONE;
+    let mut base = base % modulus;
+    let mut exponent = exponent;
+
+    while exponent > T::ZERO {
+        if exponent % T::from(2) == T::ONE {
+            result = (result * base) % modulus;
+        }
+        exponent >>= 1;
+        base = (base * base) % modulus;
+    }
+
+    result
+}
