@@ -162,9 +162,9 @@ impl Parser for Eof {
 /// assert_eq!(
 ///     parser::u32()
 ///         .with_suffix(b','.or(parser::eof()))
-///         .repeat_n()
-///         .parse(b"12,34,56"),
-///     Ok(([12, 34, 56], &b""[..]))
+///         .parse_all("12,34,56")
+///         .unwrap(),
+///     vec![12, 34, 56],
 /// );
 /// ```
 #[must_use]

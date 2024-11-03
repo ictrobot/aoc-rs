@@ -166,17 +166,19 @@ pub trait Parser: Sized {
     /// # use utils::parser::{self, Parser};
     /// assert_eq!(
     ///     parser::u32()
-    ///         .with_suffix(",".or(parser::eof()))
-    ///         .repeat_n() // N = 3 is inferred
+    ///         .repeat_n(",") // N = 3 is inferred
     ///         .parse(b"12,34,56"),
     ///     Ok(([12, 34, 56], &b""[..]))
     /// );
     /// ```
-    fn repeat_n<const N: usize>(self) -> RepeatN<N, Self>
+    fn repeat_n<const N: usize, S: Parser>(self, separator: S) -> RepeatN<N, Self, S>
     where
         for<'i> Self::Output<'i>: Copy + Default,
     {
-        RepeatN { parser: self }
+        RepeatN {
+            parser: self,
+            separator,
+        }
     }
 
     /// Repeat this parser while it matches, returning a [`ArrayVec`](crate::array::ArrayVec).

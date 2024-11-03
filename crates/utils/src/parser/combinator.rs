@@ -64,23 +64,33 @@ impl<P: Parser> Parser for Optional<P> {
 }
 
 #[derive(Copy, Clone)]
-pub struct RepeatN<const N: usize, P> {
+pub struct RepeatN<const N: usize, P, S> {
     pub(super) parser: P,
+    pub(super) separator: S,
 }
-impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>> Parser for RepeatN<N, P> {
+impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>, S: Parser> Parser
+    for RepeatN<N, P, S>
+{
     type Output<'i> = [P::Output<'i>; N];
     type Then<T: Parser> = Then2<Self, T>;
 
     #[inline]
     fn parse<'i>(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
         let mut output = [P::Output::default(); N];
-        for item in &mut output {
+        for (i, item) in output.iter_mut().enumerate() {
             match self.parser.parse(input) {
                 Ok((v, remaining)) => {
                     *item = v;
                     input = remaining;
                 }
                 Err(e) => return Err(e),
+            }
+
+            if i < N - 1 {
+                match self.separator.parse(input) {
+                    Ok((_, remaining)) => input = remaining,
+                    Err(e) => return Err(e),
+                }
             }
         }
         Ok((output, input))

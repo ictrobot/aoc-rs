@@ -1,4 +1,4 @@
-//! 2D point implementation.
+//! 2D & 3D point implementations.
 
 use crate::number::{Number, Signed, SignedInteger, UnsignedInteger};
 use std::fmt::Debug;
@@ -155,4 +155,7 @@ impl<T: Signed> Point2D<T> {
     }
 }
 
-// point_impl! {pub struct Point3D{x, y, z}}
+point_impl! {
+    /// Struct representing a 3D point or vector.
+    pub struct Point3D{x, y, z}
+}

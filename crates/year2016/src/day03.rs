@@ -11,7 +11,7 @@ impl Day03 {
         Ok(Self {
             input: parser::u32()
                 .with_prefix(parser::take_while(u8::is_ascii_whitespace))
-                .repeat_n()
+                .repeat_n(parser::noop())
                 .parse_lines(input)?,
         })
     }
