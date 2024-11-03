@@ -1,13 +1,13 @@
 //! 2D point implementation.
 
-use crate::number::{Number, Signed};
+use crate::number::{Number, Signed, SignedInteger, UnsignedInteger};
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
 macro_rules! point_impl {
-    ($v:vis struct $s:ident{$($f:ident),+}) => {
+    ($(#[$m:meta])* $v:vis struct $s:ident{$($f:ident),+}) => {
         #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-        $v struct $s<T: Number> {
+        $(#[$m])* $v struct $s<T: Number> {
             $(pub $f: T,)+
         }
 
@@ -25,6 +25,30 @@ macro_rules! point_impl {
             #[must_use]
             pub fn manhattan_distance(self) -> T {
                 T::ZERO $(+ self.$f.abs())+
+            }
+
+            /// Returns the manhattan distance from the origin.
+            #[inline]
+            #[must_use]
+            pub fn manhattan_distance_unsigned(self) -> T::Unsigned
+            where
+                T: SignedInteger
+            {
+                T::Unsigned::ZERO $(+ self.$f.unsigned_abs())+
+            }
+
+            /// Add the provided signed point, wrapping on overflow.
+            ///
+            /// Useful for adding a signed direction onto an unsigned position.
+            #[inline]
+            #[must_use]
+            pub fn wrapping_add_signed(self, rhs: $s<T::Signed>) -> Self
+            where
+                T: UnsignedInteger,
+            {
+                Self{
+                    $($f: self.$f.wrapping_add_signed(rhs.$f),)+
+                }
             }
         }
 
@@ -87,7 +111,10 @@ macro_rules! point_impl {
     };
 }
 
-point_impl! {pub struct Point2D{x, y}}
+point_impl! {
+    /// Struct representing a 2D point or vector.
+    pub struct Point2D{x, y}
+}
 
 impl<T: Signed> Point2D<T> {
     pub const UP: Self = Self {

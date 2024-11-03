@@ -1,6 +1,4 @@
 //! Traits for using numbers as generic data types.
-//!
-//! Machine-dependent integer types aren't unsupported.
 
 use std::fmt::Debug;
 use std::iter::{Product, Sum};
@@ -80,13 +78,23 @@ pub trait Integer:
 }
 
 /// Trait implemented by the primitive unsigned integer types.
-pub trait UnsignedInteger: Integer + From<u8> {}
+pub trait UnsignedInteger: Integer + From<u8> {
+    type Signed: SignedInteger;
+
+    #[must_use]
+    fn wrapping_add_signed(self, rhs: Self::Signed) -> Self;
+}
 
 /// Trait implemented by the primitive signed integer types.
-pub trait SignedInteger: Integer + Signed {}
+pub trait SignedInteger: Integer + Signed {
+    type Unsigned: UnsignedInteger;
+
+    #[must_use]
+    fn unsigned_abs(self) -> Self::Unsigned;
+}
 
 macro_rules! number_impl {
-    (uint => $($t:ty),+) => {
+    (uint => $($t:ty: $signed:ty),+) => {
         $(impl Number for $t {
             const ZERO: Self = 0;
             const ONE: Self = 1;
@@ -106,9 +114,16 @@ macro_rules! number_impl {
 
         number_impl! {@common integer => $($t),+}
 
-        $(impl UnsignedInteger for $t {})+
+        $(impl UnsignedInteger for $t {
+            type Signed = $signed;
+
+            #[inline]
+            fn wrapping_add_signed(self, rhs: Self::Signed) -> Self {
+                self.wrapping_add_signed(rhs)
+            }
+        })+
     };
-    (int => $($t:ty),+) => {
+    (int => $($t:ty: $unsigned:ty ),+) => {
         $(impl Number for $t {
             const ZERO: Self = 0;
             const ONE: Self = 1;
@@ -129,7 +144,14 @@ macro_rules! number_impl {
         number_impl! {@common integer => $($t),+}
         number_impl! {@common signed => $($t),+}
 
-        $(impl SignedInteger for $t {})+
+        $(impl SignedInteger for $t {
+            type Unsigned = $unsigned;
+
+            #[inline]
+            fn unsigned_abs(self) -> Self::Unsigned {
+                self.unsigned_abs()
+            }
+        })+
     };
     (float => $($t:ty),+) => {
         $(impl Number for $t {
@@ -181,8 +203,8 @@ macro_rules! number_impl {
         })+
     };
 }
-number_impl! {uint => u8, u16, u32, u64, u128}
-number_impl! {int => i8, i16, i32, i64, i128}
+number_impl! {uint => u8: i8, u16: i16, u32: i32, u64: i64, u128: i128, usize: isize}
+number_impl! {int => i8: u8, i16: u16, i32: u32, i64: u64, i128: u128, isize: usize}
 number_impl! {float => f32, f64}
 
 /// Checks if the provided unsigned integer `n` is a prime number.

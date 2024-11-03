@@ -25,7 +25,7 @@ impl Day01 {
     }
 
     #[must_use]
-    pub fn part1(&self) -> i32 {
+    pub fn part1(&self) -> u32 {
         let mut pos = Point2D::ORIGIN;
         let mut dir = Point2D::UP;
 
@@ -37,11 +37,11 @@ impl Day01 {
             pos += dir * i32::from(steps);
         }
 
-        pos.manhattan_distance()
+        pos.manhattan_distance_unsigned()
     }
 
     #[must_use]
-    pub fn part2(&self) -> i32 {
+    pub fn part2(&self) -> u32 {
         let mut pos: Point2D<i32> = Point2D::ORIGIN;
         let mut dir = Point2D::UP;
         let mut visited = HashSet::new();
@@ -54,7 +54,7 @@ impl Day01 {
             for _ in 0..steps {
                 pos += dir;
                 if !visited.insert(pos) {
-                    return pos.manhattan_distance();
+                    return pos.manhattan_distance_unsigned();
                 }
             }
         }
@@ -63,7 +63,7 @@ impl Day01 {
     }
 }
 
-examples!(Day01 -> (i32, i32) [
+examples!(Day01 -> (u32, u32) [
     {input: "R2, L3", part1: 5},
     {input: "R2, R2, R2", part1: 2},
     {input: "R5, L5, R5, R3", part1: 12},
