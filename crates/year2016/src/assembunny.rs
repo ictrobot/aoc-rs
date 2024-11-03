@@ -48,32 +48,26 @@ impl<const TGL: bool, const OUT: bool> Interpreter<TGL, OUT> {
             .or(parser::i32().map(Value::Number));
 
         Ok(Self {
-            instructions: parser::one_of((
-                register.with_prefix("inc ").map(Instruction::Increment),
-                register.with_prefix("dec ").map(Instruction::Decrement),
-                value
-                    .with_prefix("cpy ")
-                    .then(register.with_prefix(" "))
-                    .map(|(v, r)| Instruction::Copy(v, r)),
-                value
-                    .with_prefix("jnz ")
-                    .then(value.with_prefix(" "))
-                    .map(|(v, o)| Instruction::JumpIfNotZero(v, o)),
-                register.with_prefix("tgl ").map_res(|r| {
+            instructions: parser::parse_tree!(
+                ("inc ", r @ register) => Instruction::Increment(r),
+                ("dec ", r @ register) => Instruction::Decrement(r),
+                ("cpy ", v @ value, " ", r @ register) => Instruction::Copy(v, r),
+                ("jnz ", v @ value, " ", o @ value) => Instruction::JumpIfNotZero(v, o),
+                ("tgl ", r @ register) =?> {
                     if TGL {
                         Ok(Instruction::Toggle(r))
                     } else {
                         Err("tgl instruction not supported")
                     }
-                }),
-                register.with_prefix("out ").map_res(|r| {
+                },
+                ("out ", r @ register) =?> {
                     if OUT {
                         Ok(Instruction::Out(r))
                     } else {
                         Err("out instruction not supported")
                     }
-                }),
-            ))
+                },
+            )
             .parse_lines(input)?,
         })
     }

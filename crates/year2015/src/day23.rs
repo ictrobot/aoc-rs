@@ -24,23 +24,20 @@ enum Instruction {
 
 impl Day23 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let register = parser::literal_map!("a" => Register::A, "b" => Register::B);
+        let register = parser::literal_map!(
+            "a" => Register::A,
+            "b" => Register::B,
+        );
 
         Ok(Self {
-            instructions: parser::one_of((
-                register.with_prefix("hlf ").map(Instruction::Half),
-                register.with_prefix("tpl ").map(Instruction::Triple),
-                register.with_prefix("inc ").map(Instruction::Increment),
-                parser::i16().with_prefix("jmp ").map(Instruction::Jump),
-                register
-                    .with_prefix("jie ")
-                    .then(parser::i16().with_prefix(", "))
-                    .map(|(r, o)| Instruction::JumpIfEven(r, o)),
-                register
-                    .with_prefix("jio ")
-                    .then(parser::i16().with_prefix(", "))
-                    .map(|(r, o)| Instruction::JumpIfOne(r, o)),
-            ))
+            instructions: parser::parse_tree!(
+                ("hlf ", r @ register) => Instruction::Half(r),
+                ("tpl ", r @ register) => Instruction::Triple(r),
+                ("inc ", r @ register) => Instruction::Increment(r),
+                ("jmp ", v @ parser::i16()) => Instruction::Jump(v),
+                ("jie ", r @ register, ", ", o @ parser::i16()) => Instruction::JumpIfEven(r, o),
+                ("jio ", r @ register, ", ", o @ parser::i16()) => Instruction::JumpIfOne(r, o),
+            )
             .parse_lines(input)?,
         })
     }
