@@ -177,7 +177,7 @@ enum ArgumentValue<'a> {
     None,
 }
 
-impl<'a> ArgumentValue<'a> {
+impl ArgumentValue<'_> {
     fn required(self) -> Result<String, Box<dyn Error>> {
         match self {
             ArgumentValue::Provided(value) => Ok(value),

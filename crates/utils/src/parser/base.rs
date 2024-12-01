@@ -418,7 +418,7 @@ pub trait Parser: Sized {
 
 // Workaround to allow using methods which consume a parser in methods which take references.
 struct ParserRef<'a, P>(&'a P);
-impl<'a, P: Parser> Parser for ParserRef<'a, P> {
+impl<P: Parser> Parser for ParserRef<'_, P> {
     type Output<'i> = P::Output<'i>;
     type Then<T: Parser> = Unimplemented;
 

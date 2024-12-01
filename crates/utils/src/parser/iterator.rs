@@ -35,4 +35,4 @@ impl<'a, P: Parser> Iterator for ParserIterator<'a, P> {
     }
 }
 
-impl<'a, P: Parser> FusedIterator for ParserIterator<'a, P> {}
+impl<P: Parser> FusedIterator for ParserIterator<'_, P> {}

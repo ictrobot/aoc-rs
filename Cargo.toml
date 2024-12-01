@@ -10,7 +10,7 @@ edition = "2021"
 license = "MIT"
 publish = false
 repository = "https://github.com/ictrobot/aoc-rs"
-rust-version = "1.82.0"
+rust-version = "1.83.0"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
