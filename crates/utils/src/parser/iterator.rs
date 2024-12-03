@@ -36,3 +36,31 @@ impl<'a, P: Parser> Iterator for ParserIterator<'a, P> {
 }
 
 impl<P: Parser> FusedIterator for ParserIterator<'_, P> {}
+
+/// An iterator which returns successful parse outputs only, skipping over errors.
+///
+/// See [`Parser::matches_iterator`].
+#[derive(Copy, Clone)]
+#[must_use = "iterators are lazy and do nothing unless consumed"]
+pub struct ParserMatchesIterator<'a, P> {
+    pub(super) remaining: &'a [u8],
+    pub(super) parser: P,
+}
+
+impl<'a, P: Parser> Iterator for ParserMatchesIterator<'a, P> {
+    type Item = P::Output<'a>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        while !self.remaining.is_empty() {
+            if let Ok((v, remaining)) = self.parser.parse(self.remaining) {
+                self.remaining = remaining;
+                return Some(v);
+            }
+            self.remaining = &self.remaining[1..];
+        }
+        None
+    }
+}
+
+impl<P: Parser> FusedIterator for ParserMatchesIterator<'_, P> {}

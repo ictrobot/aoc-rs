@@ -3,7 +3,7 @@ use crate::parser::combinator::{
     Map, MapResult, Optional, Or, RepeatArrayVec, RepeatN, RepeatVec, WithPrefix, WithSuffix,
 };
 use crate::parser::error::{ParseError, WithErrorMsg};
-use crate::parser::iterator::ParserIterator;
+use crate::parser::iterator::{ParserIterator, ParserMatchesIterator};
 use crate::parser::simple::{Constant, Eol};
 use crate::parser::then::{Then, Then2, Unimplemented};
 
@@ -410,6 +410,29 @@ pub trait Parser: Sized {
     fn parse_iterator(self, input: &str) -> ParserIterator<Self> {
         ParserIterator {
             input,
+            remaining: input.as_bytes(),
+            parser: self,
+        }
+    }
+
+    /// Create an iterator which returns matches only and skips over errors.
+    ///
+    /// This is intended for cases that require extracting matches out of the input.
+    /// Otherwise, [`parse_iterator`](Self::parse_iterator) should be used with a parser that can
+    /// match the entire input structure.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// assert_eq!(
+    ///     parser::u32()
+    ///         .matches_iterator("abc123d456efg7hi8jk9lmnop")
+    ///         .collect::<Vec<_>>(),
+    ///     vec![123, 456, 7, 8, 9]
+    /// );
+    /// ```
+    fn matches_iterator(self, input: &str) -> ParserMatchesIterator<Self> {
+        ParserMatchesIterator {
             remaining: input.as_bytes(),
             parser: self,
         }

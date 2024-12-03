@@ -7,32 +7,31 @@ pub struct Day03 {
     part2: u32,
 }
 
+enum Instruction {
+    Mul(u32, u32),
+    Do,
+    Dont,
+}
+
 impl Day03 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
+        let matches = parser::parse_tree!(
+            ("mul(", a @ parser::u32(), ",", b @ parser::u32(), ")") => Instruction::Mul(a, b),
+            ("don't()") => Instruction::Dont,
+            ("do()") => Instruction::Do,
+        )
+        .matches_iterator(input);
+
         let (mut part1, mut part2) = (0, 0);
         let mut enabled = true;
-
-        let mut input = input.as_bytes();
-        while !input.is_empty() {
-            if let Ok(([a, b], remaining)) = parser::u32()
-                .repeat_n(b',')
-                .with_prefix("mul(")
-                .with_suffix(")")
-                .parse(input)
-            {
-                part1 += a * b;
-                if enabled {
-                    part2 += a * b;
+        for instruction in matches {
+            match instruction {
+                Instruction::Mul(a, b) => {
+                    part1 += a * b;
+                    part2 += if enabled { a * b } else { 0 };
                 }
-                input = remaining;
-            } else if let Some(remaining) = input.strip_prefix(b"do()") {
-                enabled = true;
-                input = remaining;
-            } else if let Some(remaining) = input.strip_prefix(b"don't()") {
-                enabled = false;
-                input = remaining;
-            } else {
-                input = &input[1..];
+                Instruction::Do => enabled = true,
+                Instruction::Dont => enabled = false,
             }
         }
 
