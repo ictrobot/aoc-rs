@@ -59,6 +59,7 @@ impl Day06 {
         let mut dir = 0;
         let mut visited = vec![0u8; self.grid.len()];
         let mut obstructions = vec![false; self.grid.len()];
+        let mut cached_step_counts = vec![[0; 4]; self.grid.len()];
         loop {
             visited[pos.y * self.cols + pos.x] |= 1 << dir;
 
@@ -72,7 +73,7 @@ impl Day06 {
             } else {
                 if !obstructions[next.y * self.cols + next.x]
                     && visited[next.y * self.cols + next.x] == 0
-                    && self.check_cycle(next, pos, dir, &visited)
+                    && self.check_cycle(next, pos, dir, &visited, &mut cached_step_counts)
                 {
                     obstructions[next.y * self.cols + next.x] = true;
                 }
@@ -93,6 +94,7 @@ impl Day06 {
         pos: Point2D<usize>,
         dir: usize,
         visited: &[u8],
+        cache: &mut [[isize; 4]],
     ) -> bool {
         let (mut power, mut lambda) = (1, 1);
         let (mut tortoise_pos, mut tortoise_dir) = (pos, dir);
@@ -107,16 +109,49 @@ impl Day06 {
             }
             lambda += 1;
 
-            let next = hare_pos.wrapping_add_signed(DIRECTIONS[hare_dir]);
-            if next.x >= self.cols || next.y >= self.rows {
-                // No cycle, hare has left the grid
-                return false;
-            }
-            if self.grid[next.y * self.cols + next.x] == b'#' || next == obstruction {
-                hare_dir = (hare_dir + 1) % 4;
+            // Advance to the next obstruction
+            if hare_pos.x == obstruction.x || hare_pos.y == obstruction.y {
+                // On the same X or Y line as the temporary obstruction, loop without caching
+                loop {
+                    let next = hare_pos.wrapping_add_signed(DIRECTIONS[hare_dir]);
+                    if next.x >= self.cols || next.y >= self.rows {
+                        // No cycle, hare has left the grid
+                        return false;
+                    }
+                    if self.grid[next.y * self.cols + next.x] == b'#' || next == obstruction {
+                        break;
+                    }
+                    hare_pos = next;
+                }
             } else {
-                hare_pos = next;
+                // Temporary obstruction can be ignored as not on the same X or Y line as it
+                let cached_count = &mut cache[hare_pos.y * self.cols + hare_pos.x][hare_dir];
+                if *cached_count > 0 {
+                    // Advanced by the previously cached count
+                    hare_pos = hare_pos.wrapping_add_signed(DIRECTIONS[hare_dir] * *cached_count);
+                    if hare_pos.x >= self.cols || hare_pos.y >= self.rows {
+                        // No cycle, hare has left the grid
+                        return false;
+                    }
+                } else {
+                    // Loop, caching the step count until the next obstruction
+                    loop {
+                        let next = hare_pos.wrapping_add_signed(DIRECTIONS[hare_dir]);
+                        if next.x >= self.cols || next.y >= self.rows {
+                            // No cycle, hare has left the grid
+                            *cached_count += 1;
+                            return false;
+                        }
+                        if self.grid[next.y * self.cols + next.x] == b'#' {
+                            break;
+                        }
+                        hare_pos = next;
+                        *cached_count += 1;
+                    }
+                }
             }
+
+            hare_dir = (hare_dir + 1) % 4;
 
             if visited[hare_pos.y * self.cols + hare_pos.x] & (1 << hare_dir) != 0 {
                 // Cycle, hare has reached a previous state from before adding the obstacle
