@@ -13,4 +13,5 @@ utils::year!(2024 => year2024, ${
     9 => day09::Day09<'_>,
     10 => day10::Day10,
     11 => day11::Day11,
+    12 => day12::Day12,
 });
