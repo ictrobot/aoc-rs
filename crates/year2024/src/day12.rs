@@ -4,122 +4,97 @@ use utils::prelude::*;
 /// Counting area, perimeter and sides of shapes in a grid.
 #[derive(Clone, Debug)]
 pub struct Day12 {
-    grid: Vec<u8>,
-    offsets: [isize; 4],
+    part1: u32,
+    part2: u32,
 }
 
 impl Day12 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let (_, cols, grid) =
-            grid::from_str_padded(input, 2, 0, |b| b.is_ascii_uppercase().then_some(b))?;
+            grid::from_str_padded(input, 1, 0, |b| b.is_ascii_uppercase().then_some(b))?;
         let offsets = [-(cols as isize), 1, cols as isize, -1];
-        Ok(Self { grid, offsets })
-    }
 
-    #[must_use]
-    pub fn part1(&self) -> u64 {
-        let mut visited = vec![false; self.grid.len()];
-        let mut total = 0;
-        for i in 0..self.grid.len() {
-            if self.grid[i] == 0 || visited[i] {
+        let mut visited = vec![false; grid.len()];
+        let (mut part1, mut part2) = (0, 0);
+        for i in 0..grid.len() {
+            if grid[i] == 0 || visited[i] {
                 continue;
             }
 
-            let (area, perimeter) = self.flood_fill(i, &mut visited);
-            total += area * perimeter;
-        }
-        total
-    }
-
-    fn flood_fill(&self, i: usize, visited: &mut [bool]) -> (u64, u64) {
-        let plant = self.grid[i];
-        visited[i] = true;
-
-        let (mut area, mut perimeter) = (1, 0);
-        for &offset in &self.offsets {
-            let next = i.wrapping_add_signed(offset);
-            if self.grid[next] == plant {
-                if !visited[next] {
-                    let (a, p) = self.flood_fill(next, visited);
-                    area += a;
-                    perimeter += p;
-                }
-            } else {
-                perimeter += 1;
-            }
+            let (area, perimeter, corners) = FloodFill::fill_shape(&grid, offsets, &mut visited, i);
+            part1 += area * perimeter;
+            part2 += area * corners;
         }
 
-        (area, perimeter)
+        Ok(Self { part1, part2 })
     }
 
     #[must_use]
-    pub fn part2(&self) -> u64 {
-        let mut visited = vec![false; self.grid.len()];
-        let mut edges = vec![[false; 4]; self.grid.len()];
-        let mut total = 0;
-        for i in 0..self.grid.len() {
-            if self.grid[i] == 0 || visited[i] {
-                continue;
-            }
-
-            let (area, min_idx, max_idx) = self.edge_fill(i, &mut visited, &mut edges);
-
-            let mut sides = 0;
-            for dir in 0..4 {
-                for j in min_idx..=max_idx {
-                    if edges[j][dir] {
-                        sides += 1;
-                        self.edge_unset(j, dir, &mut edges);
-                    }
-                }
-            }
-
-            total += area * sides;
-        }
-        total
+    pub fn part1(&self) -> u32 {
+        self.part1
     }
 
-    fn edge_fill(
-        &self,
+    #[must_use]
+    pub fn part2(&self) -> u32 {
+        self.part2
+    }
+}
+
+struct FloodFill<'a> {
+    grid: &'a [u8],
+    offsets: [isize; 4],
+    visited: &'a mut [bool],
+    area: u32,
+    perimeter: u32,
+    corners: u32,
+}
+
+impl<'a> FloodFill<'a> {
+    fn fill_shape(
+        grid: &'a [u8],
+        offsets: [isize; 4],
+        visited: &'a mut [bool],
         i: usize,
-        visited: &mut [bool],
-        edges: &mut [[bool; 4]],
-    ) -> (u64, usize, usize) {
-        let plant = self.grid[i];
-        visited[i] = true;
-
-        let (mut area, mut min_idx, mut max_idx) = (1, usize::MAX, 0);
-        for dir in 0..4 {
-            let next = i.wrapping_add_signed(self.offsets[dir]);
-            if self.grid[next] == plant {
-                if !visited[next] {
-                    let r = self.edge_fill(next, visited, edges);
-                    area += r.0;
-                    min_idx = min_idx.min(r.1);
-                    max_idx = max_idx.max(r.2);
-                }
-            } else {
-                edges[next][dir] = true;
-                min_idx = min_idx.min(next);
-                max_idx = max_idx.max(next);
-            }
-        }
-
-        (area, min_idx, max_idx)
+    ) -> (u32, u32, u32) {
+        let mut instance = Self {
+            grid,
+            offsets,
+            visited,
+            area: 0,
+            perimeter: 0,
+            corners: 0,
+        };
+        instance.visit(i);
+        (instance.area, instance.perimeter, instance.corners)
     }
 
-    fn edge_unset(&self, i: usize, dir: usize, edges: &mut [[bool; 4]]) {
-        edges[i][dir] = false;
-        for offset in [self.offsets[(dir + 1) % 4], self.offsets[(dir + 3) % 4]] {
-            let next = i.wrapping_add_signed(offset);
-            if edges[next][dir] {
-                self.edge_unset(next, dir, edges);
+    fn visit(&mut self, i: usize) {
+        let plant = self.grid[i];
+        self.visited[i] = true;
+        self.area += 1;
+
+        for d in 0..4 {
+            let neighbour1 = i.wrapping_add_signed(self.offsets[d]);
+            if self.grid[neighbour1] == plant {
+                if !self.visited[neighbour1] {
+                    self.visit(neighbour1);
+                }
+            } else {
+                self.perimeter += 1;
+            }
+
+            let neighbour2 = i.wrapping_add_signed(self.offsets[(d + 1) % 4]);
+            let between = i.wrapping_add_signed(self.offsets[d] + self.offsets[(d + 1) % 4]);
+            if ((self.grid[neighbour1] == plant) == (self.grid[neighbour2] == plant))
+                && (self.grid[neighbour1] != plant || self.grid[between] != plant)
+            {
+                self.corners += 1;
             }
         }
     }
 }
 
-examples!(Day12 -> (u64, u64) [
+examples!(Day12 -> (u32, u32) [
     {file: "day12_example0.txt", part1: 140, part2: 80},
     {file: "day12_example1.txt", part1: 772},
     {file: "day12_example2.txt", part1: 1930, part2: 1206},
