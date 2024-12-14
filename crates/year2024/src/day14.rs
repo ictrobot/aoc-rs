@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicI32, Ordering};
+use utils::multithreading::worker_pool;
 use utils::point::Point2D;
 use utils::prelude::*;
 
@@ -62,21 +64,26 @@ impl Day14 {
 
     #[must_use]
     pub fn part2(&self) -> u32 {
-        let mut robots = self.robots.clone();
-        for i in 1..=u32::MAX {
-            let mut grid = [0u128; HEIGHT as usize];
-            for r in robots.iter_mut() {
-                r.position += r.velocity;
-                r.position.x = r.position.x.rem_euclid(WIDTH);
-                r.position.y = r.position.y.rem_euclid(HEIGHT);
-                grid[r.position.y as usize] |= 1 << r.position.x;
-            }
+        let counter = AtomicI32::new(0);
+        let result = AtomicI32::new(i32::MAX);
 
-            if grid.iter().any(|&b| Self::has_ten_consecutive_bits(b)) {
-                return i;
+        worker_pool(|| {
+            while result.load(Ordering::Acquire) == i32::MAX {
+                let i = counter.fetch_add(1, Ordering::AcqRel);
+                let mut grid = [0u128; HEIGHT as usize];
+                for r in &self.robots {
+                    let pos = r.position + (r.velocity * i);
+                    grid[pos.y.rem_euclid(HEIGHT) as usize] |= 1 << pos.x.rem_euclid(WIDTH);
+                }
+
+                if grid.iter().any(|&b| Self::has_ten_consecutive_bits(b)) {
+                    result.fetch_min(i, Ordering::AcqRel);
+                    return;
+                }
             }
-        }
-        unreachable!("no solution found")
+        });
+
+        result.into_inner() as u32
     }
 
     fn has_ten_consecutive_bits(b: u128) -> bool {
