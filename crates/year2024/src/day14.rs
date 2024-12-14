@@ -1,12 +1,8 @@
-use std::sync::atomic::{AtomicI32, Ordering};
-use utils::multithreading::worker_pool;
+use utils::number::chinese_remainder;
 use utils::point::Point2D;
 use utils::prelude::*;
 
 /// Finding when robots arrange themselves into a picture.
-///
-/// Assumes that the picture of the Christmas tree will involve a horizontal line of at least 10
-/// robots, and that doesn't happen in any prior iterations.
 #[derive(Clone, Debug)]
 pub struct Day14 {
     robots: Vec<Robot>,
@@ -18,7 +14,6 @@ struct Robot {
     velocity: Point2D<i32>,
 }
 
-// WIDTH must be less than 128
 const WIDTH: i32 = 101;
 const HEIGHT: i32 = 103;
 
@@ -64,39 +59,38 @@ impl Day14 {
 
     #[must_use]
     pub fn part2(&self) -> u32 {
-        let counter = AtomicI32::new(0);
-        let result = AtomicI32::new(i32::MAX);
+        // The only time there are more than 30 robots in a single row and more than 30 robots in a
+        // single column is when the robots are arranged into a Christmas Tree. Additionally, each
+        // robot's x position repeats every 101 seconds, and y position repeats every 103 seconds.
+        // This allows separately finding the time mod 101 where there are enough robots in a single
+        // column, and then finding the time mod 103 where there are enough robots in a single row.
+        // This then gives us two equations which can be solved using the Chinese reminder theorem.
+        //      result % 101 == A
+        //      result % 103 == B
 
-        worker_pool(|| {
-            while result.load(Ordering::Acquire) == i32::MAX {
-                let i = counter.fetch_add(1, Ordering::AcqRel);
-                let mut grid = [0u128; HEIGHT as usize];
+        let a = (0..WIDTH)
+            .find(|&t| {
+                let mut columns = [0u8; WIDTH as usize];
                 for r in &self.robots {
-                    let pos = r.position + (r.velocity * i);
-                    grid[pos.y.rem_euclid(HEIGHT) as usize] |= 1 << pos.x.rem_euclid(WIDTH);
+                    let col = (r.position.x + r.velocity.x * t).rem_euclid(WIDTH);
+                    columns[col as usize] += 1;
                 }
+                columns.iter().any(|&b| b >= 30)
+            })
+            .expect("expected a time to have more than 30 robots in a column");
 
-                if grid.iter().any(|&b| Self::has_ten_consecutive_bits(b)) {
-                    result.fetch_min(i, Ordering::AcqRel);
-                    return;
+        let b = (0..HEIGHT)
+            .find(|&t| {
+                let mut rows = [0u8; HEIGHT as usize];
+                for r in &self.robots {
+                    let row = (r.position.y + r.velocity.y * t).rem_euclid(HEIGHT);
+                    rows[row as usize] += 1;
                 }
-            }
-        });
+                rows.iter().any(|&b| b >= 30)
+            })
+            .expect("expected a time to have more than 30 robots in a row");
 
-        result.into_inner() as u32
-    }
-
-    fn has_ten_consecutive_bits(b: u128) -> bool {
-        b & (b << 1)
-            & (b << 2)
-            & (b << 3)
-            & (b << 4)
-            & (b << 5)
-            & (b << 6)
-            & (b << 7)
-            & (b << 8)
-            & (b << 9)
-            != 0
+        chinese_remainder([a, b], [WIDTH, HEIGHT]).unwrap() as u32
     }
 }
 
