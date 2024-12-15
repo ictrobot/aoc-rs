@@ -142,3 +142,35 @@ pub fn from_str_padded<T: Clone>(
 
     Ok((rows, padded_columns, data))
 }
+
+/// Checks that the provided grid has walls on each edge.
+///
+/// # Examples
+/// ```
+/// # use utils::grid::is_enclosed;
+/// assert_eq!(
+///     is_enclosed(5, 6, &[
+///         b'#', b'#', b'#', b'#', b'#', b'#',
+///         b'#', b'.', b'.', b'.', b'.', b'#',
+///         b'#', b'.', b'.', b'.', b'.', b'#',
+///         b'#', b'.', b'.', b'.', b'.', b'#',
+///         b'#', b'#', b'#', b'#', b'#', b'#',
+///     ], |&b| b == b'#'),
+///     true,
+/// );
+/// assert_eq!(
+///     is_enclosed(5, 6, &[
+///         b'#', b'#', b'#', b'#', b'#', b'#',
+///         b'#', b'.', b'.', b'.', b'.', b'#',
+///         b'#', b'.', b'.', b'.', b'.', b'#',
+///         b'#', b'.', b'.', b'.', b'.', b'.',
+///         b'#', b'#', b'#', b'#', b'#', b'#',
+///     ], |&b| b == b'#'),
+///     false,
+/// );
+/// ```
+pub fn is_enclosed<T>(rows: usize, cols: usize, grid: &[T], is_wall: impl Fn(&T) -> bool) -> bool {
+    grid[..cols].iter().all(&is_wall)
+        && grid[(rows - 1) * cols..].iter().all(&is_wall)
+        && (1..rows).all(|r| is_wall(&grid[r * cols]) && is_wall(&grid[(r + 1) * cols - 1]))
+}
