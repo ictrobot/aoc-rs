@@ -11,6 +11,7 @@ pub struct Day16 {
     end: usize,
     offsets: [isize; 4],
     cheapest: Vec<[u32; 4]>,
+    turned: Vec<u8>,
     part1: u32,
 }
 
@@ -49,6 +50,7 @@ impl Day16 {
 
         let mut instance = Self {
             cheapest: vec![[u32::MAX; 4]; grid.len()],
+            turned: vec![0; grid.len()],
             part1: 0,
             grid,
             start,
@@ -77,17 +79,30 @@ impl Day16 {
                 return true;
             }
 
-            for (next_dir, next_score) in [
-                (dir, score + 1),
-                ((dir + 1) % 4, score + 1001),
-                ((dir + 3) % 4, score + 1001),
-            ] {
-                let next = index.wrapping_add_signed(self.offsets[next_dir]);
-                // Advancing to the next branch each time instead of the neighbor reduces the number
-                // of items pushed to the priority queue significantly
-                if let Some(branch) = self.find_branch(next, next_dir, next_score) {
-                    // Reverse needed to use BinaryHeap as a min heap and order by the lowest score
-                    queue.push(Reverse(branch));
+            // Advancing to the next branch each time instead of the neighbor reduces the number
+            // of items pushed to the priority queue significantly
+            if let Some(branch) =
+                self.find_branch(index.wrapping_add_signed(self.offsets[dir]), dir, score + 1)
+            {
+                // Reverse needed to use BinaryHeap as a min heap and order by the lowest score
+                queue.push(Reverse(branch));
+            }
+
+            for next_dir in [(dir + 1) % 4, (dir + 3) % 4] {
+                // Only turn if it will be the cheapest way to reach the turned state
+                if score + 1000 < self.cheapest[index][next_dir] {
+                    self.cheapest[index][next_dir] = score + 1000;
+                    // Store that this state was reached by turning, not by traversing tiles heading
+                    // in the next direction to allow reversing the path correctly
+                    self.turned[index] |= 1 << next_dir;
+
+                    if let Some(branch) = self.find_branch(
+                        index.wrapping_add_signed(self.offsets[next_dir]),
+                        next_dir,
+                        score + 1001,
+                    ) {
+                        queue.push(Reverse(branch));
+                    }
                 }
             }
         }
@@ -129,9 +144,15 @@ impl Day16 {
             dir = next_dir;
         }
 
-        if score < self.cheapest[index][dir] {
+        if score <= self.cheapest[index][dir] {
             self.cheapest[index][dir] = score;
+            self.turned[index] &= !(1 << dir);
             Some((score, index, dir))
+        } else if score == self.cheapest[index][dir] {
+            // Ensure the new state isn't marked as only reachable by turning, which would prevent
+            // this segment from being included when reversing
+            self.turned[index] &= !(1 << dir);
+            None
         } else {
             None
         }
@@ -185,7 +206,9 @@ impl Day16 {
                 ((dir + 1) % 4, score - 1000),
                 ((dir + 3) % 4, score - 1000),
             ] {
-                if self.cheapest[index][next_dir] == next_score {
+                if self.cheapest[index][next_dir] == next_score
+                    && self.turned[index] & 1 << next_dir == 0
+                {
                     self.reverse(
                         index.wrapping_add_signed(-self.offsets[next_dir]),
                         next_dir,
