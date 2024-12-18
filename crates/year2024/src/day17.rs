@@ -34,18 +34,17 @@ impl Day17 {
 
     #[must_use]
     pub fn part1(&self) -> String {
-        let mut output = Vec::new();
+        let mut output = String::new();
 
         self.run(self.a_start, |x| {
-            output.push(x);
+            if !output.is_empty() {
+                output.push(',');
+            }
+            output.push((b'0' + x) as char);
             ControlFlow::Continue(())
         });
 
         output
-            .iter()
-            .map(|n| n.to_string())
-            .collect::<Vec<_>>()
-            .join(",")
     }
 
     #[inline]
@@ -122,16 +121,10 @@ impl Day17 {
     }
 
     fn check_pos_matches(&self, a: u64, pos: usize) -> bool {
-        let mut count = 0;
         let mut output = None;
-        self.run(a, |out| {
-            if count == pos {
-                output = Some(out);
-                ControlFlow::Break(())
-            } else {
-                count += 1;
-                ControlFlow::Continue(())
-            }
+        self.run(a / (1 << (pos * 3)), |out| {
+            output = Some(out);
+            ControlFlow::Break(())
         });
         output == Some(self.program[pos])
     }
