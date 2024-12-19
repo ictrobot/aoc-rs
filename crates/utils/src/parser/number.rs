@@ -92,6 +92,17 @@ macro_rules! parser_for {
 parser_for! { UnsignedParser => u8, u16, u32, u64, u128 }
 parser_for! { SignedParser => i8, i16, i32, i64, i128 }
 
+/// Parsing as [`usize`] should be discouraged as it leads to parsers which behave differently at
+/// runtime on 32-bit and 64-bit platforms, so no `parser::usize()` function is provided.
+///
+/// However, [`Parseable`] is implemented for [`usize`] as it is safe to use [`number_range()`]
+/// with a constant hard-coded max, which will fail at compile time if the constant is too large
+/// for the platform's usize.
+impl Parseable for std::primitive::usize {
+    type Parser = UnsignedParser<std::primitive::usize>;
+    const PARSER: Self::Parser = UnsignedParser(PhantomData);
+}
+
 #[derive(Copy, Clone)]
 pub struct NumberRange<I> {
     min: I,
