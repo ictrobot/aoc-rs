@@ -81,26 +81,22 @@ impl Day20 {
 
     fn cheat_count(&self, x_offset: isize, y_offset: isize) -> u32 {
         let cheat_length = (x_offset.unsigned_abs() + y_offset.unsigned_abs()) as u16;
+        let threshold = 101 + cheat_length;
         if cheat_length == 0 {
             return 0;
         }
 
-        let mut cheats = 0;
+        let start_index = self.cols * 20 + 20;
+        let end_index = self.distances.len() - start_index;
         let offset = y_offset * (self.cols as isize) + x_offset;
-        for (index, target) in (self.cols * 20..self.distances.len() - (self.cols * 20))
-            .zip((self.cols * 20).wrapping_add_signed(offset)..)
-        {
-            let this_distance = self.distances[index];
-            let target_distance = self.distances[target];
-            cheats += u16::from(
-                target_distance
-                    .wrapping_add(1)
-                    .saturating_sub(this_distance)
-                    .saturating_sub(cheat_length)
-                    >= 101,
-            );
-        }
-        cheats as u32
+
+        self.distances[start_index..end_index]
+            .iter()
+            .zip(self.distances[start_index.wrapping_add_signed(offset)..].iter())
+            .map(|(&current, &target)| {
+                u16::from(target.wrapping_add(1).saturating_sub(current) >= threshold)
+            })
+            .sum::<u16>() as u32
     }
 }
 
