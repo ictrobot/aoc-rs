@@ -93,11 +93,11 @@ impl Day20 {
             let this_distance = self.distances[index];
             let target_distance = self.distances[target];
             cheats += u16::from(
-                (target_distance != u16::MAX)
-                    & (target_distance
-                        .saturating_sub(this_distance)
-                        .saturating_sub(cheat_length)
-                        >= 100),
+                target_distance
+                    .wrapping_add(1)
+                    .saturating_sub(this_distance)
+                    .saturating_sub(cheat_length)
+                    >= 101,
             );
         }
         cheats as u32
