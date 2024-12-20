@@ -5,12 +5,9 @@ use utils::prelude::*;
 /// Finding shortcuts phasing through walls in a maze.
 #[derive(Clone, Debug)]
 pub struct Day20 {
-    distances: Vec<Distance>,
+    distances: Vec<u16>,
     cols: usize,
 }
-
-// Depending on AVX support, u16 or u32 can be faster
-type Distance = u16;
 
 impl Day20 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
@@ -37,24 +34,24 @@ impl Day20 {
         }
         grid[end] = b'.';
 
-        let mut distances = vec![Distance::MAX; grid.len()];
+        let mut distances = vec![u16::MAX; grid.len()];
         distances[start] = 0;
         let mut queue = VecDeque::new();
-        queue.push_back((start, 0 as Distance));
-        while let Some((index, distance)) = queue.pop_front() {
+        queue.push_back(start);
+        while let Some(index) = queue.pop_front() {
             if index == end {
                 break;
             }
 
-            let Some(next_distance) = distance.checked_add(1) else {
+            let Some(next_distance) = distances[index].checked_add(1) else {
                 return Err(InputError::new(input, 0, "path too long"));
             };
 
             for offset in [1, cols as isize, -1, -(cols as isize)] {
                 let next = index.wrapping_add_signed(offset);
-                if grid[next] == b'.' && distances[next] == Distance::MAX {
+                if grid[next] == b'.' && distances[next] == u16::MAX {
                     distances[next] = next_distance;
-                    queue.push_back((next, next_distance));
+                    queue.push_back(next);
                 }
             }
         }
@@ -83,7 +80,7 @@ impl Day20 {
     }
 
     fn cheat_count(&self, x_offset: isize, y_offset: isize) -> u32 {
-        let cheat_length = (x_offset.unsigned_abs() + y_offset.unsigned_abs()) as Distance;
+        let cheat_length = (x_offset.unsigned_abs() + y_offset.unsigned_abs()) as u16;
         if cheat_length == 0 {
             return 0;
         }
@@ -95,17 +92,15 @@ impl Day20 {
         {
             let this_distance = self.distances[index];
             let target_distance = self.distances[target];
-            cheats += u32::from(
-                (target_distance != Distance::MAX)
-                    & (this_distance != Distance::MAX)
-                    & (target_distance > this_distance.wrapping_add(cheat_length))
+            cheats += u16::from(
+                (target_distance != u16::MAX)
                     & (target_distance
-                        .wrapping_sub(this_distance)
-                        .wrapping_sub(cheat_length)
+                        .saturating_sub(this_distance)
+                        .saturating_sub(cheat_length)
                         >= 100),
             );
         }
-        cheats
+        cheats as u32
     }
 }
 
