@@ -64,52 +64,46 @@ impl Day20 {
 
     #[must_use]
     pub fn part1(&self) -> u32 {
-        let mut cheats = 0;
-        for offset in [2, self.cols as isize * 2, -2, self.cols as isize * -2] {
-            for (index, target) in (self.cols * 20..self.distances.len() - (self.cols * 20))
-                .zip((self.cols * 20).wrapping_add_signed(offset)..)
-            {
-                let this_distance = self.distances[index];
-                let target_distance = self.distances[target];
-                cheats += u32::from(
-                    (target_distance != Distance::MAX)
-                        & (this_distance != Distance::MAX)
-                        & (target_distance > this_distance.wrapping_add(2))
-                        & (target_distance.wrapping_sub(this_distance).wrapping_sub(2) >= 100),
-                );
-            }
-        }
-        cheats
+        [(0, -2), (2, 0), (0, 2), (-2, 0)]
+            .into_iter()
+            .map(|(x, y)| self.cheat_count(x, y))
+            .sum()
     }
 
     #[must_use]
     pub fn part2(&self) -> u32 {
-        let mut cheats = 0;
+        let mut total = 0;
         for x_offset in -20isize..=20 {
             let y_limit = 20 - x_offset.abs();
             for y_offset in -y_limit..=y_limit {
-                let cheat_length = (x_offset.unsigned_abs() + y_offset.unsigned_abs()) as Distance;
-                if cheat_length == 0 {
-                    continue;
-                }
-
-                let offset = y_offset * (self.cols as isize) + x_offset;
-                for (index, target) in (self.cols * 20..self.distances.len() - (self.cols * 20))
-                    .zip((self.cols * 20).wrapping_add_signed(offset)..)
-                {
-                    let this_distance = self.distances[index];
-                    let target_distance = self.distances[target];
-                    cheats += u32::from(
-                        (target_distance != Distance::MAX)
-                            & (this_distance != Distance::MAX)
-                            & (target_distance > this_distance.wrapping_add(cheat_length))
-                            & (target_distance
-                                .wrapping_sub(this_distance)
-                                .wrapping_sub(cheat_length)
-                                >= 100),
-                    );
-                }
+                total += self.cheat_count(x_offset, y_offset);
             }
+        }
+        total
+    }
+
+    fn cheat_count(&self, x_offset: isize, y_offset: isize) -> u32 {
+        let cheat_length = (x_offset.unsigned_abs() + y_offset.unsigned_abs()) as Distance;
+        if cheat_length == 0 {
+            return 0;
+        }
+
+        let mut cheats = 0;
+        let offset = y_offset * (self.cols as isize) + x_offset;
+        for (index, target) in (self.cols * 20..self.distances.len() - (self.cols * 20))
+            .zip((self.cols * 20).wrapping_add_signed(offset)..)
+        {
+            let this_distance = self.distances[index];
+            let target_distance = self.distances[target];
+            cheats += u32::from(
+                (target_distance != Distance::MAX)
+                    & (this_distance != Distance::MAX)
+                    & (target_distance > this_distance.wrapping_add(cheat_length))
+                    & (target_distance
+                        .wrapping_sub(this_distance)
+                        .wrapping_sub(cheat_length)
+                        >= 100),
+            );
         }
         cheats
     }
