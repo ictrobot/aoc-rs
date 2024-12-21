@@ -94,9 +94,7 @@ impl Day21 {
         let mut queue = BinaryHeap::new();
         for start in NumericKeypad::ALL {
             queue.push(Reverse((0, start, DirectionalKeypad::Activate)));
-            result[start as usize][start as usize] = 0;
-            let mut best = [u32::MAX; NumericKeypad::LEN];
-            best[start as usize] = 1;
+            result[start as usize][start as usize] = 1;
             while let Some(Reverse((cost, current, parent))) = queue.pop() {
                 for &(next_parent, next) in current.neighbours() {
                     let next_cost = cost + dir_matrix[parent as usize][next_parent as usize];
