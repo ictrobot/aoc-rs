@@ -26,24 +26,37 @@ impl Day22 {
     }
 
     #[must_use]
-    pub fn part2(&self) -> u32 {
+    pub fn part2(&self) -> u16 {
         let mut bananas = [0; 130321]; // 19 ** 4
         let mut seen = [0; 130321];
         for (i, &(mut n)) in self.input.iter().enumerate() {
-            let mut index = 0;
-            let mut last_digit = n % 10;
-            for j in 0..2000 {
-                let next = Self::next(n);
-                let digit = next % 10;
+            let mut prev = n % 10;
+            let mut s4;
 
-                index = (9 + digit - last_digit) as usize + ((index % 6859) * 19);
-                if j >= 3 && seen[index] < i + 1 {
-                    bananas[index] += next % 10;
-                    seen[index] = i + 1;
+            n = Self::next(n);
+            let mut s3 = ((9 + n % 10 - prev) as usize) * 19 * 19;
+            prev = n % 10;
+
+            n = Self::next(n);
+            let mut s2 = ((9 + n % 10 - prev) as usize) * 19;
+            prev = n % 10;
+
+            n = Self::next(n);
+            let mut s1 = (9 + n % 10 - prev) as usize;
+            prev = n % 10;
+
+            for _ in 3..2000 {
+                n = Self::next(n);
+                let digit = n % 10;
+                (s1, s2, s3, s4) = ((9 + digit - prev) as usize, 19 * s1, 19 * s2, 19 * s3);
+
+                let index = s4 + s3 + s2 + s1;
+                if seen[index] != (i + 1) as u16 {
+                    bananas[index] += digit as u16;
+                    seen[index] = (i + 1) as u16;
                 }
 
-                n = next;
-                last_digit = digit;
+                prev = digit;
             }
         }
         bananas.iter().max().copied().unwrap()
@@ -51,14 +64,13 @@ impl Day22 {
 
     #[inline(always)]
     fn next(mut n: u32) -> u32 {
-        n = (n ^ (n << 6)) % 0x1000000;
-        n = (n ^ (n >> 5)) % 0x1000000;
-        n = (n ^ (n << 11)) % 0x1000000;
-        n
+        n = (n ^ (n << 6)) & 0xFFFFFF;
+        n = (n ^ (n >> 5)) & 0xFFFFFF;
+        (n ^ (n << 11)) & 0xFFFFFF
     }
 }
 
-examples!(Day22 -> (u64, u32) [
+examples!(Day22 -> (u64, u16) [
     {input: "1\n10\n100\n2024", part1: 37327623},
     {input: "1\n2\n3\n2024", part2: 23},
 ]);
