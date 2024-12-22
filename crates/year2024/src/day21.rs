@@ -1,5 +1,4 @@
-use std::cmp::Reverse;
-use std::collections::BinaryHeap;
+use utils::point::Point2D;
 use utils::prelude::*;
 
 /// Counting recursive keypad presses.
@@ -24,6 +23,9 @@ enum DirectionalKeypad {
     Left = 1, Down = 2, Right = 3,
 }
 
+static PART1_MATRIX: [[u64; 11]; 11] = num_matrix(2);
+static PART2_MATRIX: [[u64; 11]; 11] = num_matrix(25);
+
 impl Day21 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
@@ -35,80 +37,137 @@ impl Day21 {
 
     #[must_use]
     pub fn part1(&self) -> u64 {
-        self.complexity(2)
+        self.complexity(&PART1_MATRIX)
     }
 
     #[must_use]
     pub fn part2(&self) -> u64 {
-        self.complexity(25)
+        self.complexity(&PART2_MATRIX)
     }
 
-    fn complexity(&self, robots: u32) -> u64 {
-        let mut dir_matrix = [[1; 5]; 5];
-        for _ in 0..robots {
-            dir_matrix = Self::dir_cost(dir_matrix);
-        }
-
-        let num_matrix = Self::num_cost(dir_matrix);
-
+    fn complexity(&self, matrix: &[[u64; 11]; 11]) -> u64 {
         self.codes
             .iter()
             .map(|&code| {
-                let digits = [code / 100, (code % 100) / 10, code % 10];
-                let length = num_matrix[NumericKeypad::Activate as usize][digits[0] as usize]
-                    + num_matrix[digits[0] as usize][digits[1] as usize]
-                    + num_matrix[digits[1] as usize][digits[2] as usize]
-                    + num_matrix[digits[2] as usize][NumericKeypad::Activate as usize];
+                let digits = [(code % 1000) / 100, (code % 100) / 10, code % 10];
+                let length = matrix[NumericKeypad::Activate as usize][digits[0] as usize]
+                    + matrix[digits[0] as usize][digits[1] as usize]
+                    + matrix[digits[1] as usize][digits[2] as usize]
+                    + matrix[digits[2] as usize][NumericKeypad::Activate as usize];
                 length * code as u64
             })
             .sum()
     }
+}
 
-    fn dir_cost(
-        dir_matrix: [[u64; DirectionalKeypad::LEN]; DirectionalKeypad::LEN],
-    ) -> [[u64; DirectionalKeypad::LEN]; DirectionalKeypad::LEN] {
-        let mut result = [[u64::MAX; DirectionalKeypad::LEN]; DirectionalKeypad::LEN];
-        let mut queue = BinaryHeap::new();
-        for start in DirectionalKeypad::ALL {
-            queue.push(Reverse((0, start, DirectionalKeypad::Activate)));
-            result[start as usize][start as usize] = 1;
-            while let Some(Reverse((cost, current, parent))) = queue.pop() {
-                for &(next_parent, next) in current.neighbours() {
-                    let next_cost = cost + dir_matrix[parent as usize][next_parent as usize];
-                    let activate_cost = next_cost
-                        + dir_matrix[next_parent as usize][DirectionalKeypad::Activate as usize];
-                    if result[start as usize][next as usize] > activate_cost {
-                        result[start as usize][next as usize] = activate_cost;
-                        queue.push(Reverse((next_cost, next, next_parent)));
-                    }
+const fn num_matrix(robots: u32) -> [[u64; NumericKeypad::LEN]; NumericKeypad::LEN] {
+    let mut dir_matrix = [[1; 5]; 5];
+    let mut i = 0;
+    while i < robots {
+        dir_matrix = DirectionalKeypad::cost_matrix(dir_matrix);
+        i += 1;
+    }
+    NumericKeypad::cost_matrix(dir_matrix)
+}
+
+// Use a macro for common functions as trait functions cannot be marked as const
+macro_rules! cost_matrix_functions {
+    () => {
+        const fn cost_matrix(
+            dir_matrix: [[u64; DirectionalKeypad::LEN]; DirectionalKeypad::LEN],
+        ) -> [[u64; Self::LEN]; Self::LEN] {
+            let mut result = [[u64::MAX; Self::LEN]; Self::LEN];
+            let mut i = 0;
+            while i < Self::LEN {
+                result[i][i] = 1;
+                Self::visit(
+                    0,
+                    Self::ALL[i],
+                    DirectionalKeypad::Activate,
+                    Self::ALL[i],
+                    dir_matrix,
+                    &mut result,
+                );
+                i += 1;
+            }
+            result
+        }
+
+        const fn visit(
+            cost: u64,
+            current: Self,
+            parent: DirectionalKeypad,
+            start: Self,
+            dir_matrix: [[u64; DirectionalKeypad::LEN]; DirectionalKeypad::LEN],
+            result: &mut [[u64; Self::LEN]; Self::LEN],
+        ) {
+            let cost_with_activate =
+                cost + dir_matrix[parent as usize][DirectionalKeypad::Activate as usize];
+            if cost_with_activate < result[start as usize][current as usize] {
+                result[start as usize][current as usize] = cost_with_activate;
+            }
+
+            let start_coords = start.coords();
+            let current_coords = current.coords();
+            let current_distance = current_coords.x.abs_diff(start_coords.x)
+                + current_coords.y.abs_diff(start_coords.y);
+
+            let neighbours = current.neighbours();
+            let mut i = 0;
+            while i < neighbours.len() {
+                let (next_parent, next) = neighbours[i];
+                let next_point = next.coords();
+                let next_distance =
+                    next_point.x.abs_diff(start_coords.x) + next_point.y.abs_diff(start_coords.y);
+                if next_distance > current_distance {
+                    Self::visit(
+                        cost + dir_matrix[parent as usize][next_parent as usize],
+                        next,
+                        next_parent,
+                        start,
+                        dir_matrix,
+                        result,
+                    );
                 }
+                i += 1;
             }
         }
-        result
+    };
+}
+
+impl DirectionalKeypad {
+    const ALL: [Self; 5] = [
+        DirectionalKeypad::Up,
+        DirectionalKeypad::Activate,
+        DirectionalKeypad::Left,
+        DirectionalKeypad::Down,
+        DirectionalKeypad::Right,
+    ];
+    const LEN: usize = 5;
+
+    const fn neighbours(self) -> &'static [(DirectionalKeypad, Self)] {
+        use DirectionalKeypad::*;
+        match self {
+            Up => &[(Right, Activate), (Down, Down)],
+            Activate => &[(Left, Up), (Down, Right)],
+            Left => &[(Right, Down)],
+            Down => &[(Up, Up), (Left, Left), (Right, Right)],
+            Right => &[(Up, Activate), (Left, Down)],
+        }
     }
 
-    fn num_cost(
-        dir_matrix: [[u64; DirectionalKeypad::LEN]; DirectionalKeypad::LEN],
-    ) -> [[u64; NumericKeypad::LEN]; NumericKeypad::LEN] {
-        let mut result = [[u64::MAX; NumericKeypad::LEN]; NumericKeypad::LEN];
-        let mut queue = BinaryHeap::new();
-        for start in NumericKeypad::ALL {
-            queue.push(Reverse((0, start, DirectionalKeypad::Activate)));
-            result[start as usize][start as usize] = 1;
-            while let Some(Reverse((cost, current, parent))) = queue.pop() {
-                for &(next_parent, next) in current.neighbours() {
-                    let next_cost = cost + dir_matrix[parent as usize][next_parent as usize];
-                    let activate_cost = next_cost
-                        + dir_matrix[next_parent as usize][DirectionalKeypad::Activate as usize];
-                    if result[start as usize][next as usize] > activate_cost {
-                        result[start as usize][next as usize] = activate_cost;
-                        queue.push(Reverse((next_cost, next, next_parent)));
-                    }
-                }
-            }
+    const fn coords(self) -> Point2D<u32> {
+        use DirectionalKeypad::*;
+        match self {
+            Up => Point2D::new(1, 0),
+            Activate => Point2D::new(2, 0),
+            Left => Point2D::new(0, 1),
+            Down => Point2D::new(1, 1),
+            Right => Point2D::new(2, 1),
         }
-        result
     }
+
+    cost_matrix_functions!();
 }
 
 impl NumericKeypad {
@@ -127,7 +186,7 @@ impl NumericKeypad {
     ];
     const LEN: usize = 11;
 
-    fn neighbours(self) -> &'static [(DirectionalKeypad, Self)] {
+    const fn neighbours(self) -> &'static [(DirectionalKeypad, Self)] {
         use DirectionalKeypad::{Down, Left, Right, Up};
         use NumericKeypad::*;
         match self {
@@ -144,28 +203,25 @@ impl NumericKeypad {
             Activate => &[(Up, Key3), (Left, Key0)],
         }
     }
-}
 
-impl DirectionalKeypad {
-    const ALL: [Self; 5] = [
-        DirectionalKeypad::Up,
-        DirectionalKeypad::Activate,
-        DirectionalKeypad::Left,
-        DirectionalKeypad::Down,
-        DirectionalKeypad::Right,
-    ];
-    const LEN: usize = 5;
-
-    fn neighbours(self) -> &'static [(DirectionalKeypad, Self)] {
-        use DirectionalKeypad::*;
+    const fn coords(self) -> Point2D<u32> {
+        use NumericKeypad::*;
         match self {
-            Up => &[(Right, Activate), (Down, Down)],
-            Activate => &[(Left, Up), (Down, Right)],
-            Left => &[(Right, Down)],
-            Down => &[(Up, Up), (Left, Left), (Right, Right)],
-            Right => &[(Up, Activate), (Left, Down)],
+            Key7 => Point2D::new(0, 0),
+            Key8 => Point2D::new(1, 0),
+            Key9 => Point2D::new(2, 0),
+            Key4 => Point2D::new(0, 1),
+            Key5 => Point2D::new(1, 1),
+            Key6 => Point2D::new(2, 1),
+            Key1 => Point2D::new(0, 2),
+            Key2 => Point2D::new(1, 2),
+            Key3 => Point2D::new(2, 2),
+            Key0 => Point2D::new(1, 3),
+            Activate => Point2D::new(2, 3),
         }
     }
+
+    cost_matrix_functions!();
 }
 
 examples!(Day21 -> (u64, u64) [
