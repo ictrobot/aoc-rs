@@ -65,6 +65,11 @@ pub trait Integer:
     + ShrAssign<u32>
     + TryInto<i128>
 {
+    type Unsigned: UnsignedInteger;
+    type Signed: SignedInteger;
+
+    #[must_use]
+    fn abs_diff(self, rhs: Self) -> Self::Unsigned;
     #[must_use]
     fn checked_add(self, rhs: Self) -> Option<Self>;
     #[must_use]
@@ -75,27 +80,22 @@ pub trait Integer:
     fn trailing_ones(self) -> u32;
     #[must_use]
     fn trailing_zeros(self) -> u32;
+    #[must_use]
+    fn unsigned_abs(self) -> Self::Unsigned;
 }
 
 /// Trait implemented by the primitive unsigned integer types.
-pub trait UnsignedInteger: Integer + From<u8> {
-    type Signed: SignedInteger;
-
+pub trait UnsignedInteger: Integer<Unsigned = Self> + From<u8> {
     #[must_use]
     fn wrapping_add_signed(self, rhs: Self::Signed) -> Self;
 }
 
 /// Trait implemented by the primitive signed integer types.
-pub trait SignedInteger: Integer + Signed {
-    type Unsigned: UnsignedInteger;
-
-    #[must_use]
-    fn unsigned_abs(self) -> Self::Unsigned;
-}
+pub trait SignedInteger: Integer<Signed = Self> + Signed {}
 
 macro_rules! number_impl {
-    (uint => $($t:ty: $signed:ty),+) => {
-        $(impl Number for $t {
+    (int => $($u:ty: $s:ty ),+) => {
+        $(impl Number for $u {
             const ZERO: Self = 0;
             const ONE: Self = 1;
             const MIN: Self = Self::MIN;
@@ -112,74 +112,14 @@ macro_rules! number_impl {
             }
         })+
 
-        number_impl! {@common integer => $($t),+}
-
-        $(impl UnsignedInteger for $t {
-            type Signed = $signed;
-
-            #[inline]
-            fn wrapping_add_signed(self, rhs: Self::Signed) -> Self {
-                self.wrapping_add_signed(rhs)
-            }
-        })+
-    };
-    (int => $($t:ty: $unsigned:ty ),+) => {
-        $(impl Number for $t {
-            const ZERO: Self = 0;
-            const ONE: Self = 1;
-            const MIN: Self = Self::MIN;
-            const MAX: Self = Self::MAX;
+        $(impl Integer for $u {
+            type Unsigned = $u;
+            type Signed = $s;
 
             #[inline]
-            fn abs(self) -> Self {
-                self.abs()
+            fn abs_diff(self, rhs: Self) -> Self::Unsigned {
+                self.abs_diff(rhs)
             }
-
-            #[inline]
-            fn rem_euclid(self, rhs: Self) -> Self {
-                self.rem_euclid(rhs)
-            }
-        })+
-
-        number_impl! {@common integer => $($t),+}
-        number_impl! {@common signed => $($t),+}
-
-        $(impl SignedInteger for $t {
-            type Unsigned = $unsigned;
-
-            #[inline]
-            fn unsigned_abs(self) -> Self::Unsigned {
-                self.unsigned_abs()
-            }
-        })+
-    };
-    (float => $($t:ty),+) => {
-        $(impl Number for $t {
-            const ZERO: Self = 0.0;
-            const ONE: Self = 1.0;
-            const MIN: Self = Self::NEG_INFINITY;
-            const MAX: Self = Self::INFINITY;
-
-            #[inline]
-            fn abs(self) -> Self {
-                self.abs()
-            }
-
-            #[inline]
-            fn rem_euclid(self, rhs: Self) -> Self {
-                self.rem_euclid(rhs)
-            }
-        })+
-
-        number_impl! {@common signed => $($t),+}
-    };
-    (@common signed => $($t:ty),+) => {
-        $(impl Signed for $t {
-            const MINUS_ONE: Self = -Self::ONE;
-        })+
-    };
-    (@common integer => $($t:ty),+) => {
-        $(impl Integer for $t {
             #[inline]
             fn checked_add(self, rhs: Self) -> Option<Self> {
                 self.checked_add(rhs)
@@ -200,11 +140,100 @@ macro_rules! number_impl {
             fn trailing_zeros(self) -> u32 {
                 self.trailing_zeros()
             }
+            #[inline]
+            fn unsigned_abs(self) -> Self::Unsigned {
+                self // no-op for unsigned integers
+            }
         })+
+
+        $(impl UnsignedInteger for $u {
+            #[inline]
+            fn wrapping_add_signed(self, rhs: Self::Signed) -> Self {
+                self.wrapping_add_signed(rhs)
+            }
+        })+
+
+        $(impl Number for $s {
+            const ZERO: Self = 0;
+            const ONE: Self = 1;
+            const MIN: Self = Self::MIN;
+            const MAX: Self = Self::MAX;
+
+            #[inline]
+            fn abs(self) -> Self {
+                self.abs()
+            }
+
+            #[inline]
+            fn rem_euclid(self, rhs: Self) -> Self {
+                self.rem_euclid(rhs)
+            }
+        })+
+
+        $(impl Signed for $s {
+            const MINUS_ONE: Self = -Self::ONE;
+        })+
+
+        $(impl Integer for $s {
+            type Unsigned = $u;
+            type Signed = $s;
+
+            #[inline]
+            fn abs_diff(self, rhs: Self) -> Self::Unsigned {
+                self.abs_diff(rhs)
+            }
+            #[inline]
+            fn checked_add(self, rhs: Self) -> Option<Self> {
+                self.checked_add(rhs)
+            }
+            #[inline]
+            fn checked_sub(self, rhs: Self) -> Option<Self> {
+                self.checked_sub(rhs)
+            }
+            #[inline]
+            fn checked_mul(self, rhs: Self) -> Option<Self> {
+                self.checked_mul(rhs)
+            }
+            #[inline]
+            fn trailing_ones(self) -> u32 {
+                self.trailing_ones()
+            }
+            #[inline]
+            fn trailing_zeros(self) -> u32 {
+                self.trailing_zeros()
+            }
+            #[inline]
+            fn unsigned_abs(self) -> Self::Unsigned {
+                self.unsigned_abs()
+            }
+        })+
+
+        $(impl SignedInteger for $s {})+
     };
+    (float => $($t:ty),+) => {$(
+        impl Number for $t {
+            const ZERO: Self = 0.0;
+            const ONE: Self = 1.0;
+            const MIN: Self = Self::NEG_INFINITY;
+            const MAX: Self = Self::INFINITY;
+
+            #[inline]
+            fn abs(self) -> Self {
+                self.abs()
+            }
+
+            #[inline]
+            fn rem_euclid(self, rhs: Self) -> Self {
+                self.rem_euclid(rhs)
+            }
+        }
+
+        impl Signed for $t {
+            const MINUS_ONE: Self = -Self::ONE;
+        }
+    )+};
 }
-number_impl! {uint => u8: i8, u16: i16, u32: i32, u64: i64, u128: i128, usize: isize}
-number_impl! {int => i8: u8, i16: u16, i32: u32, i64: u64, i128: u128, isize: usize}
+number_impl! {int => u8: i8, u16: i16, u32: i32, u64: i64, u128: i128, usize: isize}
 number_impl! {float => f32, f64}
 
 /// Checks if the provided unsigned integer `n` is a prime number.

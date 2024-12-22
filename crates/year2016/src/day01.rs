@@ -37,7 +37,7 @@ impl Day01 {
             pos += dir * i32::from(steps);
         }
 
-        pos.manhattan_distance_unsigned()
+        pos.manhattan_distance()
     }
 
     #[must_use]
@@ -54,7 +54,7 @@ impl Day01 {
             for _ in 0..steps {
                 pos += dir;
                 if !visited.insert(pos) {
-                    return pos.manhattan_distance_unsigned();
+                    return pos.manhattan_distance();
                 }
             }
         }

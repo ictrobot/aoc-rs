@@ -23,14 +23,7 @@ macro_rules! point_impl {
             /// Returns the manhattan distance from the origin.
             #[inline]
             #[must_use]
-            pub fn manhattan_distance(self) -> T {
-                T::ZERO $(+ self.$f.abs())+
-            }
-
-            /// Returns the manhattan distance from the origin.
-            #[inline]
-            #[must_use]
-            pub fn manhattan_distance_unsigned(self) -> T::Unsigned
+            pub fn manhattan_distance(self) -> T::Unsigned
             where
                 T: SignedInteger
             {

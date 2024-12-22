@@ -40,7 +40,7 @@ impl Day20 {
         self.particles
             .iter()
             .enumerate()
-            .min_by_key(|&(_, p)| p.position_at_time(1_000_000).manhattan_distance_unsigned())
+            .min_by_key(|&(_, p)| p.position_at_time(1_000_000).manhattan_distance())
             .unwrap()
             .0
     }
