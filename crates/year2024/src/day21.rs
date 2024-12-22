@@ -23,7 +23,9 @@ enum DirectionalKeypad {
     Left = 1, Down = 2, Right = 3,
 }
 
+#[cfg(feature = "const_lut")]
 static PART1_MATRIX: [[u64; 11]; 11] = num_matrix(2);
+#[cfg(feature = "const_lut")]
 static PART2_MATRIX: [[u64; 11]; 11] = num_matrix(25);
 
 impl Day21 {
@@ -37,12 +39,20 @@ impl Day21 {
 
     #[must_use]
     pub fn part1(&self) -> u64 {
-        self.complexity(&PART1_MATRIX)
+        #[cfg(feature = "const_lut")]
+        return self.complexity(&PART1_MATRIX);
+
+        #[cfg(not(feature = "const_lut"))]
+        return self.complexity(&num_matrix(2));
     }
 
     #[must_use]
     pub fn part2(&self) -> u64 {
-        self.complexity(&PART2_MATRIX)
+        #[cfg(feature = "const_lut")]
+        return self.complexity(&PART2_MATRIX);
+
+        #[cfg(not(feature = "const_lut"))]
+        return self.complexity(&num_matrix(25));
     }
 
     fn complexity(&self, matrix: &[[u64; 11]; 11]) -> u64 {

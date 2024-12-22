@@ -12,3 +12,4 @@ utils = { path = "../utils" }
 
 [features]
 unsafe = ["utils/unsafe"]
+const_lut = []
