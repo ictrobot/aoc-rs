@@ -1,6 +1,6 @@
 //! 2D & 3D point implementations.
 
-use crate::number::{Number, Signed, SignedInteger, UnsignedInteger};
+use crate::number::{Integer, Number, Signed, UnsignedInteger};
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
@@ -25,9 +25,19 @@ macro_rules! point_impl {
             #[must_use]
             pub fn manhattan_distance(self) -> T::Unsigned
             where
-                T: SignedInteger
+                T: Integer
             {
                 T::Unsigned::ZERO $(+ self.$f.unsigned_abs())+
+            }
+
+            /// Returns the manhattan distance from the specified point.
+            #[inline]
+            #[must_use]
+            pub fn manhattan_distance_from(self, rhs: Self) -> T::Unsigned
+            where
+                T: Integer
+            {
+                T::Unsigned::ZERO $(+ self.$f.abs_diff(rhs.$f))+
             }
 
             /// Add the provided signed point, wrapping on overflow.
