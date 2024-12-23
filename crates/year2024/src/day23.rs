@@ -51,23 +51,28 @@ impl Day23 {
     #[must_use]
     pub fn part1(&self) -> u32 {
         let mut count = 0;
-        for n1 in 0..self.nodes.len() {
+
+        // 19 = b't' - b'a'
+        for n1 in 19 * 26..20 * 26 {
             for n2 in self.neighbors(n1) {
-                if n2 > n1 {
-                    break;
+                // Ensure the combination is only counted once if the second node also starts with t
+                if n2 / 26 == 19 && n2 >= n1 {
+                    continue;
                 }
+
                 for n3 in Self::iter(Self::intersect(self.nodes[n1], self.nodes[n2])) {
-                    if n3 > n2 {
+                    if n3 >= n2 {
                         break;
                     }
-
-                    // 19 = b't' - b'a'
-                    if n1 / 26 == 19 || n2 / 26 == 19 || n3 / 26 == 19 {
-                        count += 1;
+                    if n3 / 26 == 19 && n3 >= n1 {
+                        continue;
                     }
+
+                    count += 1;
                 }
             }
         }
+
         count
     }
 
