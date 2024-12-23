@@ -1,69 +1,68 @@
+use utils::bit::BitIterator;
 use utils::prelude::*;
 
 /// Finding the largest clique in a graph.
+///
+/// Assumes each node has the same degree N, and the largest clique contains N nodes.
 #[derive(Clone, Debug)]
 pub struct Day23 {
-    nodes: Vec<Node>,
-}
-
-#[derive(Clone, Debug)]
-struct Node {
-    name: [u8; 2],
-    edges: Vec<usize>,
+    nodes: [[u64; (26usize * 26).div_ceil(64)]; 26 * 26],
+    degree: u32,
 }
 
 impl Day23 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let mut indexes = [None; 26 * 26];
-        let mut nodes = vec![];
+        let mut nodes = [[0u64; 11]; 676];
 
         for item in parser::byte_range(b'a'..=b'z')
-            .repeat_n(parser::noop())
-            .repeat_n(b'-')
+            .repeat_n::<2, _>(parser::noop())
+            .repeat_n::<2, _>(b'-')
             .with_suffix(parser::eol())
             .parse_iterator(input)
         {
             let [n1, n2] = item?;
 
-            let mut index_of = |n: [u8; 2]| {
-                let i = 26 * (n[0] - b'a') as usize + (n[1] - b'a') as usize;
-                match indexes[i] {
-                    Some(index) => index,
-                    None => {
-                        let index = nodes.len();
-                        nodes.push(Node {
-                            name: n,
-                            edges: Vec::new(),
-                        });
-                        indexes[i] = Some(index);
-                        index
-                    }
-                }
-            };
+            let index1 = 26 * (n1[0] - b'a') as usize + (n1[1] - b'a') as usize;
+            let index2 = 26 * (n2[0] - b'a') as usize + (n2[1] - b'a') as usize;
 
-            let index1 = index_of(n1);
-            let index2 = index_of(n2);
-
-            nodes[index1].edges.push(index2);
-            nodes[index2].edges.push(index1);
+            nodes[index1][index2 / 64] |= 1 << (index2 % 64);
+            nodes[index2][index1 / 64] |= 1 << (index1 % 64);
         }
 
-        Ok(Self { nodes })
+        let Some(first_node) = nodes.iter().find(|&b| b.iter().any(|&n| n != 0)) else {
+            return Err(InputError::new(input, 0, "expected non-empty graph"));
+        };
+
+        let degree = first_node.iter().map(|&n| n.count_ones()).sum::<u32>();
+        if nodes.iter().any(|&b| {
+            let d = b.iter().map(|&n| n.count_ones()).sum::<u32>();
+            d != 0 && d != degree
+        }) {
+            return Err(InputError::new(
+                input,
+                0,
+                "expected all nodes to have same degree",
+            ));
+        }
+
+        Ok(Self { nodes, degree })
     }
 
     #[must_use]
     pub fn part1(&self) -> u32 {
         let mut count = 0;
-        for (i1, n1) in self.nodes.iter().enumerate() {
-            for (i2, n2) in n1.edges.iter().map(|&i| (i, &self.nodes[i])) {
-                if i1 > i2 {
-                    continue;
+        for n1 in 0..self.nodes.len() {
+            for n2 in self.neighbors(n1) {
+                if n2 > n1 {
+                    break;
                 }
-                for (i3, n3) in n2.edges.iter().map(|&i| (i, &self.nodes[i])) {
-                    if i2 < i3
-                        && n1.edges.contains(&i3)
-                        && (n1.name[0] == b't' || n2.name[0] == b't' || n3.name[0] == b't')
-                    {
+                for n3 in Self::iter(Self::intersect(self.nodes[n1], self.nodes[n2])) {
+                    if n3 > n2 {
+                        break;
+                    }
+
+                    // 19 = b't' - b'a'
+                    if n1 / 26 == 19 || n2 / 26 == 19 || n3 / 26 == 19 {
                         count += 1;
                     }
                 }
@@ -74,46 +73,62 @@ impl Day23 {
 
     #[must_use]
     pub fn part2(&self) -> String {
-        let mut assigned = vec![false; self.nodes.len()];
-        let mut node_lists = Vec::with_capacity(self.nodes.len());
         for i in 0..self.nodes.len() {
-            if !assigned[i] {
-                let c = node_lists.len();
-                node_lists.push(Vec::new());
-                self.try_add(i, &mut assigned, &mut node_lists[c]);
+            'sets: for skip in self.neighbors(i) {
+                if skip > i {
+                    break;
+                }
+
+                // Set of N nodes is (neighbours + starting node - skipped neighbour)
+                let mut connected = self.nodes[i];
+                connected[i / 64] |= 1 << (i % 64);
+                connected[skip / 64] &= !(1 << (skip % 64));
+
+                for n in self.neighbors(i).filter(|&n| n != skip) {
+                    connected = Self::intersect(connected, self.nodes[n]);
+                    connected[n / 64] |= 1 << (n % 64);
+
+                    if connected.iter().map(|&n| n.count_ones()).sum::<u32>() != self.degree {
+                        continue 'sets;
+                    }
+                }
+
+                return Self::iter(connected).fold(String::new(), |mut acc, i| {
+                    if !acc.is_empty() {
+                        acc.push(',');
+                    }
+                    let name = [b'a' + (i / 26) as u8, b'a' + (i % 26) as u8];
+                    acc.push(name[0] as char);
+                    acc.push(name[1] as char);
+                    acc
+                });
             }
         }
 
-        let mut nodes = node_lists.into_iter().max_by_key(|l| l.len()).unwrap();
-        nodes.sort_unstable_by_key(|&n| self.nodes[n].name);
-        nodes
-            .iter()
-            .fold(String::with_capacity(nodes.len() * 3), |mut acc, &i| {
-                if !acc.is_empty() {
-                    acc.push(',');
-                }
-                acc.push(self.nodes[i].name[0] as char);
-                acc.push(self.nodes[i].name[1] as char);
-                acc
-            })
+        panic!("no solution found")
     }
 
-    fn try_add(&self, n: usize, assigned: &mut [bool], group: &mut Vec<usize>) {
-        for &existing in group.iter() {
-            if !self.nodes[n].edges.contains(&existing) {
-                return;
-            }
-        }
+    #[inline]
+    fn neighbors(&self, n: usize) -> impl Iterator<Item = usize> {
+        Self::iter(self.nodes[n])
+    }
 
-        group.push(n);
-        assigned[n] = true;
+    #[inline]
+    fn iter(bitset: [u64; 11]) -> impl Iterator<Item = usize> {
+        bitset.into_iter().enumerate().flat_map(|(element, b)| {
+            BitIterator::ones(b).map(move |(bit, _)| element * 64 + bit as usize)
+        })
+    }
 
-        for &neighbour in self.nodes[n].edges.iter() {
-            if !assigned[neighbour] {
-                self.try_add(neighbour, assigned, group);
-            }
+    #[inline]
+    fn intersect(mut bitset1: [u64; 11], bitset2: [u64; 11]) -> [u64; 11] {
+        for (a, &b) in bitset1.iter_mut().zip(bitset2.iter()) {
+            *a &= b;
         }
+        bitset1
     }
 }
 
-examples!(Day23 -> (u32, &'static str) []);
+examples!(Day23 -> (u32, &'static str) [
+    {file: "day23_example0.txt", part1: 7, part2: "co,de,ka,ta"},
+]);
