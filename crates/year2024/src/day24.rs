@@ -178,7 +178,7 @@ impl Day24 {
         }
 
         let mut wires = self.wires.clone();
-        if self.find_swaps(&test_cases, &mut wires, 0).is_continue() {
+        if self.find_swaps(&test_cases, &mut wires, None).is_continue() {
             panic!("failed to find working combination");
         }
 
@@ -206,35 +206,45 @@ impl Day24 {
         &self,
         test_cases: &[(usize, u64, u64)],
         wires: &mut [Wire],
-        assume: usize,
+        last: Option<usize>,
     ) -> ControlFlow<()> {
         let mut cache = vec![None; wires.len()];
         let mut used = vec![false; wires.len()];
         for &(n, x, y) in test_cases {
+            if Some(n) < last {
+                // Test case has already been checked and as only gates that were not previously
+                // used are candidates for swapping, must still be correct
+                continue;
+            }
+
             cache.fill(None);
             let sum = x + y;
+
+            // Check non-final bits in check pattern match
             for i in 0..n {
                 let b = Self::evaluate(self.z_indexes[i], wires, x, y, &mut cache);
                 if ((sum >> i) & 1 != 0) != b {
-                    // Previous swap broke even earlier bit
+                    // Non-final bit in test case incorrect, previous swap must have been incorrect
                     return ControlFlow::Continue(());
                 }
             }
 
+            // Store which gates were used evaluating up to the non-final bit
             for i in 0..wires.len() {
                 used[i] = cache[i].is_some();
             }
 
             let b = Self::evaluate(self.z_indexes[n], wires, x, y, &mut cache);
             if ((sum >> n) & 1 != 0) == b {
+                // Test case matches
                 continue;
             }
-            if n < assume {
-                // Previous swap didn't fix the bit it was trying to fix
+
+            // Found output bit with a wrong gate
+            if last == Some(n) {
+                // Last swapped bit still wrong, return and try next combination
                 return ControlFlow::Continue(());
             }
-
-            // Found bit with a wrong gate
 
             // Gates which were used for the first time this bit
             let candidates1 = cache
@@ -264,13 +274,13 @@ impl Day24 {
                     (wires[c1], wires[c2]) = (wires[c2], wires[c1]);
 
                     // Check swap didn't create a loop
-                    if !self.loops(wires) {
+                    if !self.loops(wires, &[c1, c2]) {
                         // Check swap fixed this test case before recursively calling and checking
                         // all cases from the start
                         cache.fill(None);
                         let b = Self::evaluate(self.z_indexes[n], wires, x, y, &mut cache);
                         if ((sum >> n) & 1 != 0) == b
-                            && self.find_swaps(test_cases, wires, n + 1).is_break()
+                            && self.find_swaps(test_cases, wires, Some(n)).is_break()
                         {
                             // This and future swaps work, found working combination
                             return ControlFlow::Break(());
@@ -312,33 +322,33 @@ impl Day24 {
         used
     }
 
-    fn loops(&self, wires: &[Wire]) -> bool {
-        fn eval(index: usize, wires: &[Wire], checked: &mut [bool], depth: usize) -> bool {
-            if checked[index] {
-                return false;
-            }
-            if depth > wires.len() {
-                return true;
+    fn loops(&self, wires: &[Wire], to_check: &[usize]) -> bool {
+        #[derive(Copy, Clone, PartialEq)]
+        enum State {
+            Unvisited,
+            InStack,
+            Visited,
+        }
+
+        fn eval(index: usize, wires: &[Wire], states: &mut [State]) -> bool {
+            if states[index] != State::Unvisited {
+                return states[index] == State::InStack;
             }
             match wires[index] {
                 Wire::X(_) | Wire::Y(_) => {}
                 Wire::And(a, b) | Wire::Or(a, b) | Wire::Xor(a, b) => {
-                    if eval(a, wires, checked, depth + 1) || eval(b, wires, checked, depth + 1) {
+                    states[index] = State::InStack;
+                    if eval(a, wires, states) || eval(b, wires, states) {
                         return true;
                     }
+                    states[index] = State::Visited;
                 }
             }
-            checked[index] = true;
             false
         }
 
-        let mut checked = vec![false; wires.len()];
-        for i in 0..wires.len() {
-            if eval(i, wires, &mut checked, 0) {
-                return true;
-            }
-        }
-        false
+        let mut states = vec![State::Unvisited; wires.len()];
+        to_check.iter().any(|&i| eval(i, wires, &mut states))
     }
 }
 
