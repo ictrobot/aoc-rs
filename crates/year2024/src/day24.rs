@@ -263,8 +263,16 @@ impl Day24 {
 
                     (wires[c1], wires[c2]) = (wires[c2], wires[c1]);
 
+                    // Check swap didn't create a loop
                     if !self.loops(wires) {
-                        if let ControlFlow::Break(()) = self.find_swaps(test_cases, wires, n + 1) {
+                        // Check swap fixed this test case before recursively calling and checking
+                        // all cases from the start
+                        cache.fill(None);
+                        let b = Self::evaluate(self.z_indexes[n], wires, x, y, &mut cache);
+                        if ((sum >> n) & 1 != 0) == b
+                            && self.find_swaps(test_cases, wires, n + 1).is_break()
+                        {
+                            // This and future swaps work, found working combination
                             return ControlFlow::Break(());
                         }
                     }
