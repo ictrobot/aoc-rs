@@ -40,17 +40,18 @@ impl Day24 {
             .then(parser::byte_range(b'0'..=b'9'))
             .with_suffix(": ")
             .then(parser::byte_range(b'0'..=b'1'))
+            .with_consumed()
             .with_suffix(parser::eol())
             .parse_iterator(initial_str)
         {
-            let (wire, b) = item?;
+            let ((wire, b), line) = item?;
             let n = ((wire.1 - b'0') * 10 + (wire.2 - b'0')) as usize;
 
             if (wire.0, n) != next {
                 if next.0 == b'x' && wire == (b'y', b'0', b'0') {
                     input_bits = next.1;
                 } else {
-                    return Err(InputError::new(input, 0, "unexpected initial value"));
+                    return Err(InputError::new(input, line, "unexpected initial value"));
                 }
             }
 

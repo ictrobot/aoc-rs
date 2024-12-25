@@ -240,6 +240,23 @@ impl<A: Parser, B: for<'i> Parser<Output<'i> = A::Output<'i>>> Parser for Or<A, 
 }
 
 #[derive(Copy, Clone)]
+pub struct WithConsumed<P> {
+    pub(super) parser: P,
+}
+impl<P: Parser> Parser for WithConsumed<P> {
+    type Output<'i> = (P::Output<'i>, &'i [u8]);
+    type Then<T: Parser> = Then2<Self, T>;
+
+    #[inline]
+    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+        match self.parser.parse(input) {
+            Ok((v, remaining)) => Ok(((v, &input[..input.len() - remaining.len()]), remaining)),
+            Err(e) => Err(e),
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
 pub struct WithPrefix<A, B> {
     pub(super) parser: A,
     pub(super) prefix: B,

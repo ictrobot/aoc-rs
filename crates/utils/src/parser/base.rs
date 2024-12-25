@@ -1,6 +1,7 @@
 use crate::input::{InputError, MapWithInputExt};
 use crate::parser::combinator::{
-    Map, MapResult, Optional, Or, RepeatArrayVec, RepeatN, RepeatVec, WithPrefix, WithSuffix,
+    Map, MapResult, Optional, Or, RepeatArrayVec, RepeatN, RepeatVec, WithConsumed, WithPrefix,
+    WithSuffix,
 };
 use crate::parser::error::{ParseError, WithErrorMsg};
 use crate::parser::iterator::{ParserIterator, ParserMatchesIterator};
@@ -231,6 +232,23 @@ pub trait Parser: Sized {
             separator,
             min_elements,
         }
+    }
+
+    /// Return the output of this parser as well as the bytes consumed.
+    ///
+    /// This can be used to map any errors that occur while processing the parsed input back to the
+    /// problematic item's position in the input.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// assert_eq!(
+    ///     parser::u32().with_consumed().parse(b"012,345,678"),
+    ///     Ok(((12, &b"012"[..]), &b",345,678"[..]))
+    /// );
+    /// ```
+    fn with_consumed(self) -> WithConsumed<Self> {
+        WithConsumed { parser: self }
     }
 
     /// Parse a prefix (normally a string literal) before this parser.

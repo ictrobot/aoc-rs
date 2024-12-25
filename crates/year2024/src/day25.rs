@@ -9,16 +9,17 @@ pub struct Day25 {
 
 impl Day25 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let mut locks = Vec::new();
-        let mut keys = Vec::new();
+        let mut locks = Vec::with_capacity(250);
+        let mut keys = Vec::with_capacity(250);
 
         for item in parser::one_of((b'.'.map(|_| false), b'#'.map(|_| true)))
             .repeat_n::<5, _>(parser::noop())
             .repeat_n::<7, _>(parser::eol())
+            .with_consumed()
             .with_suffix(parser::eol().then(parser::eol()))
             .parse_iterator(input)
         {
-            let grid = item?;
+            let (grid, grid_str) = item?;
 
             let top = grid[0][0];
             let bottom = grid[6][0];
@@ -26,7 +27,7 @@ impl Day25 {
                 || grid[0][1..].iter().any(|&x| x != top)
                 || grid[6][1..].iter().any(|&x| x != bottom)
             {
-                return Err(InputError::new(input, 0, "expected lock or key"));
+                return Err(InputError::new(input, grid_str, "expected lock or key"));
             }
 
             let mut mask = 0u32;

@@ -35,15 +35,16 @@ impl Day18 {
         for item in parser::number_range(0..=max_coord)
             .then(parser::number_range(0..=max_coord).with_prefix(b','))
             .map(|(x, y)| Point2D { x, y })
+            .with_consumed()
             .with_suffix(parser::eol())
             .parse_iterator(input)
         {
-            let pos = item?;
+            let (pos, line) = item?;
             if blocked_at[(pos.y + 1) * size + (pos.x + 1)] == u16::MAX {
                 blocked_at[(pos.y + 1) * size + (pos.x + 1)] = fallen;
                 fallen += 1;
             } else {
-                return Err(InputError::new(input, 0, "duplicate position in input"));
+                return Err(InputError::new(input, line, "duplicate position in input"));
             }
         }
 
