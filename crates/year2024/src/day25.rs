@@ -30,17 +30,11 @@ impl Day25 {
                 return Err(InputError::new(input, grid_str, "expected lock or key"));
             }
 
-            let mut mask = 0u32;
-            for c in 0..5 {
-                let mut h = 0;
-                for row in grid[1..].iter() {
-                    if row[c] != top {
-                        break;
-                    }
-                    h += 1;
-                }
-                mask |= ((1 << h) - 1) << (c * 5);
-            }
+            let mask = grid[1..6]
+                .as_flattened()
+                .iter()
+                .enumerate()
+                .fold(0, |acc, (i, &x)| acc | (u32::from(x == top) << i));
 
             if top {
                 locks.push(mask);
