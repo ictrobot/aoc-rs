@@ -7,12 +7,20 @@ pub struct Day25 {
     keys: Vec<u32>,
 }
 
+const LOOKUP: [Option<bool>; 256] = {
+    let mut x = [None; 256];
+    x['#' as usize] = Some(true);
+    x['.' as usize] = Some(false);
+    x
+};
+
 impl Day25 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let mut locks = Vec::with_capacity(250);
         let mut keys = Vec::with_capacity(250);
 
-        for item in parser::one_of((b'.'.map(|_| false), b'#'.map(|_| true)))
+        for item in parser::byte()
+            .map_res(|b| LOOKUP[b as usize].ok_or("expected '.' or '#'"))
             .repeat_n::<5, _>(parser::noop())
             .repeat_n::<7, _>(parser::eol())
             .with_consumed()
