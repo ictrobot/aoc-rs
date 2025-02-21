@@ -28,7 +28,7 @@ impl<'a> Day15<'a> {
             ));
         }
 
-        let mut robots = grid.iter().enumerate().filter(|(_, &b)| b == b'@');
+        let mut robots = grid.iter().enumerate().filter(|&(_, &b)| b == b'@');
         let Some((robot, _)) = robots.next() else {
             return Err(InputError::new(input, 0, "expected a robot"));
         };

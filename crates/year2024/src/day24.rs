@@ -261,7 +261,7 @@ impl Day24 {
                 .iter()
                 .zip(&used)
                 .enumerate()
-                .filter(|(_, (&b, &u))| b != 0 && b & mask == b && !u)
+                .filter(|&(_, (&b, &u))| b != 0 && b & mask == b && !u)
                 .map(|(i, _)| i)
                 .collect::<Vec<_>>();
 

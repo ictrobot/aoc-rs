@@ -77,6 +77,8 @@ fn run(
 
 unsafe fn write_string(buf: *mut u8, str: &str) {
     let len = str.len().min(BUFFER_LENGTH - 1);
-    std::ptr::copy_nonoverlapping(str.as_ptr(), buf, len);
-    *buf.add(len) = 0;
+    unsafe {
+        std::ptr::copy_nonoverlapping(str.as_ptr(), buf, len);
+        *buf.add(len) = 0;
+    }
 }

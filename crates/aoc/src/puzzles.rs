@@ -4,8 +4,8 @@ use utils::date::{Day, Year};
 // These imports are unused if none of the year features are enabled
 #[allow(clippy::allow_attributes, unused_imports)]
 use utils::{
-    input::{InputError, InputType},
     Puzzle,
+    input::{InputError, InputType},
 };
 
 /// Represents a wrapper function around a puzzle solution.

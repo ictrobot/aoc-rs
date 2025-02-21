@@ -56,10 +56,10 @@ impl<'a> Day14<'a> {
             let quintuplet = nibble_bytes
                 .windows(5)
                 .filter(|&w| w[0] == w[1] && w[0] == w[2] && w[0] == w[3] && w[0] == w[4])
-                .fold(0, |acc, w| acc | 1u16 << w[0]);
+                .fold(0, |acc, w| acc | (1u16 << w[0]));
 
             let mut guard = mutex.lock().unwrap();
-            let (ref mut keys, ref mut triplets, ref mut quintuplets) = guard.deref_mut();
+            let (keys, triplets, quintuplets) = guard.deref_mut();
 
             triplets.insert(i, triplet);
 
@@ -77,7 +77,7 @@ impl<'a> Day14<'a> {
                 // Check if any matching triplets have already been found in the previous thousand
                 triplets
                     .range(i.saturating_sub(1000)..i)
-                    .filter(|(_, &m)| quintuplet & m != 0)
+                    .filter(|&(_, &m)| quintuplet & m != 0)
                     .for_each(|(&k, _)| {
                         keys.insert(k);
                     });

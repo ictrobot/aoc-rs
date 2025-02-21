@@ -2,5 +2,5 @@ mod puzzles;
 mod years;
 
 pub use ::utils;
-pub use puzzles::{PuzzleFn, PUZZLES};
+pub use puzzles::{PUZZLES, PuzzleFn};
 pub use years::*;

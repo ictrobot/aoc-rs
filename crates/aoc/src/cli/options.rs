@@ -1,9 +1,9 @@
-use aoc::{PuzzleFn, PUZZLES};
+use aoc::{PUZZLES, PuzzleFn};
 use std::collections::VecDeque;
 use std::error::Error;
 use std::num::NonZeroUsize;
 use utils::date::{Day, Year};
-use utils::multiversion::{Version, VERSIONS};
+use utils::multiversion::{VERSIONS, Version};
 
 #[derive(Debug, Default)]
 pub struct Options {
@@ -88,7 +88,7 @@ impl Options {
 
     pub fn help(&self) -> String {
         format!(
-            r#"Usage:
+            r"Usage:
     {program_name}
         Run all solutions
 
@@ -109,7 +109,7 @@ Options:
     --help/-h
         Print this help
 
-{cargo_repo}"#,
+{cargo_repo}",
             program_name = self.program_name.as_ref().map_or("aoc", String::as_str),
             multiversion_options = *VERSIONS,
             cargo_repo = env!("CARGO_PKG_REPOSITORY"),

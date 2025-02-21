@@ -30,7 +30,7 @@ impl Day16 {
             ));
         }
 
-        let mut starts = grid.iter().enumerate().filter(|(_, &b)| b == b'S');
+        let mut starts = grid.iter().enumerate().filter(|&(_, &b)| b == b'S');
         let Some((start, _)) = starts.next() else {
             return Err(InputError::new(input, 0, "expected one start"));
         };
@@ -39,7 +39,7 @@ impl Day16 {
         }
         grid[start] = b'.';
 
-        let mut ends = grid.iter().enumerate().filter(|(_, &b)| b == b'E');
+        let mut ends = grid.iter().enumerate().filter(|&(_, &b)| b == b'E');
         let Some((end, _)) = ends.next() else {
             return Err(InputError::new(input, 0, "expected one end"));
         };
@@ -207,7 +207,7 @@ impl Day16 {
                 ((dir + 3) % 4, score - 1000),
             ] {
                 if self.cheapest[index][next_dir] == next_score
-                    && self.turned[index] & 1 << next_dir == 0
+                    && self.turned[index] & (1 << next_dir) == 0
                 {
                     self.reverse(
                         index.wrapping_add_signed(-self.offsets[next_dir]),

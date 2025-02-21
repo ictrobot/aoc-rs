@@ -16,7 +16,7 @@ impl Day20 {
             _ => None,
         })?;
 
-        let mut starts = grid.iter().enumerate().filter(|(_, &b)| b == b'S');
+        let mut starts = grid.iter().enumerate().filter(|&(_, &b)| b == b'S');
         let Some((start, _)) = starts.next() else {
             return Err(InputError::new(input, 0, "expected one start"));
         };
@@ -25,7 +25,7 @@ impl Day20 {
         }
         grid[start] = b'.';
 
-        let mut ends = grid.iter().enumerate().filter(|(_, &b)| b == b'E');
+        let mut ends = grid.iter().enumerate().filter(|&(_, &b)| b == b'E');
         let Some((end, _)) = ends.next() else {
             return Err(InputError::new(input, 0, "expected one end"));
         };

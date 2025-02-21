@@ -18,11 +18,11 @@ impl<'a> Day05<'a> {
     #[must_use]
     #[expect(clippy::eq_op)]
     pub fn part1(&self) -> usize {
-        const VOWELS: u32 = 1 << (b'a' - b'a')
-            | 1 << (b'e' - b'a')
-            | 1 << (b'i' - b'a')
-            | 1 << (b'o' - b'a')
-            | 1 << (b'u' - b'a');
+        const VOWELS: u32 = (1 << (b'a' - b'a'))
+            | (1 << (b'e' - b'a'))
+            | (1 << (b'i' - b'a'))
+            | (1 << (b'o' - b'a'))
+            | (1 << (b'u' - b'a'));
 
         self.lines
             .iter()

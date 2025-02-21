@@ -57,7 +57,7 @@
 use std::any::Any;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
-use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::sync::mpsc::{SyncSender, TrySendError};
 use std::sync::{Arc, Condvar, Mutex};
 
@@ -170,7 +170,6 @@ impl<'scope, 'env> Scope<'scope, 'env> {
                 // returning too soon, while the closures still exist, which causes UB as detected
                 // by Miri.
                 let panicked = closure();
-                dbg!("finished");
                 scope_data.task_end(panicked);
             },
         ));

@@ -10,6 +10,7 @@ use utils::multiversion::Version;
 
 mod cli;
 
+#[expect(clippy::print_stdout, clippy::print_stderr)]
 fn main() {
     let args = match Options::parse() {
         Ok(x) => x,

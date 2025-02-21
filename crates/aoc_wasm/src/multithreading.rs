@@ -1,5 +1,5 @@
 use aoc::utils::wasm::scoped_tasks::worker;
-use std::alloc::{alloc_zeroed, Layout};
+use std::alloc::{Layout, alloc_zeroed};
 
 /// Allocate stack for worker threads.
 ///
