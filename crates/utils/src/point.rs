@@ -59,7 +59,6 @@ macro_rules! point_impl {
             type Output = Self;
 
             #[inline]
-            #[must_use]
             fn add(self, rhs: Self) -> Self {
                 Self{
                     $($f: self.$f + rhs.$f,)+
@@ -78,7 +77,6 @@ macro_rules! point_impl {
             type Output = Self;
 
             #[inline]
-            #[must_use]
             fn mul(self, rhs: T) -> Self {
                 Self{
                     $($f: self.$f * rhs,)+
@@ -97,7 +95,6 @@ macro_rules! point_impl {
             type Output = Self;
 
             #[inline]
-            #[must_use]
             fn sub(self, rhs: Self) -> Self {
                 Self{
                     $($f: self.$f - rhs.$f,)+
