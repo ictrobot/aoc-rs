@@ -66,15 +66,14 @@ fn fetch(year: Year, day: Day) -> Result<String, Box<dyn Error>> {
 
     // Use config provided to stdin to avoid leaking cookies via cli arguments
     let config = format!(
-        r#"
-            url "{url}"
-            user-agent "{USER_AGENT}"
-            cookie "session={token}"
-            silent
-            show-error
-            fail
-            proto "=https"
-        "#
+        r#"url "{url}"
+user-agent "{USER_AGENT}"
+cookie "session={token}"
+silent
+show-error
+fail
+proto "=https"
+"#
     );
 
     let mut child = Command::new("curl")
