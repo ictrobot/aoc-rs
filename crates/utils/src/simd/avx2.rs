@@ -3,11 +3,11 @@
 use std::ops::{Add, BitAnd, BitOr, BitXor, Not};
 
 #[cfg(target_arch = "x86_64")]
-#[expect(clippy::wildcard_imports)]
+#[allow(clippy::allow_attributes, clippy::wildcard_imports)]
 use std::arch::x86_64::*;
 
 #[cfg(target_arch = "x86")]
-#[expect(clippy::wildcard_imports)]
+#[allow(clippy::allow_attributes, clippy::wildcard_imports)]
 use std::arch::x86::*;
 
 /// AVX2 vector with eight [u32] lanes.

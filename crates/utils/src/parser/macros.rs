@@ -66,9 +66,9 @@ macro_rules! parser_literal_map {
 /// parsers match:
 /// - **Expression (`=>`)**: The expression on the right-hand is evaluated and returned.
 /// - **Fallible (`=?>`)**: Similar to Expression, but the right-hand side evaluates a result. If
-///         the expression evaluates to [`Ok`], the value contained inside is returned. Otherwise,
-///         the string contained inside the [`Err`] is handled as a custom
-///         [`ParseError`](super::ParseError), and parsing will continue with the following rule.
+///   the expression evaluates to [`Ok`], the value contained inside is returned. Otherwise, the
+///   string contained inside the [`Err`] is handled as a custom [`ParseError`](super::ParseError),
+///   and parsing will continue with the following rule.
 /// - **Subtree (`=>>`)**: The right-hand side is a nested set of rules enclosed in braces.
 ///
 /// If none of the rules match successfully, the error from the rule which parsed furthest into

@@ -8,7 +8,7 @@ pre-commit:
     rustfmt:
       run: cargo fmt --all --check
     clippy:
-      run: cargo clippy --all -- -Dwarnings
+      run: cargo clippy --all --all-targets -- -Dwarnings
     test:
       run: cargo nextest run --all
     doctest:
