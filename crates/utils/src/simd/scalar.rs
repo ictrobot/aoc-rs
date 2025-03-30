@@ -5,6 +5,9 @@
 
 use std::ops::{Add, BitAnd, BitOr, BitXor, Not};
 
+/// The name of this backend.
+pub const SIMD_BACKEND: &str = "scalar";
+
 /// Scalar vector with a single [u32] lane.
 #[derive(Clone, Copy)]
 #[repr(transparent)]

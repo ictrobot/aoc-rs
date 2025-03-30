@@ -10,6 +10,9 @@ use std::arch::x86_64::*;
 #[allow(clippy::allow_attributes, clippy::wildcard_imports)]
 use std::arch::x86::*;
 
+/// The name of this backend.
+pub const SIMD_BACKEND: &str = "avx2";
+
 /// AVX2 vector with eight [u32] lanes.
 #[derive(Clone, Copy)]
 #[repr(transparent)]

@@ -45,7 +45,8 @@ use std::sync::{LazyLock, OnceLock};
 /// attribute, which requires functions to be marked as unsafe. A safe fallback version will always
 /// be generated.
 ///
-/// See [`crate::md5`] as an example.
+/// See [`crate::md5`] as an example. [`multiversion_test!`](crate::multiversion_test!) can be used
+/// for testing multiversioned libraries.
 #[macro_export]
 macro_rules! multiversion {
     // One dynamic dispatch function, optionally with extra helper functions.
@@ -223,11 +224,17 @@ macro_rules! multiversion {
     (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $t27:tt $t28:tt $t29:tt $t30:tt $t31:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 $t27 $t28 $t29 $t30 $t31 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
 }
 
-/// Helper for testing [`multiversion!`] library functions.
+/// Helper for testing and benchmarking [`multiversion!`] library functions.
 ///
-/// `#[target_feature(...)]` isn't applied to the test functions as the feature-specific code should
+/// The first rule is for testing and creates individual
+/// [`#[test]`](https://doc.rust-lang.org/reference/attributes/testing.html) functions for each
+/// implementation.
+///
+/// The second rule is more general, duplicating the same expression for each implementation and
+/// is useful for benchmarking.
+///
+/// `#[target_feature(...)]` isn't applied to the test code as the feature-specific code should
 /// be elsewhere, inside a [`multiversion!`] macro.
-#[cfg(test)]
 #[macro_export]
 macro_rules! multiversion_test {
     (
@@ -286,7 +293,7 @@ macro_rules! multiversion_test {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+avx2::*),*};
 
-            if !std::arch::is_x86_feature_detected!("avx2") {
+            if !$crate::multiversion::Version::AVX2.supported() {
                 use std::io::{stdout, Write};
                 let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2 due to missing avx2 support", module_path!());
                 return;
@@ -295,6 +302,59 @@ macro_rules! multiversion_test {
             unsafe { $body }
         }
     };
+
+    (
+        use {$($($path:ident::)+*),*};
+
+        { $($tail:tt)+ }
+    ) => {
+        #[allow(
+            clippy::reversed_empty_ranges,
+            clippy::range_plus_one,
+            clippy::modulo_one,
+            clippy::trivially_copy_pass_by_ref
+        )]
+        {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+scalar::*),*};
+
+            $crate::multiversion_test!(@expr { $($tail)+ });
+        }
+
+        {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+array128::*),*};
+
+            $crate::multiversion_test!(@expr { $($tail)+ });
+        }
+
+        {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+array256::*),*};
+
+            $crate::multiversion_test!(@expr { $($tail)+ });
+        }
+
+        #[cfg(not(target_family = "wasm"))]
+        #[allow(clippy::large_types_passed_by_value)]
+        {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+array4096::*),*};
+
+            $crate::multiversion_test!(@expr { $($tail)+ });
+        }
+
+        #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+        if $crate::multiversion::Version::AVX2.supported() {
+            unsafe {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx2::*),*};
+
+                $crate::multiversion_test!(@expr { $($tail)+ });
+            }
+        }
+    };
+    (@expr $e:expr) => { $e }
 }
 
 macro_rules! versions_impl {

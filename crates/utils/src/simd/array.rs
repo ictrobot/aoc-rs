@@ -96,18 +96,27 @@ impl<const N: usize> U32Vector<N> {
 
 /// 128-bit wide vector implementations using arrays.
 pub mod array128 {
+    /// The name of this backend.
+    pub const SIMD_BACKEND: &str = "array128";
+
     /// Array vector with four [u32] lanes.
     pub type U32Vector = super::U32Vector<4>;
 }
 
 /// 256-bit wide vector implementations using arrays.
 pub mod array256 {
+    /// The name of this backend.
+    pub const SIMD_BACKEND: &str = "array256";
+
     /// Array vector with eight [u32] lanes.
     pub type U32Vector = super::U32Vector<8>;
 }
 
 /// 4096-bit wide vector implementations using arrays.
 pub mod array4096 {
+    /// The name of this backend.
+    pub const SIMD_BACKEND: &str = "array4096";
+
     /// Array vector with 128 [u32] lanes.
     pub type U32Vector = super::U32Vector<128>;
 }

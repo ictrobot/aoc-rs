@@ -15,3 +15,7 @@ wasm-multithreading = ["unsafe"]
 
 [lints]
 workspace = true
+
+[[bench]]
+name = "md5"
+harness = false
