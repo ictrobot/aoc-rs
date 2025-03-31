@@ -4,8 +4,20 @@
 //! once stabilized.
 
 mod array;
-pub use array::{array128, array256, array4096};
-pub mod scalar;
+#[cfg(feature = "all-simd")]
+pub use array::array4096;
+pub use array::{array128, array256};
 
 #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
-pub mod avx2;
+#[path = "avx2.rs"]
+mod avx2_impl;
+#[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+pub use avx2_impl::avx2;
+#[cfg(all(
+    feature = "unsafe",
+    feature = "all-simd",
+    any(target_arch = "x86", target_arch = "x86_64")
+))]
+pub use avx2_impl::{avx2x2, avx2x4, avx2x8};
+
+pub mod scalar;

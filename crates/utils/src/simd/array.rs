@@ -113,6 +113,7 @@ pub mod array256 {
 }
 
 /// 4096-bit wide vector implementations using arrays.
+#[cfg(feature = "all-simd")]
 pub mod array4096 {
     /// The name of this backend.
     pub const SIMD_BACKEND: &str = "array4096";

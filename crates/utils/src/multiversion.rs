@@ -79,10 +79,16 @@ macro_rules! multiversion {
                 Scalar => $name::scalar::$name($($arg_name),*),
                 Array128 => $name::array128::$name($($arg_name),*),
                 Array256 => $name::array256::$name($($arg_name),*),
-                #[cfg(not(target_family = "wasm"))]
+                #[cfg(feature = "all-simd")]
                 Array4096 => $name::array4096::$name($($arg_name),*),
-                #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+                #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
                 AVX2 => unsafe { $name::avx2::$name($($arg_name),*) },
+                #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+                AVX2x2 => unsafe { $name::avx2x2::$name($($arg_name),*) },
+                #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+                AVX2x4 => unsafe { $name::avx2x4::$name($($arg_name),*) },
+                #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+                AVX2x8 => unsafe { $name::avx2x8::$name($($arg_name),*) },
             }
         }
     };
@@ -125,7 +131,7 @@ macro_rules! multiversion {
         }
 
         /// [`multiversion!`] array4096 implementation.
-        #[cfg(not(target_family = "wasm"))]
+        #[cfg(feature="all-simd")]
         pub mod array4096 {
             #![allow(clippy::large_types_passed_by_value)]
 
@@ -136,12 +142,45 @@ macro_rules! multiversion {
         }
 
         /// [`multiversion!`] avx2 implementation.
-        #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+        #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
         pub mod avx2 {
             #![allow(clippy::missing_safety_doc)]
 
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+avx2::*),*};
+
+            $crate::multiversion!{@helper target_feature(enable = "avx2") $($tail)*}
+        }
+
+        /// [`multiversion!`] avx2x2 implementation.
+        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+        pub mod avx2x2 {
+            #![allow(clippy::missing_safety_doc)]
+
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {super::*, $($($path::)+avx2x2::*),*};
+
+            $crate::multiversion!{@helper target_feature(enable = "avx2") $($tail)*}
+        }
+
+        /// [`multiversion!`] avx2x4 implementation.
+        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+        pub mod avx2x4 {
+            #![allow(clippy::missing_safety_doc)]
+
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {super::*, $($($path::)+avx2x4::*),*};
+
+            $crate::multiversion!{@helper target_feature(enable = "avx2") $($tail)*}
+        }
+
+        /// [`multiversion!`] avx2x8 implementation.
+        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+        pub mod avx2x8 {
+            #![allow(clippy::missing_safety_doc)]
+
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {super::*, $($($path::)+avx2x8::*),*};
 
             $crate::multiversion!{@helper target_feature(enable = "avx2") $($tail)*}
         }
@@ -170,10 +209,16 @@ macro_rules! multiversion {
                         Scalar => scalar::$name(),
                         Array128 => array128::$name(),
                         Array256 => array256::$name(),
-                        #[cfg(not(target_family = "wasm"))]
+                        #[cfg(feature = "all-simd")]
                         Array4096 => array4096::$name(),
-                        #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+                        #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
                         AVX2 => unsafe { avx2::$name() },
+                        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+                        AVX2x2 => unsafe { avx2x2::$name() },
+                        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+                        AVX2x4 => unsafe { avx2x4::$name() },
+                        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+                        AVX2x8 => unsafe { avx2x8::$name() },
                     });
                     (start.elapsed(), x)
                 })
@@ -278,6 +323,7 @@ macro_rules! multiversion_test {
         }
 
         #[test]
+        #[cfg(feature = "all-simd")]
         $(#[$m])*
         fn array4096() {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
@@ -287,7 +333,7 @@ macro_rules! multiversion_test {
         }
 
         #[test]
-        #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+        #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
         $(#[$m])*
         fn avx2() {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
@@ -296,6 +342,54 @@ macro_rules! multiversion_test {
             if !$crate::multiversion::Version::AVX2.supported() {
                 use std::io::{stdout, Write};
                 let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2 due to missing avx2 support", module_path!());
+                return;
+            }
+
+            unsafe { $body }
+        }
+
+        #[test]
+        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+        $(#[$m])*
+        fn avx2x2() {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+avx2x2::*),*};
+
+            if !$crate::multiversion::Version::AVX2x2.supported() {
+                use std::io::{stdout, Write};
+                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2x2 due to missing avx2 support", module_path!());
+                return;
+            }
+
+            unsafe { $body }
+        }
+
+        #[test]
+        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+        $(#[$m])*
+        fn avx2x4() {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+avx2x4::*),*};
+
+            if !$crate::multiversion::Version::AVX2x4.supported() {
+                use std::io::{stdout, Write};
+                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2x4 due to missing avx2 support", module_path!());
+                return;
+            }
+
+            unsafe { $body }
+        }
+
+        #[test]
+        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+        $(#[$m])*
+        fn avx2x8() {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+avx2x8::*),*};
+
+            if !$crate::multiversion::Version::AVX2x8.supported() {
+                use std::io::{stdout, Write};
+                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2x8 due to missing avx2 support", module_path!());
                 return;
             }
 
@@ -335,7 +429,7 @@ macro_rules! multiversion_test {
             $crate::multiversion_test!(@expr { $($tail)+ });
         }
 
-        #[cfg(not(target_family = "wasm"))]
+        #[cfg(feature = "all-simd")]
         #[allow(clippy::large_types_passed_by_value)]
         {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
@@ -344,11 +438,35 @@ macro_rules! multiversion_test {
             $crate::multiversion_test!(@expr { $($tail)+ });
         }
 
-        #[cfg(all(feature="unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+        #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
         if $crate::multiversion::Version::AVX2.supported() {
             unsafe {
                 #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
                 use {$($($path::)+avx2::*),*};
+
+                $crate::multiversion_test!(@expr { $($tail)+ });
+            }
+
+            #[cfg(feature = "all-simd")]
+            unsafe {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx2x2::*),*};
+
+                $crate::multiversion_test!(@expr { $($tail)+ });
+            }
+
+            #[cfg(feature = "all-simd")]
+            unsafe {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx2x4::*),*};
+
+                $crate::multiversion_test!(@expr { $($tail)+ });
+            }
+
+            #[cfg(feature = "all-simd")]
+            unsafe {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx2x8::*),*};
 
                 $crate::multiversion_test!(@expr { $($tail)+ });
             }
@@ -408,10 +526,16 @@ versions_impl! {
     Scalar,
     Array128,
     Array256,
-    #[cfg(not(target_family = "wasm"))]
+    #[cfg(feature = "all-simd")]
     Array4096,
     #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
     AVX2 if std::arch::is_x86_feature_detected!("avx2"),
+    #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+    AVX2x2 if std::arch::is_x86_feature_detected!("avx2"),
+    #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+    AVX2x4 if std::arch::is_x86_feature_detected!("avx2"),
+    #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+    AVX2x8 if std::arch::is_x86_feature_detected!("avx2"),
 }
 
 static OVERRIDE: OnceLock<Option<Version>> = OnceLock::new();

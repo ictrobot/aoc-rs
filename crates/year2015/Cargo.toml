@@ -8,7 +8,7 @@ repository = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
-utils = { path = "../utils" }
+utils = { path = "../utils", default-features = false }
 
 [features]
 unsafe = ["utils/unsafe"]

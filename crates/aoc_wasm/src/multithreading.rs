@@ -1,4 +1,3 @@
-use aoc::utils::wasm::scoped_tasks::worker;
 use std::alloc::{Layout, alloc_zeroed};
 
 /// Allocate stack for worker threads.
@@ -13,5 +12,9 @@ extern "C" fn allocate_stack(size: usize, align: usize) -> *mut u8 {
 /// Run worker thread.
 #[unsafe(no_mangle)]
 extern "C" fn worker_thread() {
-    worker();
+    #[cfg(target_family = "wasm")]
+    aoc::utils::wasm::scoped_tasks::worker();
+
+    #[cfg(not(target_family = "wasm"))]
+    panic!("worker_thread is not supported on this target");
 }

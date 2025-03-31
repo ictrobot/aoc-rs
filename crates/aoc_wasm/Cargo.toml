@@ -8,8 +8,9 @@ repository = { workspace = true }
 rust-version = { workspace = true }
 
 [dependencies]
-aoc = { path = "../aoc" }
-utils = { path = "../utils", optional = true }
+# Don't enable all-simd feature to avoid including array4096 implementation
+aoc = { path = "../aoc", default-features = false, features = ["unsafe", "all-years"] }
+utils = { path = "../utils", default-features = false }
 
 [features]
 multithreading = ["utils/wasm-multithreading"]
