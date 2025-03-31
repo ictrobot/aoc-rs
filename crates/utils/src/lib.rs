@@ -1,5 +1,7 @@
 //! Common utilities used by the [`aoc`](../aoc/) and year crates.
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
+#![feature(stdarch_x86_avx512)]
+#![feature(avx512_target_feature)]
 
 pub mod array;
 pub mod bit;
