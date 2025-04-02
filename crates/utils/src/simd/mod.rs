@@ -20,4 +20,12 @@ pub use avx2_impl::avx2;
 ))]
 pub use avx2_impl::{avx2x2, avx2x4, avx2x8};
 
+#[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
+#[path = "neon.rs"]
+mod neon_impl;
+#[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
+pub use neon_impl::neon;
+#[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+pub use neon_impl::{neonx2, neonx4, neonx8};
+
 pub mod scalar;

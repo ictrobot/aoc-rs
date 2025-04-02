@@ -89,6 +89,14 @@ macro_rules! multiversion {
                 AVX2x4 => unsafe { $name::avx2x4::$name($($arg_name),*) },
                 #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
                 AVX2x8 => unsafe { $name::avx2x8::$name($($arg_name),*) },
+                #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
+                Neon => $name::neon::$name($($arg_name),*),
+                #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+                Neonx2 => $name::neonx2::$name($($arg_name),*),
+                #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+                Neonx4 => $name::neonx4::$name($($arg_name),*),
+                #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+                Neonx8 => $name::neonx8::$name($($arg_name),*),
             }
         }
     };
@@ -184,6 +192,42 @@ macro_rules! multiversion {
 
             $crate::multiversion!{@helper target_feature(enable = "avx2") $($tail)*}
         }
+
+        /// [`multiversion!`] neon implementation.
+        #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
+        pub mod neon {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {super::*, $($($path::)+neon::*),*};
+
+            $($tail)*
+        }
+
+        /// [`multiversion!`] neonx2 implementation.
+        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+        pub mod neonx2 {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {super::*, $($($path::)+neonx2::*),*};
+
+            $($tail)*
+        }
+
+        /// [`multiversion!`] neonx4 implementation.
+        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+        pub mod neonx4 {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {super::*, $($($path::)+neonx4::*),*};
+
+            $($tail)*
+        }
+
+        /// [`multiversion!`] neonx8 implementation.
+        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+        pub mod neonx8 {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {super::*, $($($path::)+neonx8::*),*};
+
+            $($tail)*
+        }
     };
 
     // Microbenchmark for dynamic dispatch
@@ -219,6 +263,14 @@ macro_rules! multiversion {
                         AVX2x4 => unsafe { avx2x4::$name() },
                         #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
                         AVX2x8 => unsafe { avx2x8::$name() },
+                        #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
+                        Neon => neon::$name(),
+                        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+                        Neonx2 => neonx2::$name(),
+                        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+                        Neonx4 => neonx4::$name(),
+                        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+                        Neonx8 => neonx8::$name(),
                     });
                     (start.elapsed(), x)
                 })
@@ -395,6 +447,46 @@ macro_rules! multiversion_test {
 
             unsafe { $body }
         }
+
+        #[test]
+        #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
+        $(#[$m])*
+        fn neon() {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+neon::*),*};
+
+            $body
+        }
+
+        #[test]
+        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+        $(#[$m])*
+        fn neonx2() {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+neonx2::*),*};
+
+            $body
+        }
+
+        #[test]
+        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+        $(#[$m])*
+        fn neonx4() {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+neonx4::*),*};
+
+            $body
+        }
+
+        #[test]
+        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+        $(#[$m])*
+        fn neonx8() {
+            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+            use {$($($path::)+neonx8::*),*};
+
+            $body
+        }
     };
 
     (
@@ -471,6 +563,40 @@ macro_rules! multiversion_test {
                 $crate::multiversion_test!(@expr { $($tail)+ });
             }
         }
+
+        #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
+        {
+            {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+neon::*),*};
+
+                $crate::multiversion_test!(@expr { $($tail)+ });
+            }
+
+            #[cfg(feature = "all-simd")]
+            {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+neonx2::*),*};
+
+                $crate::multiversion_test!(@expr { $($tail)+ });
+            }
+
+            #[cfg(feature = "all-simd")]
+            {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+neonx4::*),*};
+
+                $crate::multiversion_test!(@expr { $($tail)+ });
+            }
+
+            #[cfg(feature = "all-simd")]
+            {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+neonx8::*),*};
+
+                $crate::multiversion_test!(@expr { $($tail)+ });
+            }
+        }
     };
     (@expr $e:expr) => { $e }
 }
@@ -536,6 +662,14 @@ versions_impl! {
     AVX2x4 if std::arch::is_x86_feature_detected!("avx2"),
     #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
     AVX2x8 if std::arch::is_x86_feature_detected!("avx2"),
+    #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
+    Neon,
+    #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+    Neonx2,
+    #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+    Neonx4,
+    #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+    Neonx8,
 }
 
 static OVERRIDE: OnceLock<Option<Version>> = OnceLock::new();
