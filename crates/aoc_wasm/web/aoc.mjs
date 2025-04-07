@@ -82,6 +82,10 @@ export class Aoc {
         const decoder = new TextDecoder();
 
         let view = new Uint8Array(section);
+        if (view.length === 1 && view[0] === 0) {
+            return [];
+        }
+
         while (view.length > 0) {
             const end = view.indexOf(0);
             result.push({

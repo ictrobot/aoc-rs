@@ -3,6 +3,11 @@
 use aoc::all_puzzles;
 
 const fn examples_len<P1, P2>(examples: &[(&'static str, Option<P1>, Option<P2>)]) -> usize {
+    if examples.is_empty() {
+        // Prevent empty custom sections which may be omitted from the wasm output
+        return 1;
+    }
+
     let mut length = 0;
     let mut i = 0;
     while i < examples.len() {
@@ -16,6 +21,10 @@ const fn examples_len<P1, P2>(examples: &[(&'static str, Option<P1>, Option<P2>)
 const fn examples_section<const N: usize, P1, P2>(
     examples: &[(&'static str, Option<P1>, Option<P2>)],
 ) -> [u8; N] {
+    if examples.is_empty() {
+        return [0; N];
+    }
+
     let mut output = [0; N];
     let mut o = 0;
     let mut e = 0;
@@ -27,12 +36,13 @@ const fn examples_section<const N: usize, P1, P2>(
         let mut i = 0;
         let input = examples[e].0.as_bytes();
         while i < input.len() {
+            assert!(input[i] != 0); // Check string doesn't contain any null bytes
             output[o] = input[i];
             i += 1;
             o += 1;
         }
 
-        o += 1; // null byte
+        o += 1; // Terminating null byte
 
         e += 1;
     }
