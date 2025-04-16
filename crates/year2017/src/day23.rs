@@ -78,7 +78,7 @@ impl Day23 {
     }
 
     #[must_use]
-    pub fn part1(&self) -> u32 {
+    pub fn part1(&self) -> u64 {
         self.run(&mut [0; 8])
     }
 
@@ -89,7 +89,7 @@ impl Day23 {
         reg[Register::H as usize]
     }
 
-    fn run(&self, reg: &mut [i64; 8]) -> u32 {
+    fn run(&self, reg: &mut [i64; 8]) -> u64 {
         let mut pc = 0;
         let mut mul_count = 0;
         while pc < self.instructions.len() {
@@ -140,7 +140,7 @@ impl Day23 {
                     }
                     reg[g as usize] = 0;
                     pc += 15;
-                    mul_count += (reg[b as usize] - 2).pow(2) as u32;
+                    mul_count += (reg[b as usize] - 2).pow(2) as u64;
                     continue;
                 }
                 _ => {},
@@ -178,4 +178,4 @@ impl Day23 {
     }
 }
 
-examples!(Day23 -> (u32, i64) []);
+examples!(Day23 -> (u64, i64) []);
