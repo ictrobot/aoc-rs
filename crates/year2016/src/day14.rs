@@ -83,7 +83,11 @@ impl<'a> Day14<'a> {
                     });
             }
 
-            keys.len() >= 64
+            // Once a potential 64th key is found, an extra 1000 hashes must be checked to ensure
+            // there's no earlier triplet key. For example, if the potential 64th key was hash
+            // 10,001, there may be a triplet at 9,999 with a matching quintuplet at 10,999, making
+            // 9,999 the actual 64th key.
+            keys.iter().nth(63).is_some_and(|&k| i > k + 1000)
         });
 
         let (keys, ..) = mutex.into_inner().unwrap();
