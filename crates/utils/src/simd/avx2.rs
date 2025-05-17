@@ -107,27 +107,26 @@ impl<const V: usize, const L: usize> U32Vector<V, L> {
 
     #[inline]
     #[must_use]
+    #[target_feature(enable = "avx2")]
     pub fn andnot(self, rhs: Self) -> Self {
-        Self(from_fn(|i| unsafe {
-            _mm256_andnot_si256(rhs.0[i], self.0[i])
-        }))
+        Self(from_fn(|i| _mm256_andnot_si256(rhs.0[i], self.0[i])))
     }
 
     #[inline]
     #[must_use]
+    #[target_feature(enable = "avx2")]
     pub fn splat(v: u32) -> Self {
         Self(
-            [unsafe {
-                #[expect(clippy::cast_possible_wrap)]
-                _mm256_set1_epi32(v as i32)
-            }; V],
+            #[expect(clippy::cast_possible_wrap)]
+            [_mm256_set1_epi32(v as i32); V],
         )
     }
 
     #[inline]
     #[must_use]
+    #[target_feature(enable = "avx2")]
     pub fn rotate_left(self, n: u32) -> Self {
-        Self(from_fn(|i| unsafe {
+        Self(from_fn(|i| {
             #[expect(clippy::cast_possible_wrap)]
             _mm256_or_si256(
                 _mm256_sll_epi32(self.0[i], _mm_cvtsi32_si128(n as i32)),

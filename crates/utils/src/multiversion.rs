@@ -3,7 +3,7 @@
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::OnceLock;
 
 /// Macro to generate multiversioned functions.
 ///
@@ -35,14 +35,12 @@ use std::sync::{LazyLock, OnceLock};
 /// imports should be outside the macro invocation.
 ///
 /// Supported function syntax is limited as this is a declarative macro. Dynamic dispatch functions
-/// are the most limited, supporting only basic arguments and optionally a return type. Library
-/// functions may have complex definitions including generics, up to the maximum supported number of
-/// token trees per function definition.
+/// are the most limited, supporting only basic arguments and optionally a return type.
 ///
 /// Versions enabling additional features require the `unsafe` crate feature to be enabled, as
 /// features are enabled using the
 /// [`target_feature`](https://doc.rust-lang.org/reference/attributes/codegen.html#the-target_feature-attribute)
-/// attribute, which requires functions to be marked as unsafe. A safe fallback version will always
+/// attribute, which requires callers to use `unsafe` blocks. A safe fallback version will always
 /// be generated.
 ///
 /// See [`crate::md5`] as an example. [`multiversion_test!`](crate::multiversion_test!) can be used
@@ -90,13 +88,13 @@ macro_rules! multiversion {
                 #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
                 AVX2x8 => unsafe { $name::avx2x8::$name($($arg_name),*) },
                 #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
-                Neon => $name::neon::$name($($arg_name),*),
+                Neon => unsafe { $name::neon::$name($($arg_name),*) },
                 #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
-                Neonx2 => $name::neonx2::$name($($arg_name),*),
+                Neonx2 => unsafe { $name::neonx2::$name($($arg_name),*) },
                 #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
-                Neonx4 => $name::neonx4::$name($($arg_name),*),
+                Neonx4 => unsafe { $name::neonx4::$name($($arg_name),*) },
                 #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
-                Neonx8 => $name::neonx8::$name($($arg_name),*),
+                Neonx8 => unsafe { $name::neonx8::$name($($arg_name),*) },
             }
         }
     };
@@ -152,45 +150,37 @@ macro_rules! multiversion {
         /// [`multiversion!`] avx2 implementation.
         #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
         pub mod avx2 {
-            #![allow(clippy::missing_safety_doc)]
-
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+avx2::*),*};
 
-            $crate::multiversion!{@helper target_feature(enable = "avx2") $($tail)*}
+            $crate::multiversion!{@enable target_feature(enable = "avx2") $($tail)*}
         }
 
         /// [`multiversion!`] avx2x2 implementation.
         #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
         pub mod avx2x2 {
-            #![allow(clippy::missing_safety_doc)]
-
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+avx2x2::*),*};
 
-            $crate::multiversion!{@helper target_feature(enable = "avx2") $($tail)*}
+            $crate::multiversion!{@enable target_feature(enable = "avx2") $($tail)*}
         }
 
         /// [`multiversion!`] avx2x4 implementation.
         #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
         pub mod avx2x4 {
-            #![allow(clippy::missing_safety_doc)]
-
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+avx2x4::*),*};
 
-            $crate::multiversion!{@helper target_feature(enable = "avx2") $($tail)*}
+            $crate::multiversion!{@enable target_feature(enable = "avx2") $($tail)*}
         }
 
         /// [`multiversion!`] avx2x8 implementation.
         #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
         pub mod avx2x8 {
-            #![allow(clippy::missing_safety_doc)]
-
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+avx2x8::*),*};
 
-            $crate::multiversion!{@helper target_feature(enable = "avx2") $($tail)*}
+            $crate::multiversion!{@enable target_feature(enable = "avx2") $($tail)*}
         }
 
         /// [`multiversion!`] neon implementation.
@@ -199,7 +189,7 @@ macro_rules! multiversion {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+neon::*),*};
 
-            $($tail)*
+            $crate::multiversion!{@enable target_feature(enable = "neon") $($tail)*}
         }
 
         /// [`multiversion!`] neonx2 implementation.
@@ -208,7 +198,7 @@ macro_rules! multiversion {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+neonx2::*),*};
 
-            $($tail)*
+            $crate::multiversion!{@enable target_feature(enable = "neon") $($tail)*}
         }
 
         /// [`multiversion!`] neonx4 implementation.
@@ -217,7 +207,7 @@ macro_rules! multiversion {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+neonx4::*),*};
 
-            $($tail)*
+            $crate::multiversion!{@enable target_feature(enable = "neon") $($tail)*}
         }
 
         /// [`multiversion!`] neonx8 implementation.
@@ -226,7 +216,7 @@ macro_rules! multiversion {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {super::*, $($($path::)+neonx8::*),*};
 
-            $($tail)*
+            $crate::multiversion!{@enable target_feature(enable = "neon") $($tail)*}
         }
     };
 
@@ -264,13 +254,13 @@ macro_rules! multiversion {
                         #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
                         AVX2x8 => unsafe { avx2x8::$name() },
                         #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
-                        Neon => neon::$name(),
+                        Neon => unsafe { neon::$name() },
                         #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
-                        Neonx2 => neonx2::$name(),
+                        Neonx2 => unsafe { neonx2::$name() },
                         #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
-                        Neonx4 => neonx4::$name(),
+                        Neonx4 => unsafe { neonx4::$name() },
                         #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
-                        Neonx8 => neonx8::$name(),
+                        Neonx8 => unsafe { neonx8::$name() },
                     });
                     (start.elapsed(), x)
                 })
@@ -281,44 +271,38 @@ macro_rules! multiversion {
         })
     };
 
-    // Allow helper functions to have complex definitions up to the max number of supported token
-    // trees. This structure is needed as `$($t:tt)+ $b:block` is ambiguous
-    (@helper $t:meta) => {};
+    // Helper rules to add target_feature to helper functions
+    (@enable $t:meta) => {};
+    (@enable $t:meta
+        $(#[$m:meta])* $v:vis const $n:ident: $ty:ty = $e:expr; $($tail:tt)*
+    ) => {
+        $(#[$m])* $v const $n: $ty = $e;
+        $crate::multiversion!{@enable $t $($tail)*}
+    };
     // Replace #[inline(always)] which is incompatible with target_feature with normal #[inline]
-    (@helper $t:meta #[inline(always)] $($tail:tt)*) => {$crate::multiversion!{@helper $t #[inline] $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis const $n:ident: $ty:ty = $e:expr; $($tail:tt)*) => {$(#[$m])* $v const $n: $ty = $e; $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $t27:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 $t27 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $t27:tt $t28:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 $t27 $t28 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $t27:tt $t28:tt $t29:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 $t27 $t28 $t29 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $t27:tt $t28:tt $t29:tt $t30:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 $t27 $t28 $t29 $t30 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
-    (@helper $t:meta $(#[$m:meta])* $v:vis fn $n:ident $t0:tt $t1:tt $t2:tt $t3:tt $t4:tt $t5:tt $t6:tt $t7:tt $t8:tt $t9:tt $t10:tt $t11:tt $t12:tt $t13:tt $t14:tt $t15:tt $t16:tt $t17:tt $t18:tt $t19:tt $t20:tt $t21:tt $t22:tt $t23:tt $t24:tt $t25:tt $t26:tt $t27:tt $t28:tt $t29:tt $t30:tt $t31:tt $b:block $($tail:tt)*) => {$(#[$m])* #[$t] $v unsafe fn $n $t0 $t1 $t2 $t3 $t4 $t5 $t6 $t7 $t8 $t9 $t10 $t11 $t12 $t13 $t14 $t15 $t16 $t17 $t18 $t19 $t20 $t21 $t22 $t23 $t24 $t25 $t26 $t27 $t28 $t29 $t30 $t31 { #[allow(clippy::allow_attributes, clippy::macro_metavars_in_unsafe, unused_unsafe)] unsafe { $b } } $crate::multiversion!{@helper $t $($tail)*}};
+    (@enable $t:meta
+        #[inline(always)] $($tail:tt)*
+    ) => {
+        $crate::multiversion!{@enable $t
+            #[inline] $($tail)*
+        }
+    };
+    (@enable $t:meta
+        $(#[$m:meta])* $v:vis fn $($tail:tt)*
+    ) => {
+        $crate::multiversion!{@one_item $t
+            $(#[$m])*
+            #[$t]
+            #[allow(clippy::allow_attributes, clippy::missing_safety_doc)]
+            $v fn $($tail)*
+        }
+    };
+
+    // Helper rule to pop the first item out of the tt sequence
+    (@one_item $t:meta $item:item $($tail:tt)*) => {
+        $item
+        $crate::multiversion!{@enable $t $($tail)*}
+    };
 }
 
 /// Helper for testing and benchmarking [`multiversion!`] library functions.
@@ -455,7 +439,7 @@ macro_rules! multiversion_test {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+neon::*),*};
 
-            $body
+            unsafe { $body }
         }
 
         #[test]
@@ -465,7 +449,7 @@ macro_rules! multiversion_test {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+neonx2::*),*};
 
-            $body
+            unsafe { $body }
         }
 
         #[test]
@@ -475,7 +459,7 @@ macro_rules! multiversion_test {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+neonx4::*),*};
 
-            $body
+            unsafe { $body }
         }
 
         #[test]
@@ -485,7 +469,7 @@ macro_rules! multiversion_test {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
             use {$($($path::)+neonx8::*),*};
 
-            $body
+            unsafe { $body }
         }
     };
 
@@ -566,7 +550,7 @@ macro_rules! multiversion_test {
 
         #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
         {
-            {
+            unsafe {
                 #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
                 use {$($($path::)+neon::*),*};
 
@@ -574,7 +558,7 @@ macro_rules! multiversion_test {
             }
 
             #[cfg(feature = "all-simd")]
-            {
+            unsafe {
                 #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
                 use {$($($path::)+neonx2::*),*};
 
@@ -582,7 +566,7 @@ macro_rules! multiversion_test {
             }
 
             #[cfg(feature = "all-simd")]
-            {
+            unsafe {
                 #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
                 use {$($($path::)+neonx4::*),*};
 
@@ -590,7 +574,7 @@ macro_rules! multiversion_test {
             }
 
             #[cfg(feature = "all-simd")]
-            {
+            unsafe {
                 #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
                 use {$($($path::)+neonx8::*),*};
 
@@ -641,7 +625,7 @@ macro_rules! versions_impl {
         }
 
         /// Runtime generated list of supported versions.
-        pub static VERSIONS: LazyLock<Vec<Version>> = LazyLock::new(|| {
+        pub static VERSIONS: std::sync::LazyLock<Vec<Version>> = std::sync::LazyLock::new(|| {
             let mut vec = vec![$($(#[$m])* Version::$name,)+];
             vec.retain(|i| i.supported());
             vec

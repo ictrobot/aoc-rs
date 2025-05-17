@@ -3,7 +3,7 @@
 use std::array::from_fn;
 use std::ops::{Add, BitAnd, BitOr, BitXor, Not};
 
-#[expect(clippy::wildcard_imports)]
+#[allow(clippy::allow_attributes, clippy::wildcard_imports)]
 use std::arch::aarch64::*;
 
 /// Neon [u32] vector implementation.
@@ -86,20 +86,23 @@ impl<const V: usize, const L: usize> U32Vector<V, L> {
 
     #[inline]
     #[must_use]
+    #[target_feature(enable = "neon")]
     pub fn andnot(self, rhs: Self) -> Self {
-        Self(from_fn(|i| unsafe { vbicq_u32(self.0[i], rhs.0[i]) }))
+        Self(from_fn(|i| vbicq_u32(self.0[i], rhs.0[i])))
     }
 
     #[inline]
     #[must_use]
+    #[target_feature(enable = "neon")]
     pub fn splat(v: u32) -> Self {
-        Self([unsafe { vdupq_n_u32(v) }; V])
+        Self([vdupq_n_u32(v); V])
     }
 
     #[inline]
     #[must_use]
+    #[target_feature(enable = "neon")]
     pub fn rotate_left(self, n: u32) -> Self {
-        Self(from_fn(|i| unsafe {
+        Self(from_fn(|i| {
             #[expect(clippy::cast_possible_wrap)]
             vorrq_u32(
                 vshlq_u32(self.0[i], vdupq_n_s32(n as i32)),
