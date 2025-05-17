@@ -20,14 +20,15 @@ use std::sync::OnceLock;
 ///
 /// 1. The first rule matches a dynamic dispatch function, optionally followed by extra private
 ///    helper functions. Dynamic dispatch is controlled at runtime by supplying a path to a
-///    [`LazyLock`] containing a [`Version`] value in the `dyn_dispatch` attribute.
+///    [`LazyLock`](std::sync::LazyLock) containing a [`Version`] value in the `dyn_dispatch`
+///    attribute.
 ///
 /// 2. The second rule matches library functions without a dynamic dispatch function.
 ///
 /// 3. The third rule takes a name of a library function generated using the second rule and
-///    expands to a [`LazyLock`] evaluating to the fastest version, unless a global override is set
-///    using [`Version::set_override`]. The return value is intended to be stored in a `static` item
-///    for use in a `dyn_dispatch` attribute.
+///    expands to a [`LazyLock`](std::sync::LazyLock) evaluating to the fastest version, unless a
+///    global override is set using [`Version::set_override`]. The return value is intended to be
+///    stored in a `static` item for use in a `dyn_dispatch` attribute.
 ///
 /// The first two rules start with a use statement which can be used for wildcard imports of
 /// multiversioned libraries. Each path will be expanded to include the version's name - e.g. the
