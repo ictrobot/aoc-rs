@@ -9,10 +9,12 @@
 /// Using this makes [2017 day 11](../../year2017/struct.Day11.html), which parses a sequence of
 /// literals separated by commas, over 2x faster.
 ///
+/// See also [`parser::parsable_enum!`](crate::parser::parsable_enum), which provides a macro to
+/// define an enum and literal parser together.
+///
 /// # Examples
 /// ```
 /// # use utils::parser::{Parser, self};
-///
 /// #[derive(Debug, PartialEq)]
 /// enum Example {
 ///     A,
@@ -36,7 +38,7 @@ macro_rules! parser_literal_map {
     (
         $($($l:literal)|+ => $e:expr),+$(,)?
     ) => {{
-        fn coerce_to_parser<F: Fn(&[u8]) -> $crate::parser::ParseResult<'_, O>, O>(f: F) -> F { f }
+        const fn coerce_to_parser<F: Fn(&[u8]) -> $crate::parser::ParseResult<'_, O>, O>(f: F) -> F { f }
 
         coerce_to_parser(|input| {
             $($(
@@ -53,6 +55,58 @@ macro_rules! parser_literal_map {
     };
     (@error $first:literal) => {
         $crate::parser::ParseError::ExpectedLiteral($first)
+    };
+}
+
+/// Macro to define an enum that implements [`Parseable`](crate::parser::Parseable).
+///
+/// The parser is implemented using [`parser::literal_map!`](crate::parser::literal_map).
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{Parser, Parseable, self};
+/// parser::parsable_enum! {
+///     #[derive(Debug, PartialEq, Default)]
+///     enum Direction {
+///         #[default]
+///         "north" | "n" => North,
+///         "south" | "s" => South,
+///         "east" | "e" => East,
+///         "west" | "w" => West,
+///     }
+/// }
+///
+/// assert_eq!(Direction::PARSER.parse(b"north"), Ok((Direction::North, &b""[..])));
+/// assert_eq!(Direction::PARSER.parse(b"s"), Ok((Direction::South, &b""[..])));
+/// assert!(Direction::PARSER.parse(b"a").is_err());
+/// ```
+#[macro_export]
+macro_rules! parser_parsable_enum {
+    (
+        $(#[$enum_meta:meta])*
+        enum $name:ident {$(
+            $(#[$meta:meta])*
+            $($l:literal)|+ => $variant:ident $(= $value:expr)?,
+        )+}
+    ) => {
+        $(#[$enum_meta])*
+        pub enum $name {$(
+            $(#[$meta])*
+            $variant $(= $value)?,
+        )+}
+
+        impl $name {
+            const ALL: &'static [$name] = &[$(
+                Self::$variant,
+            )+];
+        }
+
+        impl $crate::parser::Parseable for $name {
+            type Parser = for<'a> fn(&'a [u8]) -> $crate::parser::ParseResult<'a, Self>;
+            const PARSER: Self::Parser = $crate::parser_literal_map!($(
+                $($l)|+ => Self::$variant,
+            )+);
+        }
     };
 }
 
@@ -203,7 +257,7 @@ macro_rules! parser_parse_tree {
 
     // Ensures this branch only matches inputs starting with (, giving each rule set a unique prefix
     (($($first:tt)+) $($tail:tt)+) => {{
-        fn coerce_to_parser<F: Fn(&[u8]) -> $crate::parser::ParseResult<'_, O>, O>(f: F) -> F { f }
+        const fn coerce_to_parser<F: Fn(&[u8]) -> $crate::parser::ParseResult<'_, O>, O>(f: F) -> F { f }
 
         coerce_to_parser(|input| {
             let mut furthest_err = $crate::parser::ParseError::Custom("unreachable");

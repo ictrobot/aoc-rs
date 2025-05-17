@@ -18,4 +18,5 @@ pub use one_of::one_of;
 pub use simple::{byte, byte_range, constant, eof, eol, noop, take_while, take_while1};
 
 pub use crate::parser_literal_map as literal_map;
+pub use crate::parser_parsable_enum as parsable_enum;
 pub use crate::parser_parse_tree as parse_tree;

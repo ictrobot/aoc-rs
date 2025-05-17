@@ -27,5 +27,5 @@ pub use wasm::multithreading;
 pub mod prelude {
     pub use crate::examples;
     pub use crate::input::{InputError, InputType, MapWithInputExt as _};
-    pub use crate::parser::{self, Parser as _};
+    pub use crate::parser::{self, Parseable as _, Parser as _};
 }
