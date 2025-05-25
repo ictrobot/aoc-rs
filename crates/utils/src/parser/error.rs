@@ -83,12 +83,12 @@ pub struct WithErrorMsg<P> {
     pub(super) parser: P,
     pub(super) message: &'static str,
 }
-impl<P: Parser> Parser for WithErrorMsg<P> {
-    type Output<'i> = P::Output<'i>;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, P: Parser<'i>> Parser<'i> for WithErrorMsg<P> {
+    type Output = P::Output;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.parser.parse(input) {
             Ok(v) => Ok(v),
             Err((_, pos)) => Err((ParseError::Custom(self.message), pos)),

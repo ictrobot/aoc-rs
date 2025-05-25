@@ -14,17 +14,15 @@ pub type ParseResult<'i, T> = Result<(T, &'i [u8]), (ParseError, &'i [u8])>;
 /// Parser trait.
 ///
 /// Implementations should avoid allocating where possible.
-pub trait Parser: Sized {
+pub trait Parser<'i>: Sized {
     /// Type of the value produced by [`parse`](Self::parse) when successful.
-    ///
-    /// Generic over the input `'i` lifetime.
-    type Output<'i>;
+    type Output;
 
     /// Type of the chained parser returned by [`then`](Self::then).
     ///
     /// This is used to allow multiple [`then`](Self::then) calls to extend one tuple, instead of
     /// nesting tuples inside each other.
-    type Then<T: Parser>: Then<Self, T>;
+    type Then<T: Parser<'i>>: Then<'i, Self, T>;
 
     /// Parse the given sequence of bytes.
     ///
@@ -40,7 +38,7 @@ pub trait Parser: Sized {
     /// assert_eq!(parser::u32().parse(b"1234abc"), Ok((1234, &b"abc"[..])));
     /// assert!(parser::u32().parse(b"abc1234").is_err());
     /// ```
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>>;
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output>;
 
     // Provided methods
 
@@ -56,7 +54,7 @@ pub trait Parser: Sized {
     ///     Ok(((123, -123), &b""[..]))
     /// );
     /// ```
-    fn then<T: Parser>(self, next: T) -> Self::Then<T> {
+    fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
         Then::then(self, next)
     }
 
@@ -83,7 +81,7 @@ pub trait Parser: Sized {
     ///     Ok((1000, &b""[..]))
     /// );
     /// ```
-    fn or<T: for<'i> Parser<Output<'i> = Self::Output<'i>>>(self, alternative: T) -> Or<Self, T> {
+    fn or<T: Parser<'i, Output = Self::Output>>(self, alternative: T) -> Or<Self, T> {
         Or {
             first: self,
             second: alternative,
@@ -102,7 +100,19 @@ pub trait Parser: Sized {
     ///     Ok((246, &b""[..]))
     /// );
     /// ```
-    fn map<O, F: for<'i> Fn(Self::Output<'i>) -> O>(self, f: F) -> Map<Self, F> {
+    ///
+    /// Closure that returns a value borrowing from both its input and an outer variable:
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// let my_vec = vec![1, 2, 3];
+    /// assert_eq!(
+    ///     parser::take_while(u8::is_ascii_digit)
+    ///         .map(|x| (x, my_vec.as_slice()))
+    ///         .parse(b"123"),
+    ///     Ok(((&b"123"[..], &[1, 2, 3][..]), &b""[..]))
+    /// );
+    /// ```
+    fn map<O, F: Fn(Self::Output) -> O>(self, f: F) -> Map<Self, F> {
         Map {
             parser: self,
             map_fn: f,
@@ -127,7 +137,25 @@ pub trait Parser: Sized {
     ///     Err((ParseError::Custom("input too large"), &b"200"[..]))
     /// );
     /// ```
-    fn map_res<O, F: for<'i> Fn(Self::Output<'i>) -> Result<O, &'static str>>(
+    ///
+    /// Closure that returns a value borrowing from both its input and an outer variable:
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// let my_vec = vec![1, 2, 3];
+    /// assert_eq!(
+    ///     parser::take_while(u8::is_ascii_digit)
+    ///         .map_res(|x| {
+    ///             if x.len() < 100 {
+    ///                 Ok((x, my_vec.as_slice()))
+    ///             } else {
+    ///                 Err("expected more digits")
+    ///             }
+    ///         })
+    ///         .parse(b"123"),
+    ///     Ok(((&b"123"[..], &[1, 2, 3][..]), &b""[..]))
+    /// );
+    /// ```
+    fn map_res<O, F: Fn(Self::Output) -> Result<O, &'static str>>(
         self,
         f: F,
     ) -> MapResult<Self, F> {
@@ -172,9 +200,9 @@ pub trait Parser: Sized {
     ///     Ok(([12, 34, 56], &b""[..]))
     /// );
     /// ```
-    fn repeat_n<const N: usize, S: Parser>(self, separator: S) -> RepeatN<N, Self, S>
+    fn repeat_n<const N: usize, S: Parser<'i>>(self, separator: S) -> RepeatN<N, Self, S>
     where
-        for<'i> Self::Output<'i>: Copy + Default,
+        Self::Output: Copy + Default,
     {
         RepeatN {
             parser: self,
@@ -197,13 +225,13 @@ pub trait Parser: Sized {
     /// assert_eq!(parser.parse(b"12,34,56,78"), Ok((vec![12, 34, 56, 78], &b""[..])));
     /// assert!(parser.parse(b"12,34").is_err());
     /// ```
-    fn repeat_arrayvec<const N: usize, S: Parser>(
+    fn repeat_arrayvec<const N: usize, S: Parser<'i>>(
         self,
         separator: S,
         min_elements: usize,
     ) -> RepeatArrayVec<N, Self, S>
     where
-        for<'a> Self::Output<'a>: Copy + Default,
+        Self::Output: Copy + Default,
     {
         RepeatArrayVec {
             parser: self,
@@ -226,7 +254,7 @@ pub trait Parser: Sized {
     /// assert_eq!(parser.parse(b"12,34,56,78"), Ok((vec![12, 34, 56, 78], &b""[..])));
     /// assert!(parser.parse(b"12,34").is_err());
     /// ```
-    fn repeat<S: Parser>(self, separator: S, min_elements: usize) -> RepeatVec<Self, S> {
+    fn repeat<S: Parser<'i>>(self, separator: S, min_elements: usize) -> RepeatVec<Self, S> {
         RepeatVec {
             parser: self,
             separator,
@@ -265,7 +293,7 @@ pub trait Parser: Sized {
     ///     Ok((123, &b""[..]))
     /// );
     /// ```
-    fn with_prefix<T: Parser>(self, prefix: T) -> WithPrefix<Self, T> {
+    fn with_prefix<T: Parser<'i>>(self, prefix: T) -> WithPrefix<Self, T> {
         WithPrefix {
             parser: self,
             prefix,
@@ -286,7 +314,7 @@ pub trait Parser: Sized {
     ///     Ok((123, &b""[..]))
     /// );
     /// ```
-    fn with_suffix<T: Parser>(self, suffix: T) -> WithSuffix<Self, T> {
+    fn with_suffix<T: Parser<'i>>(self, suffix: T) -> WithSuffix<Self, T> {
         WithSuffix {
             parser: self,
             suffix,
@@ -324,7 +352,7 @@ pub trait Parser: Sized {
     /// assert_eq!(parser::u32().parse_complete("1234").unwrap(), 1234);
     /// assert!(parser::u32().parse_complete("1234abc").is_err());
     /// ```
-    fn parse_complete<'i>(&self, input: &'i str) -> Result<Self::Output<'i>, InputError> {
+    fn parse_complete(&self, input: &'i str) -> Result<Self::Output, InputError> {
         match self.parse(input.as_bytes()).map_with_input(input)? {
             (v, []) => Ok(v),
             (_, remaining) => Err(InputError::new(input, remaining, "expected end of input")),
@@ -351,7 +379,7 @@ pub trait Parser: Sized {
     ///     ]
     /// );
     /// ```
-    fn parse_all<'i>(&self, input: &'i str) -> Result<Vec<Self::Output<'i>>, InputError> {
+    fn parse_all(&self, input: &'i str) -> Result<Vec<Self::Output>, InputError> {
         ParserRef(self)
             .repeat(Constant(()), 0)
             .parse_complete(input)
@@ -376,7 +404,7 @@ pub trait Parser: Sized {
     ///     ]
     /// );
     /// ```
-    fn parse_lines<'i>(&self, input: &'i str) -> Result<Vec<Self::Output<'i>>, InputError> {
+    fn parse_lines(&self, input: &'i str) -> Result<Vec<Self::Output>, InputError> {
         ParserRef(self)
             .with_suffix(Eol())
             .repeat(Constant(()), 0)
@@ -459,12 +487,12 @@ pub trait Parser: Sized {
 
 // Workaround to allow using methods which consume a parser in methods which take references.
 struct ParserRef<'a, P>(&'a P);
-impl<P: Parser> Parser for ParserRef<'_, P> {
-    type Output<'i> = P::Output<'i>;
-    type Then<T: Parser> = Unimplemented;
+impl<'i, P: Parser<'i>> Parser<'i> for ParserRef<'_, P> {
+    type Output = P::Output;
+    type Then<T: Parser<'i>> = Unimplemented;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         self.0.parse(input)
     }
 }
@@ -472,12 +500,12 @@ impl<P: Parser> Parser for ParserRef<'_, P> {
 /// Matches the string literal exactly.
 ///
 /// Normally used with [`with_prefix`](Parser::with_prefix)/[`with_suffix`](Parser::with_suffix).
-impl Parser for &'static str {
-    type Output<'i> = ();
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i> Parser<'i> for &'static str {
+    type Output = ();
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         // This is faster than using strip_prefix for the common case where the string is a short
         // string literal known at compile time.
         if input.len() >= self.len() && self.bytes().zip(input).all(|(a, &b)| a == b) {
@@ -491,12 +519,12 @@ impl Parser for &'static str {
 /// Matches the byte exactly.
 ///
 /// Normally used with [`with_prefix`](Parser::with_prefix)/[`with_suffix`](Parser::with_suffix).
-impl Parser for u8 {
-    type Output<'i> = ();
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i> Parser<'i> for u8 {
+    type Output = ();
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         if input.first() == Some(self) {
             Ok(((), &input[1..]))
         } else {
@@ -506,18 +534,18 @@ impl Parser for u8 {
 }
 
 /// Allow custom functions and closures to be used as parsers.
-impl<O, F: Fn(&[u8]) -> ParseResult<O>> Parser for F {
-    type Output<'i> = O;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, O, F: Fn(&'i [u8]) -> ParseResult<'i, O>> Parser<'i> for F {
+    type Output = O;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         self(input)
     }
 }
 
 /// Trait for types that have a canonical parser.
 pub trait Parseable {
-    type Parser: for<'i> Parser<Output<'i> = Self>;
+    type Parser: for<'i> Parser<'i, Output = Self>;
     const PARSER: Self::Parser;
 }

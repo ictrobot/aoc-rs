@@ -3,18 +3,18 @@ use crate::parser::{ParseResult, Parser};
 
 /// Use a second trait to force usage of the [`one_of`] method, preventing tuples from being used as
 /// parsers directly, which could be confusing.
-pub trait ParserList {
-    type Output<'i>;
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>>;
+pub trait ParserOneOfTuple<'i> {
+    type Output;
+    fn one_of(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output>;
 }
 
-macro_rules! parserlist_impl {
+macro_rules! one_of_impl {
     ($($l:ident: $n:tt),+) => {
-        impl<A: Parser, $($l: for<'i> Parser<Output<'i> = A::Output<'i>>),+> ParserList for (A, $($l,)*) {
-            type Output<'i> = A::Output<'i>;
+        impl<'i, A: Parser<'i>, $($l: Parser<'i, Output = A::Output>),+> ParserOneOfTuple<'i> for (A, $($l,)*) {
+            type Output = A::Output;
 
             #[inline(always)]
-            fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+            fn one_of(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
                 let mut err = match self.0.parse(input) {
                     Ok(v) => return Ok(v),
                     Err(err) => err,
@@ -35,29 +35,29 @@ macro_rules! parserlist_impl {
     };
 }
 
-parserlist_impl! {B: 1}
-parserlist_impl! {B: 1, C: 2}
-parserlist_impl! {B: 1, C: 2, D: 3}
-parserlist_impl! {B: 1, C: 2, D: 3, E: 4}
-parserlist_impl! {B: 1, C: 2, D: 3, E: 4, F: 5}
-parserlist_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6}
-parserlist_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7}
-parserlist_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8}
-parserlist_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9}
-parserlist_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10}
-parserlist_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10, L: 11}
+one_of_impl! {B: 1}
+one_of_impl! {B: 1, C: 2}
+one_of_impl! {B: 1, C: 2, D: 3}
+one_of_impl! {B: 1, C: 2, D: 3, E: 4}
+one_of_impl! {B: 1, C: 2, D: 3, E: 4, F: 5}
+one_of_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6}
+one_of_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7}
+one_of_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8}
+one_of_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9}
+one_of_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10}
+one_of_impl! {B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7, I: 8, J: 9, K: 10, L: 11}
 
 #[derive(Copy, Clone)]
-pub struct OneOf<L> {
-    list: L,
+pub struct OneOf<O> {
+    options: O,
 }
-impl<L: ParserList> Parser for OneOf<L> {
-    type Output<'i> = L::Output<'i>;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, O: ParserOneOfTuple<'i>> Parser<'i> for OneOf<O> {
+    type Output = O::Output;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
-        self.list.parse(input)
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+        self.options.one_of(input)
     }
 }
 
@@ -113,6 +113,6 @@ impl<L: ParserList> Parser for OneOf<L> {
 ///     ParseError::NumberTooSmall(-2147483648)
 /// );
 /// ```
-pub fn one_of<L: ParserList>(options: L) -> OneOf<L> {
-    OneOf { list: options }
+pub fn one_of<'i, L: ParserOneOfTuple<'i>>(options: L) -> OneOf<L> {
+    OneOf { options }
 }

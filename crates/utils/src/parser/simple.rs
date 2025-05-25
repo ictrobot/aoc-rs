@@ -4,12 +4,12 @@ use std::ops::RangeInclusive;
 
 #[derive(Copy, Clone)]
 pub struct Byte();
-impl Parser for Byte {
-    type Output<'i> = u8;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i> Parser<'i> for Byte {
+    type Output = u8;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         if let [byte, remaining @ ..] = input {
             Ok((*byte, remaining))
         } else {
@@ -44,12 +44,12 @@ pub struct ByteRange {
     min: u8,
     max: u8,
 }
-impl Parser for ByteRange {
-    type Output<'i> = u8;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i> Parser<'i> for ByteRange {
+    type Output = u8;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         if let [byte, remaining @ ..] = input {
             if *byte >= self.min && *byte <= self.max {
                 Ok((*byte, remaining))
@@ -85,12 +85,12 @@ pub fn byte_range(range: RangeInclusive<u8>) -> ByteRange {
 
 #[derive(Copy, Clone)]
 pub struct Constant<V: Copy>(pub(super) V);
-impl<V: Copy> Parser for Constant<V> {
-    type Output<'i> = V;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, V: Copy> Parser<'i> for Constant<V> {
+    type Output = V;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         Ok((self.0, input))
     }
 }
@@ -130,19 +130,19 @@ pub fn noop() -> Constant<()> {
 
 #[derive(Copy, Clone)]
 pub struct Eof();
-impl Parser for Eof {
-    type Output<'i> = ();
-    type Then<T: Parser> = Unimplemented;
+impl<'i> Parser<'i> for Eof {
+    type Output = ();
+    type Then<T: Parser<'i>> = Unimplemented;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match input {
             [] => Ok(((), input)),
             _ => Err((ParseError::Expected("end of input"), input)),
         }
     }
 
-    fn then<T: Parser>(self, _next: T) -> Self::Then<T> {
+    fn then<T: Parser<'i>>(self, _next: T) -> Self::Then<T> {
         panic!("chaining after eof will never match");
     }
 }
@@ -174,12 +174,12 @@ pub fn eof() -> Eof {
 
 #[derive(Copy, Clone)]
 pub struct Eol();
-impl Parser for Eol {
-    type Output<'i> = ();
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i> Parser<'i> for Eol {
+    type Output = ();
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match input {
             [b'\n', remaining @ ..] | [b'\r', b'\n', remaining @ ..] => Ok(((), remaining)),
             [] => Ok(((), input)),
@@ -215,12 +215,12 @@ pub fn eol() -> Eol {
 
 #[derive(Copy, Clone)]
 pub struct TakeWhile<const N: usize>(fn(&u8) -> bool);
-impl<const N: usize> Parser for TakeWhile<N> {
-    type Output<'i> = &'i [u8];
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, const N: usize> Parser<'i> for TakeWhile<N> {
+    type Output = &'i [u8];
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         let mut end = 0;
         while end < input.len() && self.0(&input[end]) {
             end += 1;

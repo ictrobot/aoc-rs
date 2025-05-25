@@ -9,12 +9,12 @@ pub struct Map<P, F> {
     pub(super) map_fn: F,
 }
 
-impl<P: Parser, F: for<'i> Fn(P::Output<'i>) -> O, O> Parser for Map<P, F> {
-    type Output<'i> = O;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, P: Parser<'i>, F: Fn(P::Output) -> O, O> Parser<'i> for Map<P, F> {
+    type Output = O;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.parser.parse(input) {
             Ok((v, remaining)) => Ok(((self.map_fn)(v), remaining)),
             Err(e) => Err(e),
@@ -28,14 +28,14 @@ pub struct MapResult<P, F> {
     pub(super) map_fn: F,
 }
 
-impl<P: Parser, F: for<'i> Fn(P::Output<'i>) -> Result<O, &'static str>, O> Parser
+impl<'i, P: Parser<'i>, F: Fn(P::Output) -> Result<O, &'static str>, O> Parser<'i>
     for MapResult<P, F>
 {
-    type Output<'i> = O;
-    type Then<T: Parser> = Then2<Self, T>;
+    type Output = O;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.parser.parse(input) {
             Ok((v, remaining)) => match (self.map_fn)(v) {
                 Ok(mapped) => Ok((mapped, remaining)),
@@ -50,12 +50,12 @@ impl<P: Parser, F: for<'i> Fn(P::Output<'i>) -> Result<O, &'static str>, O> Pars
 pub struct Optional<P> {
     pub(super) parser: P,
 }
-impl<P: Parser> Parser for Optional<P> {
-    type Output<'i> = Option<P::Output<'i>>;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, P: Parser<'i>> Parser<'i> for Optional<P> {
+    type Output = Option<P::Output>;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.parser.parse(input) {
             Ok((v, remaining)) => Ok((Some(v), remaining)),
             Err(_) => Ok((None, input)),
@@ -68,14 +68,14 @@ pub struct RepeatN<const N: usize, P, S> {
     pub(super) parser: P,
     pub(super) separator: S,
 }
-impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>, S: Parser> Parser
+impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>, S: Parser<'i>> Parser<'i>
     for RepeatN<N, P, S>
 {
-    type Output<'i> = [P::Output<'i>; N];
-    type Then<T: Parser> = Then2<Self, T>;
+    type Output = [P::Output; N];
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         let mut output = [P::Output::default(); N];
         for (i, item) in output.iter_mut().enumerate() {
             match self.parser.parse(input) {
@@ -103,14 +103,14 @@ pub struct RepeatArrayVec<const N: usize, P, S> {
     pub(super) separator: S,
     pub(super) min_elements: usize,
 }
-impl<const N: usize, P: for<'i> Parser<Output<'i>: Copy + Default>, S: Parser> Parser
+impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>, S: Parser<'i>> Parser<'i>
     for RepeatArrayVec<N, P, S>
 {
-    type Output<'i> = ArrayVec<P::Output<'i>, N>;
-    type Then<T: Parser> = Then2<Self, T>;
+    type Output = ArrayVec<P::Output, N>;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         let mut output = ArrayVec::new();
 
         let err = loop {
@@ -147,13 +147,9 @@ pub struct RepeatVec<P, S> {
     pub(super) separator: S,
     pub(super) min_elements: usize,
 }
-impl<P: Parser, S: Parser> RepeatVec<P, S> {
+impl<'i, P: Parser<'i>, S: Parser<'i>> RepeatVec<P, S> {
     #[inline]
-    fn helper<'i>(
-        &self,
-        mut input: &'i [u8],
-        consume_all: bool,
-    ) -> ParseResult<'i, Vec<P::Output<'i>>> {
+    fn helper(&self, mut input: &'i [u8], consume_all: bool) -> ParseResult<'i, Vec<P::Output>> {
         let mut output = Vec::new();
 
         let err = loop {
@@ -189,17 +185,17 @@ impl<P: Parser, S: Parser> RepeatVec<P, S> {
         }
     }
 }
-impl<P: Parser, S: Parser> Parser for RepeatVec<P, S> {
-    type Output<'i> = Vec<P::Output<'i>>;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, P: Parser<'i>, S: Parser<'i>> Parser<'i> for RepeatVec<P, S> {
+    type Output = Vec<P::Output>;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         self.helper(input, false)
     }
 
     // Override the default implementation to set consume_all to true
-    fn parse_complete<'i>(&self, input: &'i str) -> Result<Self::Output<'i>, InputError> {
+    fn parse_complete(&self, input: &'i str) -> Result<Self::Output, InputError> {
         match self.helper(input.as_bytes(), true).map_with_input(input)? {
             (v, []) => Ok(v),
             (_, remaining) => Err(InputError::new(input, remaining, "expected end of input")),
@@ -212,16 +208,16 @@ pub struct Or<A, B> {
     pub(super) first: A,
     pub(super) second: B,
 }
-impl<A: Parser, B: for<'i> Parser<Output<'i> = A::Output<'i>>> Parser for Or<A, B> {
-    type Output<'i> = A::Output<'i>;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, A: Parser<'i>, B: Parser<'i, Output = A::Output>> Parser<'i> for Or<A, B> {
+    type Output = A::Output;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline(always)]
     #[expect(
         clippy::inline_always,
         reason = "required for parsing of long or chains to be inlined"
     )]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.first.parse(input) {
             Ok(v) => Ok(v),
             Err((err1, remaining1)) => match self.second.parse(input) {
@@ -243,12 +239,12 @@ impl<A: Parser, B: for<'i> Parser<Output<'i> = A::Output<'i>>> Parser for Or<A, 
 pub struct WithConsumed<P> {
     pub(super) parser: P,
 }
-impl<P: Parser> Parser for WithConsumed<P> {
-    type Output<'i> = (P::Output<'i>, &'i [u8]);
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, P: Parser<'i>> Parser<'i> for WithConsumed<P> {
+    type Output = (P::Output, &'i [u8]);
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.parser.parse(input) {
             Ok((v, remaining)) => Ok(((v, &input[..input.len() - remaining.len()]), remaining)),
             Err(e) => Err(e),
@@ -261,12 +257,12 @@ pub struct WithPrefix<A, B> {
     pub(super) parser: A,
     pub(super) prefix: B,
 }
-impl<A: Parser, B: Parser> Parser for WithPrefix<A, B> {
-    type Output<'i> = A::Output<'i>;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, A: Parser<'i>, B: Parser<'i>> Parser<'i> for WithPrefix<A, B> {
+    type Output = A::Output;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.prefix.parse(input) {
             Ok((_, remaining)) => self.parser.parse(remaining),
             Err(e) => Err(e),
@@ -279,12 +275,12 @@ pub struct WithSuffix<A, B> {
     pub(super) parser: A,
     pub(super) suffix: B,
 }
-impl<A: Parser, B: Parser> Parser for WithSuffix<A, B> {
-    type Output<'i> = A::Output<'i>;
-    type Then<T: Parser> = Then2<Self, T>;
+impl<'i, A: Parser<'i>, B: Parser<'i>> Parser<'i> for WithSuffix<A, B> {
+    type Output = A::Output;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match self.parser.parse(input) {
             Ok((v, remaining1)) => match self.suffix.parse(remaining1) {
                 Ok((_, remaining2)) => Ok((v, remaining2)),

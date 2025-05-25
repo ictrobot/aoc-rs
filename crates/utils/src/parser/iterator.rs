@@ -13,8 +13,8 @@ pub struct ParserIterator<'a, P> {
     pub(super) parser: P,
 }
 
-impl<'a, P: Parser> Iterator for ParserIterator<'a, P> {
-    type Item = Result<P::Output<'a>, InputError>;
+impl<'a, P: Parser<'a>> Iterator for ParserIterator<'a, P> {
+    type Item = Result<P::Output, InputError>;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -35,7 +35,7 @@ impl<'a, P: Parser> Iterator for ParserIterator<'a, P> {
     }
 }
 
-impl<P: Parser> FusedIterator for ParserIterator<'_, P> {}
+impl<'a, P: Parser<'a>> FusedIterator for ParserIterator<'a, P> {}
 
 /// An iterator which returns successful parse outputs only, skipping over errors.
 ///
@@ -47,8 +47,8 @@ pub struct ParserMatchesIterator<'a, P> {
     pub(super) parser: P,
 }
 
-impl<'a, P: Parser> Iterator for ParserMatchesIterator<'a, P> {
-    type Item = P::Output<'a>;
+impl<'a, P: Parser<'a>> Iterator for ParserMatchesIterator<'a, P> {
+    type Item = P::Output;
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -63,4 +63,4 @@ impl<'a, P: Parser> Iterator for ParserMatchesIterator<'a, P> {
     }
 }
 
-impl<P: Parser> FusedIterator for ParserMatchesIterator<'_, P> {}
+impl<'a, P: Parser<'a>> FusedIterator for ParserMatchesIterator<'a, P> {}

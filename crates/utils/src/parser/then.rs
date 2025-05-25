@@ -2,21 +2,21 @@
 
 use crate::parser::{ParseResult, Parser};
 
-pub trait Then<P: Parser, T: Parser>: Parser {
+pub trait Then<'i, P: Parser<'i>, T: Parser<'i>>: Parser<'i> {
     fn then(parser: P, then: T) -> Self;
 }
 
 #[derive(Copy, Clone)]
 pub enum Unimplemented {}
-impl Parser for Unimplemented {
-    type Output<'i> = Unimplemented;
-    type Then<T: Parser> = Unimplemented;
+impl<'i> Parser<'i> for Unimplemented {
+    type Output = Unimplemented;
+    type Then<T: Parser<'i>> = Unimplemented;
 
-    fn parse<'i>(&self, _: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+    fn parse(&self, _: &'i [u8]) -> ParseResult<'i, Self::Output> {
         unimplemented!();
     }
 }
-impl<P: Parser, T: Parser> Then<P, T> for Unimplemented {
+impl<'i, P: Parser<'i>, T: Parser<'i>> Then<'i, P, T> for Unimplemented {
     fn then(_: P, _: T) -> Self {
         unimplemented!();
     }
@@ -31,17 +31,17 @@ macro_rules! then_impl {
         pub struct $name<$($t),+>{
             $($t: $t,)+
         }
-        impl<$($t: Parser),+> Parser for $name<$($t),+> {
-            type Output<'i> = ($($t::Output<'i>),+);
-            type Then<T: Parser> = $next_name<$($t),+, T>;
+        impl<'i, $($t: Parser<'i>),+> Parser<'i> for $name<$($t),+> {
+            type Output = ($($t::Output),+);
+            type Then<T: Parser<'i>> = $next_name<$($t),+, T>;
 
             #[inline(always)]
-            fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+            fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
                 $(let ($t, input) = self.$t.parse(input)?;)+
                 Ok((($($t),+), input))
             }
         }
-        impl<$($t: Parser),+, T: Parser> Then<$name<$($t),+>, T> for $next_name<$($t),+, T> {
+        impl<'i, $($t: Parser<'i>),+, T: Parser<'i>> Then<'i, $name<$($t),+>, T> for $next_name<$($t),+, T> {
             fn then(parser: $name<$($t),+>, next: T) -> Self {
                 Self{$($t: parser.$t),+, $next_t: next}
             }
@@ -55,12 +55,12 @@ macro_rules! then_impl {
         pub struct $name<$($t),+>{
             $($t: $t,)+
         }
-        impl<$($t: Parser),+> Parser for $name<$($t),+> {
-            type Output<'i> = ($($t::Output<'i>),+);
-            type Then<T: Parser> = Unimplemented;
+        impl<'i, $($t: Parser<'i>),+> Parser<'i> for $name<$($t),+> {
+            type Output = ($($t::Output),+);
+            type Then<T: Parser<'i>> = Unimplemented;
 
             #[inline(always)]
-            fn parse<'i>(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output<'i>> {
+            fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
                 $(let ($t, input) = self.$t.parse(input)?;)+
                 Ok((($($t),+), input))
             }
@@ -78,7 +78,7 @@ then_impl! {
     Then8<H> => [A, B, C, D, E, F, G, H],
 }
 
-impl<A: Parser, B: Parser> Then<A, B> for Then2<A, B> {
+impl<'i, A: Parser<'i>, B: Parser<'i>> Then<'i, A, B> for Then2<A, B> {
     fn then(parser: A, then: B) -> Self {
         Then2 { A: parser, B: then }
     }
