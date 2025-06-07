@@ -453,7 +453,7 @@ pub trait Parser<'i>: Sized {
     /// assert_eq!(filtered, vec![22, 44]);
     /// # Ok::<(), InputError>(())
     /// ```
-    fn parse_iterator(self, input: &str) -> ParserIterator<Self> {
+    fn parse_iterator(self, input: &str) -> ParserIterator<'_, Self> {
         ParserIterator {
             input,
             remaining: input.as_bytes(),
@@ -477,7 +477,7 @@ pub trait Parser<'i>: Sized {
     ///     vec![123, 456, 7, 8, 9]
     /// );
     /// ```
-    fn matches_iterator(self, input: &str) -> ParserMatchesIterator<Self> {
+    fn matches_iterator(self, input: &str) -> ParserMatchesIterator<'_, Self> {
         ParserMatchesIterator {
             remaining: input.as_bytes(),
             parser: self,

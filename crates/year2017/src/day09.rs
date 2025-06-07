@@ -15,7 +15,7 @@ impl Day09 {
     }
 
     // Parses either a (nested) group or a single piece of garbage.
-    fn parse(mut input: &[u8]) -> ParseResult<(u32, u32)> {
+    fn parse(mut input: &[u8]) -> ParseResult<'_, (u32, u32)> {
         let mut group_depth = 0;
         let mut in_garbage = false;
 
@@ -59,7 +59,7 @@ impl Day09 {
                     }
                     [b',', rest @ ..] if group_depth > 0 => rest,
                     _ if group_depth > 0 => {
-                        return Err((ParseError::Custom("expected '{', '}', ',' or '<'"), input))
+                        return Err((ParseError::Custom("expected '{', '}', ',' or '<'"), input));
                     }
                     _ => return Err((ParseError::Custom("expected '{' or '<'"), input)),
                 }

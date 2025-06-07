@@ -96,7 +96,7 @@ impl Day21 {
     }
 
     #[inline]
-    fn parse_square<const N: usize>(mut input: &[u8]) -> ParseResult<usize> {
+    fn parse_square<const N: usize>(mut input: &[u8]) -> ParseResult<'_, usize> {
         let mut result = 0;
         for row in 0..N {
             for col in 0..N {
