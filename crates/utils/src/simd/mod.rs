@@ -20,6 +20,18 @@ pub use avx2_impl::avx2;
 ))]
 pub use avx2_impl::{avx2x2, avx2x4, avx2x8};
 
+#[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+#[path = "avx512.rs"]
+mod avx512_impl;
+#[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+pub use avx512_impl::avx512;
+#[cfg(all(
+    feature = "unsafe",
+    feature = "all-simd",
+    any(target_arch = "x86", target_arch = "x86_64")
+))]
+pub use avx512_impl::{avx512x2, avx512x4, avx512x8};
+
 #[cfg(all(
     feature = "unsafe",
     any(target_arch = "aarch64", target_arch = "arm64ec"),
