@@ -1,22 +1,29 @@
+use crate::cli::UsageError;
+use crate::cli::mode::{self, MainFn};
 use aoc::{PUZZLES, PuzzleFn};
 use std::collections::VecDeque;
 use std::error::Error;
 use std::num::NonZeroUsize;
+use std::path::PathBuf;
+use std::{fs, io};
 use utils::date::{Day, Year};
 use utils::multiversion::{VERSIONS, Version};
 
 #[derive(Debug, Default)]
-pub struct Options {
+pub struct Arguments {
     program_name: Option<String>,
     pub help: bool,
     pub version_override: Option<Version>,
     pub threads_override: Option<NonZeroUsize>,
+    pub inputs_dir: Option<PathBuf>,
+    mode: Option<MainFn>,
     pub year: Option<Year>,
     pub day: Option<Day>,
+    pub extra_args: VecDeque<String>,
 }
 
-impl Options {
-    pub fn parse() -> Result<Self, String> {
+impl Arguments {
+    pub fn parse() -> Result<Self, UsageError> {
         let mut result = Self::default();
 
         let mut args: VecDeque<String> = std::env::args().collect();
@@ -24,7 +31,8 @@ impl Options {
 
         while let Some(option) = args.pop_front() {
             if option == "--" {
-                break;
+                result.extra_args = args;
+                return Ok(result);
             }
 
             if let Some(option) = option.strip_prefix("--") {
@@ -32,11 +40,15 @@ impl Options {
                 if let Some((before, after)) = option.split_once('=') {
                     result
                         .handle_long(before, ArgumentValue::Provided(after.to_string()))
-                        .map_err(|e| format!("option --{before}: {e}"))?;
+                        .map_err(|e| {
+                            UsageError::InvalidArguments(format!("option --{before}: {e}").into())
+                        })?;
                 } else {
                     result
                         .handle_long(option, ArgumentValue::Available(&mut args))
-                        .map_err(|e| format!("option --{option}: {e}"))?;
+                        .map_err(|e| {
+                            UsageError::InvalidArguments(format!("option --{option}: {e}").into())
+                        })?;
                 }
                 continue;
             }
@@ -50,13 +62,19 @@ impl Options {
                     for option in options {
                         result
                             .handle_short(option, ArgumentValue::None)
-                            .map_err(|e| format!("option -{option}: {e}"))?;
+                            .map_err(|e| {
+                                UsageError::InvalidArguments(
+                                    format!("option -{option}: {e}").into(),
+                                )
+                            })?;
                     }
 
-                    // Last short form option can consume a value
+                    // The last short form option can consume a value
                     result
                         .handle_short(last, ArgumentValue::Available(&mut args))
-                        .map_err(|e| format!("option -{last}: {e}"))?;
+                        .map_err(|e| {
+                            UsageError::InvalidArguments(format!("option -{last}: {e}").into())
+                        })?;
                     continue;
                 }
             }
@@ -65,20 +83,25 @@ impl Options {
             break;
         }
 
+        if let Some(i) = args.iter().position(|x| x == "--") {
+            result.extra_args = args.split_off(i + 1);
+            args.pop_back();
+        }
+
         if let Some(year) = args.pop_front() {
             result.year = match year.parse() {
                 Ok(y) => Some(y),
-                Err(err) => return Err(err.to_string()),
+                Err(err) => return Err(UsageError::InvalidArguments(err.into())),
             };
 
             if let Some(day) = args.pop_front() {
                 result.day = match day.parse() {
                     Ok(y) => Some(y),
-                    Err(err) => return Err(err.to_string()),
+                    Err(err) => return Err(UsageError::InvalidArguments(err.into())),
                 };
 
                 if !args.is_empty() {
-                    return Err("too many arguments".to_string());
+                    return Err(UsageError::TooManyArguments);
                 }
             }
         }
@@ -86,7 +109,7 @@ impl Options {
         Ok(result)
     }
 
-    pub fn help(&self) -> String {
+    pub fn help_string(&self) -> String {
         format!(
             r"Usage:
     {program_name}
@@ -94,17 +117,30 @@ impl Options {
 
     {program_name} $year
         Run all solutions for the provided year
-        
+
     {program_name} $year $day
         Run the solution for the provided date
 
 Options:
+    --stdin
+        Run a single solution, reading input from stdin. $year and $day must be provided.
+
+    --test
+        Runs all solutions against all inputs from the inputs directory, comparing the outputs to
+        the stored correct answers in the inputs directory. $year may be provided to only test the
+        provided year. A custom command template may be provided following a `--` argument to test
+        another binary. Requires the 'test-runner' feature to be enabled.
+
     --multiversion/-m $version
         Override which implementation of multiversioned functions should be used.
         Supported versions: {multiversion_options:?}
-        
+
     --threads/-t $threads
         Override the number of threads to use for multithreaded solutions.
+        In `--test` mode this controls the number of simultaneous tests.
+
+    --inputs $dir
+        Specify the directory storing inputs. Defaults to './inputs'.
 
     --help/-h
         Print this help
@@ -121,6 +157,10 @@ Options:
             "help" => self.option_help(value),
             "multiversion" => self.option_multiversion(value),
             "threads" => self.option_threads(value),
+            "inputs" => self.option_inputs(value),
+            "stdin" => self.option_mode(value, mode::stdin::main),
+            #[cfg(feature = "test-runner")]
+            "test" => self.option_mode(value, mode::test::main),
             _ => Err("unknown option".into()),
         }
     }
@@ -158,12 +198,53 @@ Options:
         Ok(())
     }
 
+    fn option_inputs(&mut self, value: ArgumentValue) -> Result<(), Box<dyn Error>> {
+        let value = value.required()?.into();
+        if self.inputs_dir.is_some() {
+            return Err("option provided more than once".into());
+        }
+        if !fs::metadata(&value).is_ok_and(|m| m.is_dir()) {
+            return Err("inputs path must be a directory".into());
+        }
+        self.inputs_dir = Some(value);
+        Ok(())
+    }
+
+    fn option_mode(&mut self, value: ArgumentValue, mode: MainFn) -> Result<(), Box<dyn Error>> {
+        value.none()?;
+        if self.mode.is_some() {
+            return Err("mode options are mutually exclusive".into());
+        }
+        self.mode = Some(mode);
+        Ok(())
+    }
+
+    pub fn main_fn(&self) -> MainFn {
+        self.mode.unwrap_or(mode::default::main)
+    }
+
     pub fn matching_puzzles(&self) -> Vec<(Year, Day, PuzzleFn)> {
         PUZZLES
             .iter()
             .copied()
             .filter(|&(y, d, ..)| self.year.unwrap_or(y) == y && self.day.unwrap_or(d) == d)
             .collect()
+    }
+
+    pub fn inputs_dir(&self) -> PathBuf {
+        self.inputs_dir
+            .clone()
+            .unwrap_or_else(|| PathBuf::from("./inputs"))
+    }
+
+    pub fn read_input(&self, year: Year, day: Day) -> Result<String, (String, io::Error)> {
+        let mut path = self.inputs_dir();
+        path.push(format!("year{year:#}"));
+        path.push(format!("day{day:#}.txt"));
+        match fs::read_to_string(&path) {
+            Ok(s) => Ok(s.trim_ascii_end().replace("\r\n", "\n")),
+            Err(err) => Err((path.to_string_lossy().to_string(), err)),
+        }
     }
 }
 

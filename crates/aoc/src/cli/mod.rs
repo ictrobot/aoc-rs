@@ -1,3 +1,6 @@
-mod options;
+mod arguments;
+mod error;
+pub mod mode;
 
-pub use options::Options;
+pub use arguments::Arguments;
+pub use error::{FailedNoErrorMessage, UsageError};

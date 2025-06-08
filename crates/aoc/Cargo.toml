@@ -16,9 +16,10 @@ year2017 = { path = "../year2017", optional = true }
 year2024 = { path = "../year2024", optional = true }
 
 [features]
-default = ["all-years", "all-simd", "unsafe"]
+default = ["all-years", "all-simd", "unsafe", "test-runner"]
 const_lut = ["year2024?/const_lut"]
 all-simd = ["utils/all-simd"]
+test-runner = []
 # xtask update features
 all-years = ["year2015", "year2016", "year2017", "year2024"]
 unsafe = ["year2015?/unsafe", "year2016?/unsafe", "year2017?/unsafe", "year2024?/unsafe", "utils/unsafe"]
