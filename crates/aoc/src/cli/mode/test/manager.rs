@@ -71,15 +71,22 @@ impl Manager {
             }
             if !self.pending_updates.is_empty() && now >= next_update {
                 self.update_grid(grid)?;
-                next_update += UPDATE_INTERVAL;
+                if next_update + UPDATE_INTERVAL < now {
+                    next_update = now + UPDATE_INTERVAL;
+                } else {
+                    next_update += UPDATE_INTERVAL;
+                }
             }
             grid.flush()?;
 
             self.enqueue_processes()?;
             self.process_result(
-                next_spinner_tick
-                    .min(next_update)
-                    .saturating_duration_since(now),
+                if self.pending_updates.is_empty() {
+                    next_spinner_tick
+                } else {
+                    next_update.min(next_spinner_tick)
+                }
+                .saturating_duration_since(now),
             )?;
         }
 
