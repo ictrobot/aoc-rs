@@ -159,6 +159,25 @@ impl<T, const N: usize> ArrayVec<T, N> {
     pub fn is_full(&self) -> bool {
         self.len == N
     }
+
+    /// Returns the backing array.
+    ///
+    /// Any items after the current length will be set to the default value.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::array::ArrayVec;
+    /// let mut vec: ArrayVec<i32, 5> = ArrayVec::new();
+    /// vec.push(1).unwrap();
+    /// vec.push(2).unwrap();
+    /// vec.push(3).unwrap();
+    /// vec.pop().unwrap();
+    /// assert_eq!(vec.into_array(), [1, 2, 0, 0, 0]);
+    /// ```
+    #[inline]
+    pub fn into_array(self) -> [T; N] {
+        self.data
+    }
 }
 
 impl<T, const N: usize> Deref for ArrayVec<T, N> {
