@@ -69,6 +69,12 @@ impl InputError {
 
         (line_number, column_number, line.to_string())
     }
+
+    /// Returns the source error.
+    #[must_use]
+    pub fn into_source(self) -> Box<dyn Error> {
+        self.source
+    }
 }
 
 impl Display for InputError {
