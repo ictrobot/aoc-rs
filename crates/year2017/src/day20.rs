@@ -17,9 +17,7 @@ struct Particle {
 
 impl Day20 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let vector = parser::i64()
-            .repeat_n(b',')
-            .map(|[x, y, z]| Point3D::new(x, y, z));
+        let vector = parser::i64().repeat_n(b',').map(Point3D::from);
 
         Ok(Self {
             particles: vector

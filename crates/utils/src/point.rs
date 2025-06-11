@@ -5,7 +5,9 @@ use std::fmt::Debug;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
 macro_rules! point_impl {
-    ($(#[$m:meta])* $v:vis struct $s:ident{$($f:ident),+}) => {
+    ($n:literal, $tuple:tt =>
+        $(#[$m:meta])* $v:vis struct $s:ident{$($i:tt => $f:ident),+}
+    ) => {
         #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
         $(#[$m])* $v struct $s<T: Number> {
             $(pub $f: T,)+
@@ -108,12 +110,44 @@ macro_rules! point_impl {
                 $(self.$f -= rhs.$f;)+
             }
         }
+
+        impl<T: Number> From<[T; $n]> for $s<T> {
+            #[inline]
+            fn from(arr: [T; $n]) -> Self {
+                Self{$(
+                    $f: arr[$i],
+                )+}
+            }
+        }
+
+        impl<T: Number> From<$tuple> for $s<T> {
+            #[inline]
+            fn from(arr: $tuple) -> Self {
+                Self{$(
+                    $f: arr.$i,
+                )+}
+            }
+        }
+
+        impl<T: Number> From<$s<T>> for [T; $n] {
+            #[inline]
+            fn from(value: $s<T>) -> Self {
+                [$(value.$f),+]
+            }
+        }
+
+        impl<T: Number> From<$s<T>> for $tuple {
+            #[inline]
+            fn from(value: $s<T>) -> Self {
+                ($(value.$f),+)
+            }
+        }
     };
 }
 
-point_impl! {
+point_impl! {2, (T, T) =>
     /// Struct representing a 2D point or vector.
-    pub struct Point2D{x, y}
+    pub struct Point2D{0 => x, 1 => y}
 }
 
 impl<T: Signed> Point2D<T> {
@@ -155,7 +189,7 @@ impl<T: Signed> Point2D<T> {
     }
 }
 
-point_impl! {
+point_impl! {3, (T, T, T) =>
     /// Struct representing a 3D point or vector.
-    pub struct Point3D{x, y, z}
+    pub struct Point3D{0 => x, 1 => y, 2 => z}
 }

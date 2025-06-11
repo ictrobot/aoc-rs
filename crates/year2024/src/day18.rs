@@ -34,7 +34,7 @@ impl Day18 {
         let mut fallen = 0;
         for item in parser::number_range(0..=max_coord)
             .then(parser::number_range(0..=max_coord).with_prefix(b','))
-            .map(|(x, y)| Point2D { x, y })
+            .map(Point2D::from)
             .with_consumed()
             .with_suffix(parser::eol())
             .parse_iterator(input)
