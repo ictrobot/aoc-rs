@@ -52,6 +52,7 @@ impl<T: UnsignedInteger> BitIterator<T> {
 impl<T: UnsignedInteger> Iterator for BitIterator<T> {
     type Item = (u32, T);
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.n == T::ZERO {
             None
