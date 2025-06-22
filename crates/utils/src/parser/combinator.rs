@@ -198,7 +198,7 @@ impl<'i, P: Parser<'i>, S: Parser<'i>> Parser<'i> for RepeatVec<P, S> {
     fn parse_complete(&self, input: &'i str) -> Result<Self::Output, InputError> {
         match self.helper(input.as_bytes(), true).map_with_input(input)? {
             (v, []) => Ok(v),
-            (_, remaining) => Err(InputError::new(input, remaining, "expected end of input")),
+            (_, remaining) => Err(InputError::new(input, remaining, ParseError::ExpectedEof())),
         }
     }
 }

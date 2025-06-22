@@ -37,6 +37,26 @@ impl<'a, P: Parser<'a>> Iterator for ParserIterator<'a, P> {
 
 impl<'a, P: Parser<'a>> FusedIterator for ParserIterator<'a, P> {}
 
+impl<'a, P: Parser<'a>> ParserIterator<'a, P> {
+    /// Returns the remaining input.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::input::InputError;
+    /// # use utils::parser::{self, Parser};
+    /// let mut iterator = parser::u32()
+    ///     .with_suffix(parser::eol())
+    ///     .parse_iterator("12\n34\n56\n78");
+    /// assert_eq!(iterator.next().unwrap().unwrap(), 12);
+    /// assert_eq!(iterator.next().unwrap().unwrap(), 34);
+    /// assert_eq!(iterator.remaining(), b"56\n78");
+    /// ```
+    #[inline]
+    pub fn remaining(&self) -> &'a [u8] {
+        self.remaining
+    }
+}
+
 /// An iterator which returns successful parse outputs only, skipping over errors.
 ///
 /// See [`Parser::matches_iterator`].
@@ -64,3 +84,22 @@ impl<'a, P: Parser<'a>> Iterator for ParserMatchesIterator<'a, P> {
 }
 
 impl<'a, P: Parser<'a>> FusedIterator for ParserMatchesIterator<'a, P> {}
+
+impl<'a, P: Parser<'a>> ParserMatchesIterator<'a, P> {
+    /// Returns the remaining input.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::input::InputError;
+    /// # use utils::parser::{self, Parser};
+    /// let mut iterator = parser::u32()
+    ///     .matches_iterator("abc123d456e7xyz");
+    /// assert_eq!(iterator.next().unwrap(), 123);
+    /// assert_eq!(iterator.next().unwrap(), 456);
+    /// assert_eq!(iterator.remaining(), b"e7xyz");
+    /// ```
+    #[inline]
+    pub fn remaining(&self) -> &'a [u8] {
+        self.remaining
+    }
+}

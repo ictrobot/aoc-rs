@@ -138,7 +138,7 @@ impl<'i> Parser<'i> for Eof {
     fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         match input {
             [] => Ok(((), input)),
-            _ => Err((ParseError::Expected("end of input"), input)),
+            _ => Err((ParseError::ExpectedEof(), input)),
         }
     }
 

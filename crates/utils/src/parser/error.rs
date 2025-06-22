@@ -19,6 +19,8 @@ pub enum ParseError {
     ExpectedMatches(usize),
     /// Expected $n items or less.
     ExpectedLessItems(usize),
+    /// Expected end of input.
+    ExpectedEof(),
     /// Expected number <= $num.
     NumberTooLarge(i128),
     /// Expected number >= $num.
@@ -66,6 +68,7 @@ impl Display for ParseError {
                     max.escape_ascii().to_string(),
                 )
             }
+            ParseError::ExpectedEof() => write!(f, "expected end of input"),
             ParseError::ExpectedMatches(x) => write!(f, "expected at least {x} match"),
             ParseError::ExpectedLessItems(x) => write!(f, "expected {x} items or less"),
             ParseError::NumberTooLarge(x) => write!(f, "expected number <= {x}"),

@@ -355,7 +355,7 @@ pub trait Parser<'i>: Sized {
     fn parse_complete(&self, input: &'i str) -> Result<Self::Output, InputError> {
         match self.parse(input.as_bytes()).map_with_input(input)? {
             (v, []) => Ok(v),
-            (_, remaining) => Err(InputError::new(input, remaining, "expected end of input")),
+            (_, remaining) => Err(InputError::new(input, remaining, ParseError::ExpectedEof())),
         }
     }
 
