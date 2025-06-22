@@ -37,33 +37,33 @@ impl Day09 {
         let batches = marbles / 23;
         for base in (0..23 * batches).step_by(23) {
             // Equivalent to the following operations, which naively add 23 marbles while keeping
-            // the current marble at the front of dequeue:
-            //  22x [push_back(pop_front), push_back(pop_front), push_front(i)]
-            //   7x [push_front(pop_back)]
-            //      [pop_front]
+            // the current marble at the back of dequeue:
+            //  22x [push_front(pop_back), push_front(pop_back), push_back(i)]
+            //   7x [push_back(pop_front)]
+            //      [pop_back]
             // By eliminating redundant pushes and pops the total number of operations per batch is
             // decreased from 125 to 67.
-            let front = circle.pop_front().unwrap();
-            circle.push_back(front);
+            let front = circle.pop_back().unwrap();
+            circle.push_front(front);
 
             for i in 1..=18 {
-                let front = circle.pop_front().unwrap();
-                circle.push_back(front);
-                circle.push_back(base + i);
+                let front = circle.pop_back().unwrap();
+                circle.push_front(front);
+                circle.push_front(base + i);
             }
 
-            let f1 = circle.pop_front().unwrap();
-            let f2 = circle.pop_front().unwrap();
-            let f3 = circle.pop_front().unwrap();
-            let f4 = circle.pop_front().unwrap();
+            let f1 = circle.pop_back().unwrap();
+            let f2 = circle.pop_back().unwrap();
+            let f3 = circle.pop_back().unwrap();
+            let f4 = circle.pop_back().unwrap();
 
-            circle.push_front(base + 22);
-            circle.push_front(f4);
-            circle.push_front(base + 21);
-            circle.push_front(f3);
-            circle.push_front(base + 20);
-            circle.push_front(f2);
-            circle.push_front(base + 19);
+            circle.push_back(base + 22);
+            circle.push_back(f4);
+            circle.push_back(base + 21);
+            circle.push_back(f3);
+            circle.push_back(base + 20);
+            circle.push_back(f2);
+            circle.push_back(base + 19);
 
             scores[((base + 23) % players) as usize] += (base as u64 + 23) + (f1 as u64);
         }
