@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use utils::prelude::*;
 
 /// Simulating a marble game.
@@ -12,7 +11,7 @@ impl Day09 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let (players, marbles) = parser::number_range(1..=999)
             .with_suffix(" players; last marble is worth ")
-            .then(parser::number_range(1..=99_999))
+            .then(parser::number_range(23..=99_999))
             .with_suffix(" points")
             .parse_complete(input)?;
 
@@ -30,42 +29,85 @@ impl Day09 {
     }
 
     fn max_score(players: u32, marbles: u32) -> u64 {
-        let mut circle = VecDeque::with_capacity(marbles as usize);
-        circle.push_front(0u32);
-        let mut scores = vec![0u64; players as usize];
-
         let batches = marbles / 23;
-        for base in (0..23 * batches).step_by(23) {
+
+        // Each batch does 23x pop_back, 7x push_back and 37x push_front, meaning the buffer only
+        // grows towards the front. Allocate a vec large enough to avoid needing to wrap around.
+        let len = batches as usize * 37;
+        let mut circle = vec![0u32; len];
+
+        // Start with the first batch completed to ensure there are enough entries to pop
+        circle[len - 22..].copy_from_slice(&[
+            18, 4, 17, 8, 16, 0, 15, 7, 14, 3, 13, 6, 12, 1, 11, 22, 5, 21, 10, 20, 2, 19,
+        ]);
+        let (mut head, mut tail) = (len - 22, len - 1);
+        let mut scores = vec![0u64; players as usize];
+        scores[(23 % players) as usize] += 32;
+
+        for base in (23..23 * batches).step_by(23) {
             // Equivalent to the following operations, which naively add 23 marbles while keeping
             // the current marble at the back of dequeue:
             //  22x [push_front(pop_back), push_front(pop_back), push_back(i)]
             //   7x [push_back(pop_front)]
             //      [pop_back]
-            // By eliminating redundant pushes and pops the total number of operations per batch is
-            // decreased from 125 to 67.
-            let front = circle.pop_back().unwrap();
-            circle.push_front(front);
 
-            for i in 1..=18 {
-                let front = circle.pop_back().unwrap();
-                circle.push_front(front);
-                circle.push_front(base + i);
-            }
+            scores[((base + 23) % players) as usize] +=
+                (base + 23) as u64 + circle[tail - 19] as u64;
 
-            let f1 = circle.pop_back().unwrap();
-            let f2 = circle.pop_back().unwrap();
-            let f3 = circle.pop_back().unwrap();
-            let f4 = circle.pop_back().unwrap();
+            let push_front = [
+                base + 18,
+                circle[tail - 18],
+                base + 17,
+                circle[tail - 17],
+                base + 16,
+                circle[tail - 16],
+                base + 15,
+                circle[tail - 15],
+                base + 14,
+                circle[tail - 14],
+                base + 13,
+                circle[tail - 13],
+                base + 12,
+                circle[tail - 12],
+                base + 11,
+                circle[tail - 11],
+                base + 10,
+                circle[tail - 10],
+                base + 9,
+                circle[tail - 9],
+                base + 8,
+                circle[tail - 8],
+                base + 7,
+                circle[tail - 7],
+                base + 6,
+                circle[tail - 6],
+                base + 5,
+                circle[tail - 5],
+                base + 4,
+                circle[tail - 4],
+                base + 3,
+                circle[tail - 3],
+                base + 2,
+                circle[tail - 2],
+                base + 1,
+                circle[tail - 1],
+                circle[tail],
+            ];
+            let push_back = [
+                base + 22,
+                circle[tail - 22],
+                base + 21,
+                circle[tail - 21],
+                base + 20,
+                circle[tail - 20],
+                base + 19,
+            ];
 
-            circle.push_back(base + 22);
-            circle.push_back(f4);
-            circle.push_back(base + 21);
-            circle.push_back(f3);
-            circle.push_back(base + 20);
-            circle.push_back(f2);
-            circle.push_back(base + 19);
+            circle[head - 37..head].copy_from_slice(&push_front);
+            circle[tail - 22..tail - 15].copy_from_slice(&push_back);
 
-            scores[((base + 23) % players) as usize] += (base as u64 + 23) + (f1 as u64);
+            head -= 37;
+            tail -= 16;
         }
 
         scores.iter().copied().max().unwrap()
