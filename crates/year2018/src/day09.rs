@@ -32,8 +32,10 @@ impl Day09 {
         let batches = marbles / 23;
 
         // Each batch does 23x pop_back, 7x push_back and 37x push_front, meaning the buffer only
-        // grows towards the front. Allocate a vec large enough to avoid needing to wrap around.
-        let len = batches as usize * 37;
+        // grows towards the front and the head pointer progresses far faster than the tail pointer.
+        // The score only depends on values near the tail and within each batch is computed before
+        // the tail is overwritten.
+        let len = ((batches - 1) as usize * 16).next_multiple_of(37) + 22;
         let mut circle = vec![0u32; len];
 
         // Start with the first batch completed to ensure there are enough entries to pop
@@ -54,59 +56,62 @@ impl Day09 {
             scores[((base + 23) % players) as usize] +=
                 (base + 23) as u64 + circle[tail - 19] as u64;
 
-            let push_front = [
-                base + 18,
-                circle[tail - 18],
-                base + 17,
-                circle[tail - 17],
-                base + 16,
-                circle[tail - 16],
-                base + 15,
-                circle[tail - 15],
-                base + 14,
-                circle[tail - 14],
-                base + 13,
-                circle[tail - 13],
-                base + 12,
-                circle[tail - 12],
-                base + 11,
-                circle[tail - 11],
-                base + 10,
-                circle[tail - 10],
-                base + 9,
-                circle[tail - 9],
-                base + 8,
-                circle[tail - 8],
-                base + 7,
-                circle[tail - 7],
-                base + 6,
-                circle[tail - 6],
-                base + 5,
-                circle[tail - 5],
-                base + 4,
-                circle[tail - 4],
-                base + 3,
-                circle[tail - 3],
-                base + 2,
-                circle[tail - 2],
-                base + 1,
-                circle[tail - 1],
-                circle[tail],
-            ];
-            let push_back = [
-                base + 22,
-                circle[tail - 22],
-                base + 21,
-                circle[tail - 21],
-                base + 20,
-                circle[tail - 20],
-                base + 19,
-            ];
+            if head > 0 {
+                let push_front = [
+                    base + 18,
+                    circle[tail - 18],
+                    base + 17,
+                    circle[tail - 17],
+                    base + 16,
+                    circle[tail - 16],
+                    base + 15,
+                    circle[tail - 15],
+                    base + 14,
+                    circle[tail - 14],
+                    base + 13,
+                    circle[tail - 13],
+                    base + 12,
+                    circle[tail - 12],
+                    base + 11,
+                    circle[tail - 11],
+                    base + 10,
+                    circle[tail - 10],
+                    base + 9,
+                    circle[tail - 9],
+                    base + 8,
+                    circle[tail - 8],
+                    base + 7,
+                    circle[tail - 7],
+                    base + 6,
+                    circle[tail - 6],
+                    base + 5,
+                    circle[tail - 5],
+                    base + 4,
+                    circle[tail - 4],
+                    base + 3,
+                    circle[tail - 3],
+                    base + 2,
+                    circle[tail - 2],
+                    base + 1,
+                    circle[tail - 1],
+                    circle[tail],
+                ];
+                let push_back = [
+                    base + 22,
+                    circle[tail - 22],
+                    base + 21,
+                    circle[tail - 21],
+                    base + 20,
+                    circle[tail - 20],
+                    base + 19,
+                ];
 
-            circle[head - 37..head].copy_from_slice(&push_front);
-            circle[tail - 22..tail - 15].copy_from_slice(&push_back);
+                circle[head - 37..head].copy_from_slice(&push_front);
+                circle[tail - 22..tail - 15].copy_from_slice(&push_back);
 
-            head -= 37;
+                head -= 37;
+            }
+
             tail -= 16;
         }
 
