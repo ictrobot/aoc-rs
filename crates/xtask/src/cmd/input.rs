@@ -133,10 +133,10 @@ fn read_session_token() -> Result<String, String> {
     if let Ok(token) = read_to_string(TOKEN_FILE) {
         return Ok(token.trim_end().to_string());
     }
-    if let Ok(home) = env::var(HOME_VAR) {
-        if let Ok(token) = read_to_string(Path::new(&home).join(TOKEN_FILE)) {
-            return Ok(token.trim_end().to_string());
-        }
+    if let Ok(home) = env::var(HOME_VAR)
+        && let Ok(token) = read_to_string(Path::new(&home).join(TOKEN_FILE))
+    {
+        return Ok(token.trim_end().to_string());
     }
 
     Err(format!(

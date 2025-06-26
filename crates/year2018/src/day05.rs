@@ -36,11 +36,11 @@ impl Day05 {
     fn react(polymer: impl Iterator<Item = u8>) -> Vec<u8> {
         let mut stack = Vec::with_capacity(polymer.size_hint().1.unwrap_or(0));
         for b in polymer {
-            if let Some(last) = stack.last() {
-                if last ^ b == 32 {
-                    stack.pop();
-                    continue;
-                }
+            if let Some(last) = stack.last()
+                && last ^ b == 32
+            {
+                stack.pop();
+                continue;
             }
             stack.push(b);
         }

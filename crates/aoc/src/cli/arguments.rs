@@ -54,29 +54,27 @@ impl Arguments {
             }
 
             // Allow using "-" as a positional argument
-            if option.len() > 1 {
-                if let Some(option) = option.strip_prefix('-') {
-                    // Short form options
-                    let mut options: Vec<_> = option.chars().collect();
-                    let last = options.pop().unwrap();
-                    for option in options {
-                        result
-                            .handle_short(option, ArgumentValue::None)
-                            .map_err(|e| {
-                                UsageError::InvalidArguments(
-                                    format!("option -{option}: {e}").into(),
-                                )
-                            })?;
-                    }
-
-                    // The last short form option can consume a value
+            if option.len() > 1
+                && let Some(option) = option.strip_prefix('-')
+            {
+                // Short form options
+                let mut options: Vec<_> = option.chars().collect();
+                let last = options.pop().unwrap();
+                for option in options {
                     result
-                        .handle_short(last, ArgumentValue::Available(&mut args))
+                        .handle_short(option, ArgumentValue::None)
                         .map_err(|e| {
-                            UsageError::InvalidArguments(format!("option -{last}: {e}").into())
+                            UsageError::InvalidArguments(format!("option -{option}: {e}").into())
                         })?;
-                    continue;
                 }
+
+                // The last short form option can consume a value
+                result
+                    .handle_short(last, ArgumentValue::Available(&mut args))
+                    .map_err(|e| {
+                        UsageError::InvalidArguments(format!("option -{last}: {e}").into())
+                    })?;
+                continue;
             }
 
             args.push_front(option);

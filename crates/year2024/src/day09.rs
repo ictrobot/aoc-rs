@@ -93,10 +93,10 @@ impl<'a> Day09<'a> {
 
             // Check for free spaces at least as long as the file before the file's position
             for len in file_len..=9 {
-                if let Some(&pos) = free_positions[len as usize - 1].front() {
-                    if pos < next_pos {
-                        (next_pos, free_len) = (pos, len);
-                    }
+                if let Some(&pos) = free_positions[len as usize - 1].front()
+                    && pos < next_pos
+                {
+                    (next_pos, free_len) = (pos, len);
                 }
             }
 

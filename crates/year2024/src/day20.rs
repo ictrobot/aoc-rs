@@ -38,11 +38,9 @@ impl Day20 {
         distances[start] = 0;
         let mut queue = VecDeque::new();
         queue.push_back(start);
-        while let Some(index) = queue.pop_front() {
-            if index == end {
-                break;
-            }
-
+        while let Some(index) = queue.pop_front()
+            && index != end
+        {
             let Some(next_distance) = distances[index].checked_add(1) else {
                 return Err(InputError::new(input, 0, "path too long"));
             };

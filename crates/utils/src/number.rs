@@ -260,11 +260,9 @@ pub fn is_prime<T: UnsignedInteger>(n: T) -> bool {
     }
 
     let mut i = T::from(5);
-    while let Some(square) = i.checked_mul(i) {
-        if square > n {
-            break;
-        }
-
+    while let Some(square) = i.checked_mul(i)
+        && square <= n
+    {
         if n % i == T::ZERO || n % (i + T::from(2)) == T::ZERO {
             return false;
         }

@@ -111,10 +111,10 @@ impl Day17 {
 
         for x in 0..8 {
             let a = base | (x << (pos * 3));
-            if self.check_pos_matches(a, pos) {
-                if let Some(result) = self.search(a, pos - 1) {
-                    return Some(result);
-                }
+            if self.check_pos_matches(a, pos)
+                && let Some(result) = self.search(a, pos - 1)
+            {
+                return Some(result);
             }
         }
         None

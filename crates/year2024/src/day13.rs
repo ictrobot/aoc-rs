@@ -82,10 +82,10 @@ impl Machine {
             return None;
         }
 
-        if let Ok(count_a) = (det_a / det_denominator).try_into() {
-            if let Ok(count_b) = (det_b / det_denominator).try_into() {
-                return Some((count_a, count_b));
-            }
+        if let Ok(count_a) = (det_a / det_denominator).try_into()
+            && let Ok(count_b) = (det_b / det_denominator).try_into()
+        {
+            return Some((count_a, count_b));
         }
 
         None

@@ -58,13 +58,15 @@ impl Day07 {
                 let (a, b, c) = (line[i], line[i + 1], line[i + 2]);
 
                 // Part 1
-                if let Some(&d) = line.get(i + 3) {
-                    if a != b && a == d && b == c {
-                        if in_brackets {
-                            part1_valid = false;
-                        } else {
-                            part1_match = true;
-                        }
+                if let Some(&d) = line.get(i + 3)
+                    && a != b
+                    && a == d
+                    && b == c
+                {
+                    if in_brackets {
+                        part1_valid = false;
+                    } else {
+                        part1_match = true;
                     }
                 }
 

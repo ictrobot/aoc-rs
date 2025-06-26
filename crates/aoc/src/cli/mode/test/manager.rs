@@ -181,17 +181,15 @@ impl Manager {
                 let mut max_year = None;
                 let mut succeeded = 0;
                 let mut total = 0;
-                while let Some(&(y, _)) = puzzles.peek() {
-                    if self.puzzles[y].iter().all(|p| p.get_status() == status) {
-                        max_year = Some(y);
-                        for p in &self.puzzles[y] {
-                            succeeded += p.get_succeeded();
-                            total += p.get_case_count();
-                        }
-                        take_while_peeking(&mut puzzles, |&(y2, _)| y == y2).for_each(drop);
-                    } else {
-                        break;
+                while let Some(&(y, _)) = puzzles.peek()
+                    && self.puzzles[y].iter().all(|p| p.get_status() == status)
+                {
+                    max_year = Some(y);
+                    for p in &self.puzzles[y] {
+                        succeeded += p.get_succeeded();
+                        total += p.get_case_count();
                     }
+                    take_while_peeking(&mut puzzles, |&(y2, _)| y == y2).for_each(drop);
                 }
                 if let Some(max_year) = max_year {
                     if year == max_year {
