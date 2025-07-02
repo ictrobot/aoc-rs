@@ -37,11 +37,33 @@ impl Day11 {
 
     #[must_use]
     pub fn part2(&self) -> String {
-        let (size, (_, x, y)) = (1..=300)
-            .map(|s| (s, self.largest_total_power(s)))
-            .max_by_key(|&(_, (total, _, _))| total)
-            .unwrap();
-        format!("{x},{y},{size}")
+        let (mut max_size, mut max_total, mut max_x, mut max_y) = (0, i32::MIN, 0, 0);
+        let mut sizes: Vec<i32> = Vec::with_capacity(300);
+
+        for size in 1..=300 {
+            // Try to split the N*N square into Y X*X squares to calculate an upper bound.
+            // For example, if the best 5x5 is 100, then the best 10x10 must be <= 400.
+            if let Some(divisor) = (2..=size / 2).rev().find(|&d| size % d == 0) {
+                let copies = (size / divisor) * (size / divisor);
+                let upper_bound = sizes[divisor - 1].saturating_mul(copies as i32);
+                if upper_bound < max_total {
+                    sizes.push(upper_bound);
+                    continue;
+                }
+            };
+
+            let (total, x, y) = self.largest_total_power(size);
+            sizes.push(total);
+
+            if total > max_total {
+                max_size = size;
+                max_total = total;
+                max_x = x;
+                max_y = y;
+            }
+        }
+
+        format!("{max_x},{max_y},{max_size}")
     }
 
     fn largest_total_power(&self, size: usize) -> (i32, u32, u32) {
