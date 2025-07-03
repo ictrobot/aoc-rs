@@ -68,17 +68,31 @@ impl Day11 {
 
     fn largest_total_power(&self, size: usize) -> (i32, u32, u32) {
         let (mut max_total, mut max_x, mut max_y) = (i32::MIN, 0, 0);
+        let mut row_totals = [0; 301];
+
         for y in 0..301 - size {
-            for x in 0..301 - size {
-                let index = y * 301 + x;
-                let total = self.summed_area_table[index]
-                    + self.summed_area_table[index + 302 * size]
-                    - self.summed_area_table[index + size]
-                    - self.summed_area_table[index + 301 * size];
-                if total > max_total {
-                    max_total = total;
-                    max_x = x as u32 + 1;
-                    max_y = y as u32 + 1;
+            // Avoids bounds checks, allowing the inner loop to be vectorized
+            let mut found_new_max = false;
+            for ((((total, &top_left), &top_right), &bottom_left), &bottom_right) in row_totals
+                [..301 - size]
+                .iter_mut()
+                .zip(self.summed_area_table[y * 301..].iter())
+                .zip(self.summed_area_table[y * 301 + size..].iter())
+                .zip(self.summed_area_table[(y + size) * 301..].iter())
+                .zip(self.summed_area_table[(y + size) * 301 + size..].iter())
+            {
+                *total = top_left + bottom_right - top_right - bottom_left;
+                found_new_max |= *total > max_total;
+            }
+
+            // Only perform scalar comparisons when a new max has been found
+            if found_new_max {
+                for (x, &total) in row_totals[..301 - size].iter().enumerate() {
+                    if total > max_total {
+                        max_total = total;
+                        max_x = x as u32 + 1;
+                        max_y = y as u32 + 1;
+                    }
                 }
             }
         }
