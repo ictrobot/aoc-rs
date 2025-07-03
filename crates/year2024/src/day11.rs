@@ -97,8 +97,8 @@ impl Builder {
         let next_idx = self.num_map.len();
         *self.num_map.entry(n).or_insert_with(|| {
             self.next.push((0, 0));
-            self.max_idx[blinks as usize] = self.max_idx[blinks as usize].max(next_idx);
             if (blinks as usize) < self.max_idx.len() {
+                self.max_idx[blinks as usize] = self.max_idx[blinks as usize].max(next_idx);
                 self.todo.push_back((n, next_idx, blinks));
             }
             next_idx
