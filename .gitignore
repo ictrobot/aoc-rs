@@ -3,3 +3,4 @@
 .aoc_token
 .idea
 perf.data*
+/lefthook-local.yaml
