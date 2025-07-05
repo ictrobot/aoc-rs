@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU32, Ordering};
 use utils::multithreading;
 use utils::number::mod_pow;
 use utils::prelude::*;
@@ -112,10 +112,10 @@ impl Day15 {
                 if a as u16 == b as u16 {
                     part1_matches += 1;
                 }
-                if !part2_a_finished && a % 4 == 0 {
+                if !part2_a_finished && a.is_multiple_of(4) {
                     part2_a_values.push(a as u16);
                 }
-                if !part2_b_finished && b % 8 == 0 {
+                if !part2_b_finished && b.is_multiple_of(8) {
                     part2_b_values.push(b as u16);
                 }
             }

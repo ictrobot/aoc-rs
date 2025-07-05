@@ -34,7 +34,7 @@ impl Day02 {
             .map(|row| {
                 for i in 0..row.len() - 1 {
                     for j in i + 1..row.len() {
-                        if row[j] % row[i] == 0 {
+                        if row[j].is_multiple_of(row[i]) {
                             return row[j] / row[i];
                         }
                     }

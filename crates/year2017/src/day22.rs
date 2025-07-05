@@ -39,7 +39,7 @@ impl Day22 {
             b'#' => Some(State::Infected),
             _ => None,
         })?;
-        if rows != cols || rows % 2 == 0 {
+        if rows != cols || rows.is_multiple_of(2) {
             return Err(InputError::new(input, 0, "expected odd size square grid"));
         }
         Ok(Self { size: rows, grid })

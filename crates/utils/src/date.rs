@@ -19,7 +19,8 @@ impl Date {
         let mut days = u64::from(self.day.0) - 1;
 
         for year in 2016..=self.year.0 {
-            let is_leap_year = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+            let is_leap_year =
+                (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400);
             days += if is_leap_year { 366 } else { 365 };
         }
 

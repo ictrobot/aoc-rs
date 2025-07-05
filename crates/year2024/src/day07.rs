@@ -45,7 +45,7 @@ impl Day07 {
             return target == next;
         }
 
-        (target % next == 0 && Self::possible(target / next, numbers, concat))
+        (target.is_multiple_of(next) && Self::possible(target / next, numbers, concat))
             || (concat && {
                 // All the numbers are 1-3 digits, which makes this faster than
                 //  let pow = 10u64.pow(next.ilog10() + 1);

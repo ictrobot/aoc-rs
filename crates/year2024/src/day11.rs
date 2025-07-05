@@ -111,7 +111,7 @@ impl Builder {
                 (self.index(1, blink + 1), 0)
             } else {
                 let log = n.ilog10() + 1;
-                if log % 2 == 0 {
+                if log.is_multiple_of(2) {
                     let pow = 10u64.pow(log / 2);
                     (
                         self.index(n / pow, blink + 1),

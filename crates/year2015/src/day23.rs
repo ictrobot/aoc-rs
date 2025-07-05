@@ -69,8 +69,12 @@ impl Day23 {
                 Instruction::Increment(Register::A) => a += 1,
                 Instruction::Increment(Register::B) => b += 1,
                 Instruction::Jump(offset) => pc += offset - 1,
-                Instruction::JumpIfEven(Register::A, offset) if a % 2 == 0 => pc += offset - 1,
-                Instruction::JumpIfEven(Register::B, offset) if b % 2 == 0 => pc += offset - 1,
+                Instruction::JumpIfEven(Register::A, offset) if a.is_multiple_of(2) => {
+                    pc += offset - 1
+                }
+                Instruction::JumpIfEven(Register::B, offset) if b.is_multiple_of(2) => {
+                    pc += offset - 1
+                }
                 Instruction::JumpIfOne(Register::A, offset) if a == 1 => pc += offset - 1,
                 Instruction::JumpIfOne(Register::B, offset) if b == 1 => pc += offset - 1,
                 Instruction::JumpIfEven(_, _) | Instruction::JumpIfOne(_, _) => {}

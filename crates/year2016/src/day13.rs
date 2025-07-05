@@ -44,7 +44,7 @@ impl Day13 {
                 Point2D::new(p.x, p.y.saturating_add(1)),
             ] {
                 let n = (x * x) + (3 * x) + (2 * x * y) + y + (y * y) + favorite_number;
-                if n.count_ones() % 2 == 0 && !visited.contains(&next) {
+                if n.count_ones().is_multiple_of(2) && !visited.contains(&next) {
                     visited.insert(next);
                     queue.push_back((next, steps + 1));
                 }

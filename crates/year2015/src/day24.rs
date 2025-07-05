@@ -26,7 +26,7 @@ impl Day24 {
         remaining_totals.reverse();
 
         let sum: u32 = remaining_totals.first().copied().unwrap_or(0);
-        if sum % 12 != 0 {
+        if !sum.is_multiple_of(12) {
             return Err(InputError::new(input, 0, "Total must be multiple of 12"));
         }
 

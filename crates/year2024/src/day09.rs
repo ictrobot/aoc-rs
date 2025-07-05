@@ -173,7 +173,7 @@ impl<'a> Day09<'a> {
             #[inline]
             fn next(&mut self) -> Option<Self::Item> {
                 while !self.input.is_empty() {
-                    if self.input.len() % 2 == 0 {
+                    if self.input.len().is_multiple_of(2) {
                         self.pos -= (self.input[self.input.len() - 1] - b'0') as u32;
                         self.input = &self.input[..self.input.len() - 1];
                     }

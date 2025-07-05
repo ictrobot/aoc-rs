@@ -27,7 +27,7 @@ impl Day13 {
             .iter()
             .map(|&(depth, range)| {
                 let period = (range - 1) * 2;
-                if depth % period == 0 {
+                if depth.is_multiple_of(period) {
                     depth * range
                 } else {
                     0
