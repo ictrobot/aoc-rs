@@ -173,7 +173,7 @@ export class Aoc {
      * @param {boolean} [isExample]
      * @param {boolean} [part1]
      * @param {boolean} [part2]
-     * @return {{success: true, part1: string, part2: string} | {success: false, error: string}}
+     * @return {{success: true, part1: string, part2: string} | {success: false, error: string, stack?: string, panic_location?: string}}
      */
     run(year, day, input, isExample = false, part1 = true, part2 = true) {
         let success;
@@ -181,10 +181,31 @@ export class Aoc {
             this.#write(input);
             success = this.#exports.run_puzzle(year, day, isExample, part1, part2);
         } catch (e) {
-            this.newInstance();
-            return {
-                success: false,
-                error: "Unexpected error: " + e.toString() + (e.stack ? "\n\n" + e.stack : ""),
+            console.error(e);
+            let panic_payload = "";
+            let panic_location = "";
+            try {
+                panic_payload = this.#read("PART1");
+                panic_location = this.#read("PART2");
+            } catch (e2) {
+                console.warn(e2);
+            }
+
+            this.newInstance()
+
+            if (panic_payload.length > 0) {
+                return {
+                    success: false,
+                    error: "panic: " + panic_payload,
+                    panic_location,
+                    stack: e.stack,
+                }
+            } else {
+                return {
+                    success: false,
+                    error: e.toString(),
+                    stack: e.stack,
+                }
             }
         }
 

@@ -7,6 +7,7 @@ use aoc::all_puzzles;
 use aoc::utils::input::InputType;
 use std::error::Error;
 use std::ffi::CStr;
+use std::sync::Once;
 
 const BUFFER_LENGTH: usize = 1024 * 1024;
 
@@ -17,6 +18,8 @@ static mut PART1: [u8; BUFFER_LENGTH] = [0u8; BUFFER_LENGTH];
 #[unsafe(no_mangle)]
 static mut PART2: [u8; BUFFER_LENGTH] = [0u8; BUFFER_LENGTH];
 
+static ONCE_PANIC_HANDLER: Once = Once::new();
+
 #[unsafe(no_mangle)]
 extern "C" fn run_puzzle(
     year: u16,
@@ -25,17 +28,44 @@ extern "C" fn run_puzzle(
     run_part1: bool,
     run_part2: bool,
 ) -> bool {
+    ONCE_PANIC_HANDLER.call_once(|| {
+        std::panic::set_hook(Box::new(|info| {
+            let payload = info.payload();
+            let error: &str = if let Some(s) = payload.downcast_ref::<&str>() {
+                s
+            } else if let Some(s) = payload.downcast_ref::<String>() {
+                s
+            } else {
+                return;
+            };
+
+            let location = if let Some(location) = info.location() {
+                // Trying to format the location may cause another panic, particularly on allocation
+                // failure, but it should work on most explicit panics (e.g. "no solution found")
+                &format!(
+                    "{}:{}:{}",
+                    location.file(),
+                    location.line(),
+                    location.column()
+                )
+            } else {
+                ""
+            };
+
+            write_results(error, location);
+        }));
+    });
+
+    // Clear result buffers before running the solution, so if it panics, the buffers either contain
+    // the panic payload and location or are empty.
+    write_results("", "");
+
     let (success, part1, part2) = match run(year, day, is_example, run_part1, run_part2) {
         Ok((part1, part2)) => (true, part1, part2),
         Err(err) => (false, err.to_string(), String::new()),
     };
 
-    // SAFETY: No other Rust code accesses these variables or creates references - they're only read
-    // from JS.
-    unsafe {
-        write_string((&raw mut PART1).cast(), &part1);
-        write_string((&raw mut PART2).cast(), &part2);
-    }
+    write_results(&part1, &part2);
 
     success
 }
@@ -73,6 +103,15 @@ fn run(
         };
     }
     all_puzzles! {matcher}
+}
+
+fn write_results(part1: &str, part2: &str) {
+    // SAFETY: No other Rust code accesses these variables or creates references - they're only read
+    // from JS.
+    unsafe {
+        write_string((&raw mut PART1).cast(), part1);
+        write_string((&raw mut PART2).cast(), part2);
+    }
 }
 
 unsafe fn write_string(buf: *mut u8, str: &str) {

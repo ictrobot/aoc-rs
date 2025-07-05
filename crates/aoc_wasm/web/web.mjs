@@ -1,6 +1,7 @@
 import {Aoc} from "./aoc.mjs";
 
-console.log("Commit", "${GIT_COMMIT}");
+const COMMIT = "${GIT_COMMIT}";
+console.log("Commit", COMMIT);
 
 const MODULE_PATHS = [
     "./aoc-simd128.wasm",
@@ -99,6 +100,35 @@ async function run(input, isExample, part) {
         const body = document.createElement("pre");
         body.classList.add("message-body", "is-family-monospace", "has-text-warning");
         body.innerText = result.error;
+        if (result.panic_location !== undefined && result.panic_location.length > 0) {
+            body.appendChild(document.createTextNode("\nat "));
+
+            const match = result.panic_location.match(/^crates\/([^\/]+)\/src\/(.+)[.]rs:(\d+):(\d+)$/);
+            if (match !== null) {
+                const [_, crate, path, line, _column] = match;
+
+                const rustdoc_link = document.createElement("a");
+                rustdoc_link.href = `doc/src/${crate}/${path}.rs.html#${line}`;
+                rustdoc_link.innerText = result.panic_location;
+                body.appendChild(rustdoc_link);
+
+                if (COMMIT.match(/^[0-9a-f]{40}$/)) {
+                    const github_link = document.createElement("a");
+                    github_link.href = `https://github.com/ictrobot/aoc-rs/blob/${COMMIT}/crates/${crate}/src/${path}.rs#L${line}`;
+                    github_link.innerText = "GitHub";
+
+                    body.appendChild(document.createTextNode(" ("));
+                    body.appendChild(github_link)
+                    body.appendChild(document.createTextNode(")"));
+                }
+            } else {
+                body.appendChild(document.createTextNode(result.panic_location));
+            }
+        }
+        if (result.stack !== undefined && result.stack.length > 0) {
+            body.appendChild(document.createTextNode("\n\n" + result.stack));
+        }
+
         article.appendChild(body);
     }
 
