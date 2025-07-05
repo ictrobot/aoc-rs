@@ -28,7 +28,7 @@ jobs:
           rustup target add ${{ matrix.target }}
           rustup default stable
       - name: Install cross
-        run: cargo install --locked cross
+        run: cargo install --locked --debug cross
         if: "${{ env.CARGO_CMD == 'CROSS' }}"
       - name: "${{ env.CARGO_CMD }} build --target=${{matrix.target}}"
         run: "${{ env.CARGO_CMD }} build --target=${{ matrix.target }} --all --release"
