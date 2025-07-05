@@ -24,23 +24,18 @@ struct TrieNode {
     is_terminal: bool,
 }
 
-const LETTER_LOOKUP: [Option<Stripe>; 256] = {
-    let mut x = [None; 256];
-    x[b'w' as usize] = Some(Stripe::W);
-    x[b'u' as usize] = Some(Stripe::U);
-    x[b'b' as usize] = Some(Stripe::B);
-    x[b'r' as usize] = Some(Stripe::R);
-    x[b'g' as usize] = Some(Stripe::G);
-    x
-};
-
 const MAX_PATTERN_LENGTH: usize = 8;
 const MAX_DESIGN_LENGTH: usize = 64;
 
 impl Day19 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let letter = parser::byte()
-            .map_res(|b| LETTER_LOOKUP[b as usize].ok_or("expected 'w', 'u', 'b', 'r' or 'g'"));
+        let letter = parser::byte_map!(
+            b'w' => Stripe::W,
+            b'u' => Stripe::U,
+            b'b' => Stripe::B,
+            b'r' => Stripe::R,
+            b'g' => Stripe::G,
+        );
 
         let Some((patterns, designs)) = input.split_once("\n\n") else {
             return Err(InputError::new(input, 0, "expected patterns and designs"));

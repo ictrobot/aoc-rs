@@ -40,6 +40,56 @@ pub fn byte() -> Byte {
 }
 
 #[derive(Copy, Clone)]
+pub struct ByteLut<'a, O> {
+    lut: &'a [Option<O>; 256],
+    error: &'static str,
+}
+impl<'i, O: Copy> Parser<'i> for ByteLut<'_, O> {
+    type Output = O;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
+
+    #[inline]
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+        if let [byte, remaining @ ..] = input
+            && let Some(output) = self.lut[*byte as usize]
+        {
+            Ok((output, remaining))
+        } else {
+            Err((ParseError::Custom(self.error), input))
+        }
+    }
+}
+
+/// Parser that consumes a single byte and maps it using a lookup table.
+///
+/// Equivalent to `parser::byte().map_res(|b| LOOKUP[b as usize].ok_or("expected ..."))`, which is
+/// usually faster than an equivalent match statement in the closure.
+///
+/// See also [`parser::byte_map!`](crate::parser::byte_map!) which wraps this function, allowing a
+/// match-like syntax to be used to define the lookup table.
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{self, Parser, ParseError};
+/// const LOOKUP: [Option<bool>; 256] = {
+///     let mut x = [None; 256];
+///     x['#' as usize] = Some(true);
+///     x['.' as usize] = Some(false);
+///     x
+/// };
+///
+/// let parser = parser::byte_lut(&LOOKUP, "expected '#' or '.'");
+/// assert_eq!(parser.parse(b"#..##"), Ok((true, &b"..##"[..])));
+/// assert_eq!(parser.parse(b"..##"), Ok((false, &b".##"[..])));
+/// assert_eq!(parser.parse(b"abc"), Err((ParseError::Custom("expected '#' or '.'"), &b"abc"[..])));
+/// ```
+#[inline]
+#[must_use]
+pub fn byte_lut<'a, T: Copy>(lut: &'a [Option<T>; 256], error: &'static str) -> ByteLut<'a, T> {
+    ByteLut { lut, error }
+}
+
+#[derive(Copy, Clone)]
 pub struct ByteRange {
     min: u8,
     max: u8,
