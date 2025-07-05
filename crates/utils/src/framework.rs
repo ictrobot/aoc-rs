@@ -179,23 +179,23 @@ macro_rules! examples {
         )?
     };
 
-    (@item {input: $str:literal, part1: $p1:literal, part2: $p2:expr $(,)?}) => {
+    (@item {input: $str:literal, part1: $p1:expr, part2: $p2:expr $(,)?}) => {
         ($str, Some($p1), Some($p2))
     };
-    (@item {input: $str:literal, part1: $p1:literal $(,)?}) => {
+    (@item {input: $str:literal, part1: $p1:expr $(,)?}) => {
         ($str, Some($p1), None)
     };
     (@item {input: $str:literal, part2: $p2:expr $(,)?}) => {
         ($str, None, Some($p2))
     };
-    (@item {file: $file:literal, part1: $p1:literal, part2: $p2:expr $(,)?}) => {
+    (@item {file: $file:literal, part1: $p1:expr, part2: $p2:expr $(,)?}) => {
         (
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)).trim_ascii_end(),
             Some($p1),
             Some($p2),
         )
     };
-    (@item {file: $file:literal, part1: $p1:literal $(,)?}) => {
+    (@item {file: $file:literal, part1: $p1:expr $(,)?}) => {
         (
             include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)).trim_ascii_end(),
             Some($p1),
