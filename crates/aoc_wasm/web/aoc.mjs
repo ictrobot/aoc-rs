@@ -36,8 +36,10 @@ export class Aoc {
     #instance;
     /** @type {WebAssembly.Memory} */
     #memory;
-    /** @type {Worker[]} */
+    /** @type {Worker[]|undefined} */
     #workers;
+    /** @type {number|undefined} */
+    #workerCount;
 
     /**
      * @param {WebAssembly.Module} module
@@ -101,38 +103,33 @@ export class Aoc {
 
     /**
      * @param {WebAssembly.Module} module
-     * @param {WebAssembly.Instance} [instance]
+     * @param {{instance?: WebAssembly.Instance, workerCount?: number}} [options]
      */
-    constructor(module, instance) {
+    constructor(module, options) {
+        options ??= {};
         const imports = WebAssembly.Module.imports(module);
         if (imports.length === 0) {
             this.#multithreaded = false;
             this.#module = module;
-            this.#instance = instance ?? new WebAssembly.Instance(module);
-            this.#memory = this.#exports.memory;
+            this.#instance = options.instance;
+            if (this.#instance) this.#memory = this.#exports.memory;
+            if (options.workerCount !== undefined) throw new Error("workerCount can only be provided for multithreaded modules");
         } else if (imports.length === 1 && imports[0].module === "env" && imports[0].name === "memory" && imports[0].kind === "memory") {
             this.#multithreaded = true;
             this.#module = module;
-            if (instance) throw new Error("Instance cannot be provided for multithreaded modules");
-            this.newInstance();
+            this.#workers = [];
+            this.#workerCount = options.workerCount ?? navigator.hardwareConcurrency;
+            if (options.instance) throw new Error("instance cannot be provided for multithreaded modules");
         } else {
             throw new Error("Unsupported module");
         }
     }
 
-    /** @param {number} [numWorkers] */
-    newInstance(numWorkers) {
-        if (this.#multithreaded) {
-            if (this.#workers?.length > 0) {
-                // Stop existing workers
-                for (const worker of this.#workers) {
-                    worker.terminate();
-                }
-                numWorkers ??= this.#workers.length;
-                this.#workers = [];
-            }
-            numWorkers ??= navigator.hardwareConcurrency;
+    newInstance() {
+        this.stopInstance();
 
+        if (this.#multithreaded) {
+            console.debug("creating multithreaded instance");
             this.#memory = new WebAssembly.Memory({initial: 96, maximum: 2048, shared: true});
             this.#instance = new WebAssembly.Instance(this.#module, {env: {memory: this.#memory}});
 
@@ -151,19 +148,43 @@ export class Aoc {
             //
             // Allocate all the stacks at once to avoid memory growing as workers start, which seems to cause problems.
             const stacks = [];
-            for (let i = 0; i < numWorkers; i++) {
+            for (let i = 0; i < this.#workerCount; i++) {
                 stacks.push(this.#exports.allocate_stack(stackSize + tlsSize, align));
             }
 
             this.#workers = [];
-            for (let i = 0; i < numWorkers; i++) {
+            for (let i = 0; i < this.#workerCount; i++) {
                 const worker = new Worker("./worker.mjs", {type: "module"});
                 worker.postMessage(["thread", this.#module, this.#memory, stacks[i] + stackSize]);
                 this.#workers.push(worker);
             }
         } else {
+            console.debug("creating single-threaded instance");
             this.#instance = new WebAssembly.Instance(this.#module);
+            this.#memory = this.#exports.memory;
         }
+    }
+
+    ensureInstance() {
+        if (this.#instance === undefined) {
+            this.newInstance();
+        }
+    }
+
+    stopInstance() {
+        if (this.#multithreaded && this.#workers !== undefined) {
+            for (const worker of this.#workers) {
+                try {
+                    worker.terminate();
+                } catch (e) {
+                    console.warn(e);
+                }
+            }
+            this.#workers = [];
+        }
+
+        this.#instance = undefined;
+        this.#memory = undefined;
     }
 
     /**
@@ -176,6 +197,8 @@ export class Aoc {
      * @return {{success: true, part1: string, part2: string} | {success: false, error: string, stack?: string, panic_location?: string}}
      */
     run(year, day, input, isExample = false, part1 = true, part2 = true) {
+        this.ensureInstance();
+
         let success;
         try {
             this.#write(input);
@@ -191,7 +214,7 @@ export class Aoc {
                 console.warn(e2);
             }
 
-            this.newInstance()
+            this.stopInstance();
 
             if (panic_payload.length > 0) {
                 return {

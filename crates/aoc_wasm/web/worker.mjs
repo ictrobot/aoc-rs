@@ -7,6 +7,7 @@ onmessage = (e) => {
     switch (e.data.shift()) {
         case "init":
             instance = new Aoc(...e.data);
+            instance.ensureInstance();
             break;
         case "run":
             console.time("solution");
@@ -14,6 +15,7 @@ onmessage = (e) => {
             console.timeEnd("solution");
             postMessage(result);
             console.log(result);
+            instance.ensureInstance();
             break;
         case "thread":
             const [module, memory, ptr] = e.data;

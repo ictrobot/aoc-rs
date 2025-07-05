@@ -1,7 +1,7 @@
 import {Aoc} from "./aoc.mjs";
 
 const COMMIT = "${GIT_COMMIT}";
-console.log("Commit", COMMIT);
+console.log("commit", COMMIT);
 
 const MODULE_PATHS = [
     "./aoc-simd128.wasm",
@@ -15,11 +15,11 @@ let module;
 for (const path of MODULE_PATHS) {
     try {
         module = await WebAssembly.compileStreaming(fetch(path));
-        console.log("Using " + path);
+        console.log("using " + path);
         break;
     } catch (err) {
         if (err instanceof WebAssembly.CompileError) {
-            console.warn("Compiling " + path + " failed: " + err);
+            console.warn("compiling " + path + " failed: " + err);
         } else {
             throw err;
         }
@@ -291,7 +291,7 @@ inputTextarea.addEventListener("drop", (e) => {
 
     const file = e.dataTransfer.files[0];
     if (file !== undefined) {
-        console.log("Loading input from file: ", file);
+        console.log("loading input from file: ", file);
 
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -305,14 +305,14 @@ inputTextarea.addEventListener("drop", (e) => {
 
     const text = e.dataTransfer.getData("text/plain");
     if (text !== undefined) {
-        console.log("Loading input from drag text");
+        console.log("loading input from drag text");
         inputTextarea.value = text;
         saveInput();
 
         return;
     }
 
-    console.warn("No supported drag data");
+    console.warn("no supported drag data");
 });
 inputTextarea.addEventListener("change", saveInput);
 inputTextarea.addEventListener("input", saveInput);
