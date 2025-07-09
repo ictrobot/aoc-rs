@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use std::ops::ControlFlow;
-use utils::point::Point2D;
+use utils::geometry::Vec2;
 use utils::prelude::*;
 
 /// Finding when the path through a grid is blocked.
@@ -34,7 +34,7 @@ impl Day18 {
         let mut fallen = 0;
         for item in parser::number_range(0..=max_coord)
             .then(parser::number_range(0..=max_coord).with_prefix(b','))
-            .map(Point2D::from)
+            .map(Vec2::from)
             .with_consumed()
             .with_suffix(parser::eol())
             .parse_iterator(input)

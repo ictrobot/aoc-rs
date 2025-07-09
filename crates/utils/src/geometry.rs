@@ -1,10 +1,10 @@
-//! 2D & 3D point implementations.
+//! 2D & 3D vector implementations.
 
 use crate::number::{Integer, Number, Signed, UnsignedInteger};
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
 
-macro_rules! point_impl {
+macro_rules! vec_impl {
     ($n:literal, $tuple:tt =>
         $(#[$m:meta])* $v:vis struct $s:ident{$($i:tt => $f:ident),+}
     ) => {
@@ -42,7 +42,7 @@ macro_rules! point_impl {
                 T::Unsigned::ZERO $(+ self.$f.abs_diff(rhs.$f))+
             }
 
-            /// Add the provided signed point, wrapping on overflow.
+            /// Add the provided signed vector, wrapping on overflow.
             ///
             /// Useful for adding a signed direction onto an unsigned position.
             #[inline]
@@ -145,12 +145,13 @@ macro_rules! point_impl {
     };
 }
 
-point_impl! {2, (T, T) =>
-    /// Struct representing a 2D point or vector.
-    pub struct Point2D{0 => x, 1 => y}
+vec_impl! {2, (T, T) =>
+    /// Struct representing a 2D vector or point.
+    #[doc(alias("Vector", "Vector2", "Point", "Point2", "Point2D"))]
+    pub struct Vec2{0 => x, 1 => y}
 }
 
-impl<T: Signed> Point2D<T> {
+impl<T: Signed> Vec2<T> {
     pub const UP: Self = Self {
         x: T::ZERO,
         y: T::ONE,
@@ -189,7 +190,8 @@ impl<T: Signed> Point2D<T> {
     }
 }
 
-point_impl! {3, (T, T, T) =>
-    /// Struct representing a 3D point or vector.
-    pub struct Point3D{0 => x, 1 => y, 2 => z}
+vec_impl! {3, (T, T, T) =>
+    /// Struct representing a 3D vector or point.
+    #[doc(alias("Vector3", "Point3", "Point3D"))]
+    pub struct Vec3{0 => x, 1 => y, 2 => z}
 }

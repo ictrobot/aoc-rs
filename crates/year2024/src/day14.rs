@@ -1,5 +1,5 @@
+use utils::geometry::Vec2;
 use utils::number::chinese_remainder;
-use utils::point::Point2D;
 use utils::prelude::*;
 
 /// Finding when robots arrange themselves into a picture.
@@ -10,8 +10,8 @@ pub struct Day14 {
 
 #[derive(Copy, Clone, Debug)]
 struct Robot {
-    position: Point2D<i32>,
-    velocity: Point2D<i32>,
+    position: Vec2<i32>,
+    velocity: Vec2<i32>,
 }
 
 const WIDTH: i32 = 101;
@@ -26,8 +26,8 @@ impl Day14 {
                 .then(parser::i32().with_prefix(" v="))
                 .then(parser::i32().with_prefix(","))
                 .map(|(px, py, vx, vy)| Robot {
-                    position: Point2D::new(px, py),
-                    velocity: Point2D::new(vx, vy),
+                    position: Vec2::new(px, py),
+                    velocity: Vec2::new(vx, vy),
                 })
                 .parse_lines(input)?,
         })

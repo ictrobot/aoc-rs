@@ -1,4 +1,4 @@
-use utils::point::Point2D;
+use utils::geometry::Vec2;
 use utils::prelude::*;
 
 /// Following a path.
@@ -11,7 +11,7 @@ pub struct Day19 {
 impl Day19 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let lines = input.lines().collect::<Vec<_>>();
-        let lookup = |p: Point2D<usize>| {
+        let lookup = |p: Vec2<usize>| {
             if p.y < lines.len() && p.x < lines[p.y].len() {
                 Some(lines[p.y].as_bytes()[p.x])
             } else {
@@ -22,8 +22,8 @@ impl Day19 {
         let Some(start_col) = lines.first().and_then(|l| l.find('|')) else {
             return Err(InputError::new(input, 0, "expected '|' on the first line"));
         };
-        let mut pos = Point2D::new(start_col, 0);
-        let mut dir = Point2D::new(0, 1);
+        let mut pos = Vec2::new(start_col, 0);
+        let mut dir = Vec2::new(0, 1);
 
         let mut letters = String::new();
         let mut steps = 1;

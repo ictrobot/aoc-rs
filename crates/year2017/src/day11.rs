@@ -1,4 +1,4 @@
-use utils::point::Point2D;
+use utils::geometry::Vec2;
 use utils::prelude::*;
 
 /// Calculating distances in a hexagonal grid.
@@ -15,17 +15,17 @@ pub struct Day11 {
 impl Day11 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let steps = parser::literal_map!(
-            "ne" => Point2D::new(1, -1),
-            "nw" => Point2D::new(-1, 0),
-            "se" => Point2D::new(1, 0),
-            "sw" => Point2D::new(-1, 1),
-            "n" => Point2D::new(0, -1),
-            "s" => Point2D::new(0, 1),
+            "ne" => Vec2::new(1, -1),
+            "nw" => Vec2::new(-1, 0),
+            "se" => Vec2::new(1, 0),
+            "sw" => Vec2::new(-1, 1),
+            "n" => Vec2::new(0, -1),
+            "s" => Vec2::new(0, 1),
         )
         .with_suffix(b','.or(parser::eof()))
         .parse_iterator(input);
 
-        let mut pos = Point2D::new(0, 0);
+        let mut pos = Vec2::new(0, 0);
         let mut max = 0;
         for step in steps {
             pos += step?;
@@ -38,7 +38,7 @@ impl Day11 {
         })
     }
 
-    fn hex_dist_to_origin(p: Point2D<i32>) -> u32 {
+    fn hex_dist_to_origin(p: Vec2<i32>) -> u32 {
         (p.x.unsigned_abs() + (p.x + p.y).unsigned_abs() + p.y.unsigned_abs()) / 2
     }
 

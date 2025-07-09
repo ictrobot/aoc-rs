@@ -1,4 +1,4 @@
-use utils::point::Point2D;
+use utils::geometry::Vec2;
 use utils::prelude::*;
 
 /// Counting recursive keypad presses.
@@ -166,14 +166,14 @@ impl DirectionalKeypad {
         }
     }
 
-    const fn coords(self) -> Point2D<u32> {
+    const fn coords(self) -> Vec2<u32> {
         use DirectionalKeypad::*;
         match self {
-            Up => Point2D::new(1, 0),
-            Activate => Point2D::new(2, 0),
-            Left => Point2D::new(0, 1),
-            Down => Point2D::new(1, 1),
-            Right => Point2D::new(2, 1),
+            Up => Vec2::new(1, 0),
+            Activate => Vec2::new(2, 0),
+            Left => Vec2::new(0, 1),
+            Down => Vec2::new(1, 1),
+            Right => Vec2::new(2, 1),
         }
     }
 
@@ -214,20 +214,20 @@ impl NumericKeypad {
         }
     }
 
-    const fn coords(self) -> Point2D<u32> {
+    const fn coords(self) -> Vec2<u32> {
         use NumericKeypad::*;
         match self {
-            Key7 => Point2D::new(0, 0),
-            Key8 => Point2D::new(1, 0),
-            Key9 => Point2D::new(2, 0),
-            Key4 => Point2D::new(0, 1),
-            Key5 => Point2D::new(1, 1),
-            Key6 => Point2D::new(2, 1),
-            Key1 => Point2D::new(0, 2),
-            Key2 => Point2D::new(1, 2),
-            Key3 => Point2D::new(2, 2),
-            Key0 => Point2D::new(1, 3),
-            Activate => Point2D::new(2, 3),
+            Key7 => Vec2::new(0, 0),
+            Key8 => Vec2::new(1, 0),
+            Key9 => Vec2::new(2, 0),
+            Key4 => Vec2::new(0, 1),
+            Key5 => Vec2::new(1, 1),
+            Key6 => Vec2::new(2, 1),
+            Key1 => Vec2::new(0, 2),
+            Key2 => Vec2::new(1, 2),
+            Key3 => Vec2::new(2, 2),
+            Key0 => Vec2::new(1, 3),
+            Activate => Vec2::new(2, 3),
         }
     }
 

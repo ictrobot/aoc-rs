@@ -5,6 +5,7 @@ pub mod array;
 pub mod bit;
 pub mod date;
 mod framework;
+pub mod geometry;
 pub mod graph;
 pub mod grid;
 pub mod input;
@@ -14,7 +15,6 @@ pub mod multithreading;
 pub mod multiversion;
 pub mod number;
 pub mod parser;
-pub mod point;
 pub mod simd;
 #[cfg(target_family = "wasm")]
 pub mod wasm;

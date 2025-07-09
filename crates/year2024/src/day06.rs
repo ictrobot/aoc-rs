@@ -1,5 +1,5 @@
+use utils::geometry::Vec2;
 use utils::grid;
-use utils::point::Point2D;
 use utils::prelude::*;
 
 /// Finding obstructions to cause infinite loops.
@@ -8,10 +8,10 @@ pub struct Day06 {
     pub rows: usize,
     pub cols: usize,
     pub grid: Vec<u8>,
-    pub start: Point2D<usize>,
+    pub start: Vec2<usize>,
 }
 
-const DIRECTIONS: [Point2D<isize>; 4] = [Point2D::DOWN, Point2D::RIGHT, Point2D::UP, Point2D::LEFT];
+const DIRECTIONS: [Vec2<isize>; 4] = [Vec2::DOWN, Vec2::RIGHT, Vec2::UP, Vec2::LEFT];
 
 impl Day06 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
@@ -21,7 +21,7 @@ impl Day06 {
         })?;
 
         let start_index = grid.iter().position(|&c| c == b'^').unwrap();
-        let start = Point2D::new(start_index % cols, start_index / cols);
+        let start = Vec2::new(start_index % cols, start_index / cols);
         grid[start_index] = b'.';
 
         Ok(Self {
@@ -90,8 +90,8 @@ impl Day06 {
     // This also avoids allocating/zeroing/copying a new visited vec
     fn check_cycle(
         &self,
-        obstruction: Point2D<usize>,
-        pos: Point2D<usize>,
+        obstruction: Vec2<usize>,
+        pos: Vec2<usize>,
         dir: usize,
         visited: &[u8],
         cache: &mut [[isize; 4]],

@@ -1,4 +1,4 @@
-use utils::point::Point2D;
+use utils::geometry::Vec2;
 use utils::prelude::*;
 
 /// Recognizing text formed by converging points.
@@ -10,15 +10,15 @@ pub struct Day10 {
 
 impl Day10 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let point = parser::i32()
+        let vec2 = parser::i32()
             .with_prefix(parser::take_while(|&x| x == b' '))
             .repeat_n(b',')
-            .map(Point2D::from);
+            .map(Vec2::from);
 
-        let mut points = point
+        let mut points = vec2
             .with_prefix("position=<")
             .with_suffix("> velocity=<")
-            .then(point)
+            .then(vec2)
             .with_suffix(">")
             .repeat(parser::eol(), 2)
             .parse_complete(input)?;

@@ -1,10 +1,10 @@
-use utils::point::Point2D;
+use utils::geometry::Vec2;
 use utils::prelude::*;
 
 /// Measuring regions using Manhattan distance.
 #[derive(Clone, Debug)]
 pub struct Day06 {
-    locations: Vec<Point2D<usize>>,
+    locations: Vec<Vec2<usize>>,
     region_threshold: u32,
 }
 
@@ -14,7 +14,7 @@ impl Day06 {
     pub fn new(input: &str, input_type: InputType) -> Result<Self, InputError> {
         let locations = parser::number_range(0..=999)
             .repeat_n(", ")
-            .map(Point2D::from)
+            .map(Vec2::from)
             .parse_lines(input)?;
         if locations.is_empty() {
             return Err(InputError::new(input, 0, "expected at least one location"));
@@ -29,9 +29,9 @@ impl Day06 {
             return Err(InputError::new(input, 0, "coordinate range too large"));
         }
 
-        let min_point = Point2D::new(min, min);
+        let min_loc = Vec2::new(min, min);
         Ok(Self {
-            locations: locations.into_iter().map(|p| p - min_point).collect(),
+            locations: locations.into_iter().map(|p| p - min_loc).collect(),
             region_threshold: match input_type {
                 InputType::Example => 32,
                 InputType::Real => 10000,

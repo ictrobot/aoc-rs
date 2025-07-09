@@ -1,11 +1,11 @@
 use std::collections::HashSet;
-use utils::point::Point2D;
+use utils::geometry::Vec2;
 use utils::prelude::*;
 
 /// Counting unique points.
 #[derive(Clone, Debug)]
 pub struct Day03 {
-    directions: Vec<Point2D<i32>>,
+    directions: Vec<Vec2<i32>>,
 }
 
 impl Day03 {
@@ -14,19 +14,19 @@ impl Day03 {
             directions: input
                 .chars()
                 .map(|c| match c {
-                    '^' => Ok(Point2D::UP),
-                    '>' => Ok(Point2D::RIGHT),
-                    'v' => Ok(Point2D::DOWN),
-                    '<' => Ok(Point2D::LEFT),
+                    '^' => Ok(Vec2::UP),
+                    '>' => Ok(Vec2::RIGHT),
+                    'v' => Ok(Vec2::DOWN),
+                    '<' => Ok(Vec2::LEFT),
                     _ => Err(InputError::new(input, c, "expected one of ^>v<")),
                 })
-                .collect::<Result<Vec<Point2D<i32>>, InputError>>()?,
+                .collect::<Result<Vec<Vec2<i32>>, InputError>>()?,
         })
     }
 
     #[must_use]
     pub fn part1(&self) -> usize {
-        let mut pos = Point2D::default();
+        let mut pos = Vec2::default();
 
         self.count_positions(|dir| {
             pos += dir;
@@ -45,9 +45,9 @@ impl Day03 {
         })
     }
 
-    fn count_positions(&self, mut f: impl FnMut(Point2D<i32>) -> Point2D<i32>) -> usize {
+    fn count_positions(&self, mut f: impl FnMut(Vec2<i32>) -> Vec2<i32>) -> usize {
         let mut set = HashSet::with_capacity(self.directions.len());
-        set.insert(Point2D::default());
+        set.insert(Vec2::default());
 
         for &dir in &self.directions {
             set.insert(f(dir));

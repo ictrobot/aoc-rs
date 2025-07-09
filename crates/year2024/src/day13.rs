@@ -1,4 +1,4 @@
-use utils::point::Point2D;
+use utils::geometry::Vec2;
 use utils::prelude::*;
 
 /// Solving linear systems.
@@ -9,9 +9,9 @@ pub struct Day13 {
 
 #[derive(Copy, Clone, Debug)]
 struct Machine {
-    button_a: Point2D<u64>,
-    button_b: Point2D<u64>,
-    prize: Point2D<u64>,
+    button_a: Vec2<u64>,
+    button_b: Vec2<u64>,
+    prize: Vec2<u64>,
 }
 
 impl Day13 {
@@ -27,9 +27,9 @@ impl Day13 {
                 .with_suffix(parser::eol())
                 .map_res(|(ax, ay, bx, by, px, py)| {
                     let m = Machine {
-                        button_a: Point2D::new(ax, ay),
-                        button_b: Point2D::new(bx, by),
-                        prize: Point2D::new(px, py),
+                        button_a: Vec2::new(ax, ay),
+                        button_b: Vec2::new(bx, by),
+                        prize: Vec2::new(px, py),
                     };
 
                     // Check the two buttons are linear independent, meaning there is only one
@@ -57,7 +57,7 @@ impl Day13 {
         self.machines
             .iter()
             .map(|&(mut m)| {
-                m.prize += Point2D::new(10000000000000, 10000000000000);
+                m.prize += Vec2::new(10000000000000, 10000000000000);
                 m.required_tokens().unwrap_or(0)
             })
             .sum()
@@ -92,7 +92,7 @@ impl Machine {
     }
 }
 
-fn det(a: Point2D<u64>, b: Point2D<u64>) -> i64 {
+fn det(a: Vec2<u64>, b: Vec2<u64>) -> i64 {
     (a.x as i64) * (b.y as i64) - (b.x as i64) * (a.y as i64)
 }
 

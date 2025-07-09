@@ -1,4 +1,4 @@
-use utils::point::Point2D;
+use utils::geometry::Vec2;
 use utils::prelude::*;
 
 /// Solving a sliding puzzle.
@@ -11,7 +11,7 @@ pub struct Day22 {
     max_x: u32,
     max_y: u32,
     wall_x: u32,
-    empty: Point2D<u32>,
+    empty: Vec2<u32>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -100,7 +100,7 @@ impl Day22 {
         Ok(Self {
             max_x,
             max_y,
-            empty: Point2D::new(empty.x, empty.y),
+            empty: Vec2::new(empty.x, empty.y),
             wall_x,
         })
     }

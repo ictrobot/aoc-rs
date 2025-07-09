@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use utils::point::Point3D;
+use utils::geometry::Vec3;
 use utils::prelude::*;
 
 /// Simulating colliding particles.
@@ -10,14 +10,14 @@ pub struct Day20 {
 
 #[derive(Clone, Debug)]
 struct Particle {
-    position: Point3D<i64>,
-    velocity: Point3D<i64>,
-    acceleration: Point3D<i64>,
+    position: Vec3<i64>,
+    velocity: Vec3<i64>,
+    acceleration: Vec3<i64>,
 }
 
 impl Day20 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let vector = parser::i64().repeat_n(b',').map(Point3D::from);
+        let vector = parser::i64().repeat_n(b',').map(Vec3::from);
 
         Ok(Self {
             particles: vector
@@ -79,7 +79,7 @@ impl Day20 {
 }
 
 impl Particle {
-    fn position_at_time(&self, time: u64) -> Point3D<i64> {
+    fn position_at_time(&self, time: u64) -> Vec3<i64> {
         self.position
             + (self.velocity * time as i64)
             + (self.acceleration * (time as i64 * time as i64 / 2))
