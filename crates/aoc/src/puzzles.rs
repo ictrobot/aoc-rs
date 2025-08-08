@@ -20,13 +20,13 @@ macro_rules! matcher {
             $d:literal => $day:ident,
         )*}
     )*) => {
-        /// Constant containing each puzzle solution.
+        /// Slice containing all supported puzzle solutions.
         ///
         /// Each puzzle is represented by a tuple of [`Year`], [`Day`] and [`PuzzleFn`], which takes
         /// a input string and returns the part 1 and 2 solutions as strings, or an [`InputError`].
         ///
         /// Generated from [`all_puzzles!`].
-        pub const PUZZLES: &[(Year, Day, PuzzleFn)] = &[$($(
+        pub static PUZZLES: &[(Year, Day, PuzzleFn)] = &[$($(
             (crate::$year::$day::YEAR, crate::$year::$day::DAY, |input: &str| {
                 let input = strip_final_newline(input);
                 let solution = crate::$year::$day::new(input, InputType::Real)?;
