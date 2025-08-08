@@ -266,7 +266,7 @@ document.addEventListener("click", async (e) => {
     const example = puzzles.get(YEAR)?.get(DAY)?.[input];
 
     await run(
-        (example?.input ?? document.querySelector("#aoc-input textarea").value).trimEnd(),
+        example?.input ?? document.querySelector("#aoc-input textarea").value,
         example !== undefined,
         part
     );

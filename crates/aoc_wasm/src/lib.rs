@@ -4,7 +4,7 @@ mod custom_sections;
 mod multithreading;
 
 use aoc::all_puzzles;
-use aoc::utils::input::InputType;
+use aoc::utils::input::{InputType, strip_final_newline};
 use std::error::Error;
 use std::ffi::CStr;
 use std::sync::Once;
@@ -77,7 +77,7 @@ fn run(
     run_part1: bool,
     run_part2: bool,
 ) -> Result<(String, String), Box<dyn Error>> {
-    let input = CStr::from_bytes_until_nul(&INPUT)?.to_str()?;
+    let input = strip_final_newline(CStr::from_bytes_until_nul(&INPUT)?.to_str()?);
     let input_type = if is_example {
         InputType::Example
     } else {
