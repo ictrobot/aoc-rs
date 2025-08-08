@@ -29,8 +29,6 @@ pub fn main(args: &Arguments) -> Result<(), Box<dyn Error>> {
         .read_to_string(&mut input)
         .map_err(|err| format!("failed to read input: {err}"))?;
 
-    input = input.trim_ascii_end().replace("\r\n", "\n");
-
     let (part1, part2) = f(&input).map_err(|err| format!("{year:#} {day:#}: {err}"))?;
     assert!(!part1.contains('\n'));
     assert!(!part2.contains('\n'));

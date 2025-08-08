@@ -1,5 +1,6 @@
 use crate::all_puzzles;
 use utils::date::{Day, Year};
+use utils::input::strip_final_newline;
 
 // These imports are unused if none of the year features are enabled
 #[allow(clippy::allow_attributes, unused_imports)]
@@ -27,6 +28,7 @@ macro_rules! matcher {
         /// Generated from [`all_puzzles!`].
         pub const PUZZLES: &[(Year, Day, PuzzleFn)] = &[$($(
             (crate::$year::$day::YEAR, crate::$year::$day::DAY, |input: &str| {
+                let input = strip_final_newline(input);
                 let solution = crate::$year::$day::new(input, InputType::Real)?;
                 let part1 = solution.part1();
                 let part2 = solution.part2();

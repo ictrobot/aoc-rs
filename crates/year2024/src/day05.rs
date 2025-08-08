@@ -19,11 +19,11 @@ type Rules = [[bool; RANGE]; RANGE];
 impl Day05 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let num = parser::number_range(MIN_NUM as u32..=MAX_NUM as u32);
-        let rules_parser = num.then(num.with_prefix(b'|')).repeat(b'\n', 1);
-        let updates_parser = num.repeat(b',', 1).repeat(b'\n', 1);
+        let rules_parser = num.then(num.with_prefix(b'|')).repeat(parser::eol(), 1);
+        let updates_parser = num.repeat(b',', 1).repeat(parser::eol(), 1);
 
         let (rule_list, updates) = rules_parser
-            .then(updates_parser.with_prefix(b'\n'))
+            .then(updates_parser.with_prefix(parser::eol()))
             .parse_complete(input)?;
 
         let mut before: Rules = [[false; RANGE]; RANGE];

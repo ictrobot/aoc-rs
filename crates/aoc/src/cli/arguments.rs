@@ -239,10 +239,7 @@ Options:
         let mut path = self.inputs_dir();
         path.push(format!("year{year:#}"));
         path.push(format!("day{day:#}.txt"));
-        match fs::read_to_string(&path) {
-            Ok(s) => Ok(s.trim_ascii_end().replace("\r\n", "\n")),
-            Err(err) => Err((path.to_string_lossy().to_string(), err)),
-        }
+        fs::read_to_string(&path).map_err(|err| (path.to_string_lossy().to_string(), err))
     }
 }
 

@@ -11,7 +11,8 @@ impl Day22 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let (boss_health, boss_damage) = parser::u32()
             .with_prefix("Hit Points: ")
-            .then(parser::u32().with_prefix("\nDamage: "))
+            .with_suffix(parser::eol())
+            .then(parser::u32().with_prefix("Damage: "))
             .parse_complete(input)?;
 
         Ok(Self {

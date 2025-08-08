@@ -8,7 +8,10 @@ pub struct Day06 {
 
 impl Day06 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        if let Some(b) = input.bytes().find(|b| !matches!(b, b'a'..=b'z' | b'\n')) {
+        if let Some(b) = input
+            .bytes()
+            .find(|b| !matches!(b, b'a'..=b'z' | b'\r' | b'\n'))
+        {
             return Err(InputError::new(
                 input,
                 b as char,
@@ -16,19 +19,21 @@ impl Day06 {
             ));
         }
 
-        let Some(length) = input.find('\n') else {
-            return Err(InputError::new(input, 0, "expected at least one newline"));
-        };
-
-        let mut frequencies = vec![[0; 26]; length];
+        let mut frequencies = Vec::new();
         for l in input.lines() {
-            if l.len() != length {
+            if frequencies.is_empty() {
+                frequencies = vec![[0; 26]; l.len()];
+            } else if l.len() != frequencies.len() {
                 return Err(InputError::new(input, 0, "expected line length to match"));
             }
 
             for (i, c) in l.bytes().enumerate() {
                 frequencies[i][(c - b'a') as usize] += 1;
             }
+        }
+
+        if frequencies.is_empty() {
+            return Err(InputError::new(input, 0, "expected at least one line"));
         }
 
         Ok(Self { frequencies })

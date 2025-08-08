@@ -10,7 +10,7 @@ impl<'a> Day02<'a> {
     pub fn new(input: &'a str, _: InputType) -> Result<Self, InputError> {
         if let Some(b) = input
             .bytes()
-            .find(|b| !matches!(b, b'U' | b'D' | b'L' | b'R' | b'\n'))
+            .find(|b| !matches!(b, b'U' | b'D' | b'L' | b'R' | b'\r' | b'\n'))
         {
             return Err(InputError::new(
                 input,

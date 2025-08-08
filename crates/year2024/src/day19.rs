@@ -37,7 +37,10 @@ impl Day19 {
             b'g' => Stripe::G,
         );
 
-        let Some((patterns, designs)) = input.split_once("\n\n") else {
+        let Some((patterns, designs)) = input
+            .split_once("\n\n")
+            .or_else(|| input.split_once("\r\n\r\n"))
+        else {
             return Err(InputError::new(input, 0, "expected patterns and designs"));
         };
 

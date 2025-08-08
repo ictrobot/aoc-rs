@@ -44,7 +44,10 @@ const _: () = {
 
 impl Day19 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let Some((rules_str, molecule)) = input.rsplit_once("\n\n") else {
+        let Some((rules_str, molecule)) = input
+            .rsplit_once("\n\n")
+            .or_else(|| input.rsplit_once("\r\n\r\n"))
+        else {
             return Err(InputError::new(
                 input,
                 0,

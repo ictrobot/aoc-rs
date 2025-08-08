@@ -12,7 +12,10 @@ pub struct Day15<'a> {
 
 impl<'a> Day15<'a> {
     pub fn new(input: &'a str, _: InputType) -> Result<Self, InputError> {
-        let Some((grid, moves)) = input.split_once("\n\n") else {
+        let Some((grid, moves)) = input
+            .split_once("\n\n")
+            .or_else(|| input.split_once("\r\n\r\n"))
+        else {
             return Err(InputError::new(input, 0, "expected grid and moves"));
         };
 
@@ -37,7 +40,7 @@ impl<'a> Day15<'a> {
         }
         grid[robot] = b'.';
 
-        if let Some(idx) = moves.find(|b| !matches!(b, '^' | 'v' | '<' | '>' | '\n')) {
+        if let Some(idx) = moves.find(|b| !matches!(b, '^' | 'v' | '<' | '>' | '\r' | '\n')) {
             return Err(InputError::new(
                 input,
                 &moves[idx..],

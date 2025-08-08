@@ -137,12 +137,23 @@ macro_rules! examples {
             #[test]
             fn new() {
                 for (i, example) in $day::EXAMPLES.iter().enumerate() {
-                    let solution = $day::new(example.0, InputType::Example);
+                    let (lf, crlf) = $crate::input::to_lf_crlf(example.0);
+
+                    let solution = $day::new(&lf, InputType::Example);
                     assert!(
                         solution.is_ok(),
                         "new failed for example {i}: {:?}",
                         example.0,
                     );
+
+                    if let Some(crlf) = crlf {
+                        let solution = $day::new(&crlf, InputType::Example);
+                        assert!(
+                            solution.is_ok(),
+                            "new failed for example {i} with CRLF line endings: {:?}",
+                            example.0,
+                        );
+                    }
                 }
             }
 
@@ -150,13 +161,25 @@ macro_rules! examples {
             fn part1() {
                 for (i, example) in $day::EXAMPLES.iter().enumerate() {
                     if let Some(expected) = example.1 {
-                        let solution = $day::new(example.0, InputType::Example).unwrap();
+                        let (lf, crlf) = $crate::input::to_lf_crlf(example.0);
+
+                        let solution = $day::new(&lf, InputType::Example).unwrap();
                         assert_eq!(
                             solution.part1(),
                             expected,
                             "part 1 incorrect for example {i}: {:?}",
                             example.0,
                         );
+
+                        if let Some(crlf) = crlf {
+                            let solution = $day::new(&crlf, InputType::Example).unwrap();
+                            assert_eq!(
+                                solution.part1(),
+                                expected,
+                                "part 1 incorrect for example {i} with CRLF line endings: {:?}",
+                                example.0,
+                            );
+                        }
                     }
                 }
             }
@@ -165,13 +188,25 @@ macro_rules! examples {
             fn part2() {
                 for (i, example) in $day::EXAMPLES.iter().enumerate() {
                     if let Some(expected) = example.2 {
-                        let solution = $day::new(example.0, InputType::Example).unwrap();
+                        let (lf, crlf) = $crate::input::to_lf_crlf(example.0);
+
+                        let solution = $day::new(&lf, InputType::Example).unwrap();
                         assert_eq!(
                             solution.part2(),
                             expected,
                             "part 2 incorrect for example {i}: {:?}",
                             example.0,
                         );
+
+                        if let Some(crlf) = crlf {
+                            let solution = $day::new(&crlf, InputType::Example).unwrap();
+                            assert_eq!(
+                                solution.part2(),
+                                expected,
+                                "part 2 incorrect for example {i} with CRLF line endings: {:?}",
+                                example.0,
+                            );
+                        }
                     }
                 }
             }
@@ -190,21 +225,21 @@ macro_rules! examples {
     };
     (@item {file: $file:literal, part1: $p1:expr, part2: $p2:expr $(,)?}) => {
         (
-            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)).trim_ascii_end(),
+            $crate::input::strip_final_newline(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file))),
             Some($p1),
             Some($p2),
         )
     };
     (@item {file: $file:literal, part1: $p1:expr $(,)?}) => {
         (
-            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)).trim_ascii_end(),
+            $crate::input::strip_final_newline(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file))),
             Some($p1),
             None,
         )
     };
     (@item {file: $file:literal, part2: $p2:expr $(,)?}) => {
         (
-            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file)).trim_ascii_end(),
+            $crate::input::strip_final_newline(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/", $file))),
             None,
             Some($p2),
         )

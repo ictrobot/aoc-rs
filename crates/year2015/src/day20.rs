@@ -9,10 +9,7 @@ pub struct Day20 {
 
 impl Day20 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let threshold: u32 = input
-            .trim_ascii_end()
-            .parse()
-            .map_err(|_| InputError::new(input, 0, "expected u32"))?;
+        let threshold = parser::u32().parse_complete(input)?;
 
         // (threshold/10) + 1 should always find the solutions, but attempt to find the solutions
         // with smaller & significantly faster upper bounds first

@@ -1,5 +1,6 @@
 //! Items relating to puzzle input.
 
+use std::borrow::Cow;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
@@ -239,4 +240,75 @@ impl<T, E: Into<Box<dyn Error>>, I: ToIndex> MapWithInputExt for Result<T, (E, I
     fn map_with_input(self, input: &str) -> Self::Output {
         self.map_err(|err| err.map_with_input(input))
     }
+}
+
+/// Strips the final newline from a borrowed string.
+///
+/// Equivalent to `s.strip_suffix("\r\n").or_else(|| s.strip_suffix("\n")).unwrap_or(s)`.
+///
+/// # Examples
+/// ```
+/// # use utils::input::strip_final_newline;
+/// assert_eq!(
+///     strip_final_newline("abc\ndef\n"),
+///     "abc\ndef"
+/// );
+/// assert_eq!(
+///     strip_final_newline("12\r\n34\r\n\r\n"),
+///     "12\r\n34\r\n"
+/// );
+/// ```
+#[must_use]
+#[inline]
+pub const fn strip_final_newline(s: &str) -> &str {
+    match s.as_bytes() {
+        // Use split_at as string slicing isn't const
+        [.., b'\r', b'\n'] => s.split_at(s.len() - 2).0,
+        [.., b'\n'] => s.split_at(s.len() - 1).0,
+        _ => s,
+    }
+}
+
+/// Convert a string to both LF and CRLF if it contains a newline.
+///
+/// # Examples
+/// ```
+/// # use utils::input::to_lf_crlf;
+/// assert_eq!(
+///     to_lf_crlf("abc\ndef\nghi"),
+///     ("abc\ndef\nghi".into(), Some("abc\r\ndef\r\nghi".into()))
+/// );
+/// assert_eq!(
+///     to_lf_crlf("12\r\n34\r\n56\r\n78"),
+///     ("12\n34\n56\n78".into(), Some("12\r\n34\r\n56\r\n78".into()))
+/// );
+/// assert_eq!(
+///     to_lf_crlf("abc123"),
+///     ("abc123".into(), None),
+/// );
+/// ```
+#[must_use]
+pub fn to_lf_crlf(s: &str) -> (Cow<'_, str>, Option<Cow<'_, str>>) {
+    let (mut has_lf, mut has_crlf) = (false, false);
+    let mut prev = 0;
+    for b in s.bytes() {
+        has_lf |= b == b'\n' && prev != b'\r';
+        has_crlf |= b == b'\n' && prev == b'\r';
+        prev = b;
+    }
+    if !has_lf && !has_crlf {
+        return (Cow::Borrowed(s), None);
+    }
+
+    let lf = if has_crlf {
+        Cow::Owned(s.replace("\r\n", "\n"))
+    } else {
+        Cow::Borrowed(s)
+    };
+    let crlf = if has_lf {
+        Cow::Owned(lf.replace('\n', "\r\n"))
+    } else {
+        Cow::Borrowed(s)
+    };
+    (lf, Some(crlf))
 }

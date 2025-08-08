@@ -23,7 +23,10 @@ enum Wire {
 
 impl Day24 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let Some((initial_str, gate_str)) = input.split_once("\n\n") else {
+        let Some((initial_str, gate_str)) = input
+            .split_once("\n\n")
+            .or_else(|| input.split_once("\r\n\r\n"))
+        else {
             return Err(InputError::new(input, 0, "expected inputs and gates"));
         };
 
