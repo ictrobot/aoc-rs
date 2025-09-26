@@ -11,7 +11,6 @@ pub struct Day16 {
     end: usize,
     offsets: [isize; 4],
     cheapest: Vec<[u32; 4]>,
-    turned: Vec<u8>,
     part1: u32,
 }
 
@@ -50,7 +49,6 @@ impl Day16 {
 
         let mut instance = Self {
             cheapest: vec![[u32::MAX; 4]; grid.len()],
-            turned: vec![0; grid.len()],
             part1: 0,
             grid,
             start,
@@ -69,6 +67,7 @@ impl Day16 {
     fn dijkstra(&mut self) -> bool {
         let mut queue = BinaryHeap::new();
         queue.push(Reverse((0, self.start, 0)));
+        self.cheapest[self.start][0] = 0;
 
         while let Some(Reverse((score, index, dir))) = queue.pop() {
             if score > self.cheapest[index][dir] {
@@ -92,9 +91,6 @@ impl Day16 {
                 // Only turn if it will be the cheapest way to reach the turned state
                 if score + 1000 < self.cheapest[index][next_dir] {
                     self.cheapest[index][next_dir] = score + 1000;
-                    // Store that this state was reached by turning, not by traversing tiles heading
-                    // in the next direction to allow reversing the path correctly
-                    self.turned[index] |= 1 << next_dir;
 
                     if let Some(branch) = self.find_branch(
                         index.wrapping_add_signed(self.offsets[next_dir]),
@@ -120,7 +116,17 @@ impl Day16 {
             return None;
         }
 
-        while index != self.end {
+        loop {
+            if score < self.cheapest[index][dir] {
+                self.cheapest[index][dir] = score;
+            } else if score > self.cheapest[index][dir] {
+                return None;
+            }
+
+            if index == self.end {
+                break;
+            }
+
             let mut count = 0;
             let mut next_index = 0;
             let mut next_dir = 0;
@@ -144,18 +150,7 @@ impl Day16 {
             dir = next_dir;
         }
 
-        if score <= self.cheapest[index][dir] {
-            self.cheapest[index][dir] = score;
-            self.turned[index] &= !(1 << dir);
-            Some((score, index, dir))
-        } else if score == self.cheapest[index][dir] {
-            // Ensure the new state isn't marked as only reachable by turning, which would prevent
-            // this segment from being included when reversing
-            self.turned[index] &= !(1 << dir);
-            None
-        } else {
-            None
-        }
+        Some((score, index, dir))
     }
 
     #[must_use]
@@ -165,23 +160,23 @@ impl Day16 {
 
     #[must_use]
     pub fn part2(&self) -> u32 {
-        let mut on_best = vec![false; self.grid.len()];
-        on_best[self.start] = true;
-        on_best[self.end] = true;
+        let mut on_best = vec![0u8; self.grid.len()];
+        on_best[self.start] = 0b1111;
+        on_best[self.end] = 0b1111;
         for d in 0..4 {
             if self.cheapest[self.end][d] == self.part1 {
                 let prev = self.end.wrapping_add_signed(-self.offsets[d]);
                 self.reverse(prev, d, self.part1 - 1, &mut on_best);
             }
         }
-        on_best.iter().filter(|&&b| b).count() as u32
+        on_best.iter().filter(|&&b| b != 0).count() as u32
     }
 
-    fn reverse(&self, index: usize, dir: usize, score: u32, on_best: &mut [bool]) {
-        if on_best[index] {
+    fn reverse(&self, index: usize, dir: usize, score: u32, on_best: &mut [u8]) {
+        if on_best[index] & (1 << dir) != 0 {
             return;
         }
-        on_best[index] = true;
+        on_best[index] |= 1 << dir;
 
         let mut count = 0;
         let mut next_index = 0;
@@ -206,15 +201,11 @@ impl Day16 {
                 ((dir + 1) % 4, score - 1000),
                 ((dir + 3) % 4, score - 1000),
             ] {
+                let next_index = index.wrapping_add_signed(-self.offsets[next_dir]);
                 if self.cheapest[index][next_dir] == next_score
-                    && self.turned[index] & (1 << next_dir) == 0
+                    && self.cheapest[next_index][next_dir] == next_score - 1
                 {
-                    self.reverse(
-                        index.wrapping_add_signed(-self.offsets[next_dir]),
-                        next_dir,
-                        next_score - 1,
-                        on_best,
-                    );
+                    self.reverse(next_index, next_dir, next_score - 1, on_best);
                 }
             }
         }
