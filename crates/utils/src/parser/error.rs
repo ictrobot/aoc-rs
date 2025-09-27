@@ -62,14 +62,9 @@ impl Display for ParseError {
         match *self {
             ParseError::Expected(x) => write!(f, "expected {x}"),
             ParseError::ExpectedLiteral(x) => write!(f, "expected {x:?}"),
-            ParseError::ExpectedByte(x) => write!(f, "expected {:?}", x.escape_ascii().to_string()),
+            ParseError::ExpectedByte(x) => write!(f, "expected {:?}", x as char),
             ParseError::ExpectedByteRange(min, max) => {
-                write!(
-                    f,
-                    "expected {:?}-{:?}",
-                    min.escape_ascii().to_string(),
-                    max.escape_ascii().to_string(),
-                )
+                write!(f, "expected {:?}-{:?}", min as char, max as char)
             }
             ParseError::ExpectedOneOf(set) => write!(f, "expected one of {set}"),
             ParseError::ExpectedEof() => write!(f, "expected end of input"),
