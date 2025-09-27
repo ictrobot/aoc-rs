@@ -11,28 +11,7 @@ pub struct Day20 {
 
 impl Day20 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let (_, cols, mut grid) = grid::from_str_padded(input, 20, b'#', |b| match b {
-            b'.' | b'#' | b'S' | b'E' => Some(b),
-            _ => None,
-        })?;
-
-        let mut starts = grid.iter().enumerate().filter(|&(_, &b)| b == b'S');
-        let Some((start, _)) = starts.next() else {
-            return Err(InputError::new(input, 0, "expected one start"));
-        };
-        if starts.count() > 0 {
-            return Err(InputError::new(input, 0, "expected one start"));
-        }
-        grid[start] = b'.';
-
-        let mut ends = grid.iter().enumerate().filter(|&(_, &b)| b == b'E');
-        let Some((end, _)) = ends.next() else {
-            return Err(InputError::new(input, 0, "expected one end"));
-        };
-        if ends.count() > 0 {
-            return Err(InputError::new(input, 0, "expected one end"));
-        }
-        grid[end] = b'.';
+        let ((_, cols, grid), start, end) = grid::parse_maze(input, 20)?;
 
         let mut distances = vec![u16::MAX; grid.len()];
         distances[start] = 0;

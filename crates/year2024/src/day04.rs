@@ -10,10 +10,14 @@ pub struct Day04 {
 
 impl Day04 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let (_, cols, grid) = grid::from_str_padded(input, 3, b'\0', |c| match c {
-            b'X' | b'M' | b'A' | b'S' => Some(c),
-            _ => None,
-        })?;
+        let (_, cols, grid) = grid::parse(
+            input,
+            3,
+            0,
+            |b| b,
+            |b| matches!(b, b'X' | b'M' | b'A' | b'S'),
+            |_, _| Err("expected 'X', 'M', 'A', 'S'"),
+        )?;
         Ok(Self { cols, grid })
     }
 

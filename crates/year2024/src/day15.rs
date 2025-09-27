@@ -19,10 +19,29 @@ impl<'a> Day15<'a> {
             return Err(InputError::new(input, 0, "expected grid and moves"));
         };
 
-        let (rows, cols, mut grid) = grid::from_str(grid, |b| match b {
-            b'.' | b'#' | b'O' | b'@' => Some(b),
-            _ => None,
-        })?;
+        let mut robot = None;
+        let (rows, cols, grid) = grid::parse(
+            grid,
+            0,
+            0,
+            |b| b,
+            |b| matches!(b, b'.' | b'#' | b'O'),
+            |i, b| {
+                if b == b'@' && robot.is_none() {
+                    robot = Some(i);
+                    Ok(b'.')
+                } else if b == b'@' {
+                    Err("expected only one robot")
+                } else {
+                    Err("expected '.', '#', 'O' or '@'")
+                }
+            },
+        )?;
+
+        let Some(robot) = robot else {
+            return Err(InputError::new(input, 0, "expected a robot"));
+        };
+
         if !grid::is_enclosed(rows, cols, &grid, |&b| b == b'#') {
             return Err(InputError::new(
                 input,
@@ -30,15 +49,6 @@ impl<'a> Day15<'a> {
                 "expected grid to be enclosed by walls",
             ));
         }
-
-        let mut robots = grid.iter().enumerate().filter(|&(_, &b)| b == b'@');
-        let Some((robot, _)) = robots.next() else {
-            return Err(InputError::new(input, 0, "expected a robot"));
-        };
-        if robots.count() > 0 {
-            return Err(InputError::new(input, 0, "expected only one robot"));
-        }
-        grid[robot] = b'.';
 
         if let Some(idx) = moves.find(|b| !matches!(b, '^' | 'v' | '<' | '>' | '\r' | '\n')) {
             return Err(InputError::new(

@@ -1,4 +1,4 @@
-use utils::grid::from_str_padded;
+use utils::grid;
 use utils::prelude::*;
 
 /// Game of Life.
@@ -12,11 +12,14 @@ pub struct Day18 {
 
 impl Day18 {
     pub fn new(input: &str, input_type: InputType) -> Result<Self, InputError> {
-        let (rows, columns, data) = from_str_padded(input, 1, false, |c| match c {
-            b'#' => Some(true),
-            b'.' => Some(false),
-            _ => None,
-        })?;
+        let (rows, columns, data) = grid::parse(
+            input,
+            1,
+            false,
+            |b| b == b'#',
+            |b| b == b'#' || b == b'.',
+            |_, _| Err("expected '.' or '#'"),
+        )?;
 
         if rows != columns {
             return Err(InputError::new(input, input, "expected square grid"));

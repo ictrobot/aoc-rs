@@ -10,8 +10,14 @@ pub struct Day12 {
 
 impl Day12 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let (_, cols, grid) =
-            grid::from_str_padded(input, 1, 0, |b| b.is_ascii_uppercase().then_some(b))?;
+        let (_, cols, grid) = grid::parse(
+            input,
+            1,
+            0,
+            |b| b,
+            |b| b.is_ascii_uppercase(),
+            |_, _| Err("expected uppercase letter"),
+        )?;
         let offsets = [-(cols as isize), 1, cols as isize, -1];
 
         let mut visited = vec![false; grid.len()];

@@ -16,36 +16,7 @@ pub struct Day16 {
 
 impl Day16 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let (rows, cols, mut grid) = grid::from_str(input, |b| match b {
-            b'.' | b'#' | b'S' | b'E' => Some(b),
-            _ => None,
-        })?;
-
-        if !grid::is_enclosed(rows, cols, &grid, |&b| b == b'#') {
-            return Err(InputError::new(
-                input,
-                0,
-                "expected grid to be enclosed by walls",
-            ));
-        }
-
-        let mut starts = grid.iter().enumerate().filter(|&(_, &b)| b == b'S');
-        let Some((start, _)) = starts.next() else {
-            return Err(InputError::new(input, 0, "expected one start"));
-        };
-        if starts.count() > 0 {
-            return Err(InputError::new(input, 0, "expected one start"));
-        }
-        grid[start] = b'.';
-
-        let mut ends = grid.iter().enumerate().filter(|&(_, &b)| b == b'E');
-        let Some((end, _)) = ends.next() else {
-            return Err(InputError::new(input, 0, "expected one end"));
-        };
-        if ends.count() > 0 {
-            return Err(InputError::new(input, 0, "expected one end"));
-        }
-        grid[end] = b'.';
+        let ((_, cols, grid), start, end) = grid::parse_maze(input, 1)?;
 
         let mut instance = Self {
             cheapest: vec![[u32::MAX; 4]; grid.len()],

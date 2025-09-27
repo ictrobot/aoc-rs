@@ -34,11 +34,20 @@ const PADDING: usize = 250;
 
 impl Day22 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let (rows, cols, grid) = grid::from_str(input, |b| match b {
-            b'.' => Some(State::Clean),
-            b'#' => Some(State::Infected),
-            _ => None,
-        })?;
+        let (rows, cols, grid) = grid::parse(
+            input,
+            0,
+            State::Weakened,
+            |b| {
+                if b == b'.' {
+                    State::Clean
+                } else {
+                    State::Infected
+                }
+            },
+            |b| matches!(b, b'.' | b'#'),
+            |_, _| Err("expected '.', '#'"),
+        )?;
         if rows != cols || rows.is_multiple_of(2) {
             return Err(InputError::new(input, 0, "expected odd size square grid"));
         }

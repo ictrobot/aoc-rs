@@ -15,36 +15,42 @@ pub struct Day24 {
 
 impl Day24 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let mut digit_counts = [0usize; 10];
+        let mut digit_positions = [None; 10];
 
         // The actual input has a solid border of walls, but pad the input with an extra layer of
         // wall anyway to ensure index manipulation doesn't need checks for any input
-        let (_, cols, grid) = grid::from_str_padded(input, 1, b'#', |b| match b {
-            b'.' | b'#' => Some(b),
-            b'0'..=b'9' => {
-                digit_counts[(b - b'0') as usize] += 1;
-                Some(b)
-            }
-            _ => None,
-        })?;
+        let (_, cols, grid) = grid::parse(
+            input,
+            1,
+            b'#',
+            |b| b,
+            |b| matches!(b, b'.' | b'#'),
+            |i, b| match b {
+                b'0'..=b'9' => {
+                    let d = (b - b'0') as usize;
+                    if digit_positions[d].is_some() {
+                        return Err(format!("duplicate {d} digit"));
+                    }
+                    digit_positions[d] = Some(i);
+                    Ok(b)
+                }
+                _ => Err("expected '.', '#' or digit".to_string()),
+            },
+        )?;
 
-        let digits = digit_counts.iter().position(|&c| c == 0).unwrap_or(10);
-        if let Some(d) = digit_counts.iter().position(|&c| c > 1) {
-            return Err(InputError::new(input, 0, format!("duplicate {d} digit")));
-        }
+        let digits = digit_positions
+            .iter()
+            .position(Option::is_none)
+            .unwrap_or(10);
         if digits == 0 {
             return Err(InputError::new(input, 0, "expected 0 in grid"));
         }
-        if digit_counts[digits..].iter().any(|&c| c > 0) {
+        if digit_positions[digits..].iter().any(Option::is_some) {
             return Err(InputError::new(input, 0, format!("missing {digits} digit")));
         }
 
-        let mut digit_positions = vec![0; digits];
-        for (i, &c) in grid.iter().enumerate() {
-            if c.is_ascii_digit() {
-                digit_positions[(c - b'0') as usize] = i;
-            }
-        }
+        let digit_positions = digit_positions.map(Option::unwrap_or_default);
+        let digit_positions = &digit_positions[..digits];
 
         // Find the distance from each point of interest to every other one
         let mut dist_matrix = vec![u32::MAX; digits * digits];

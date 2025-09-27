@@ -6,15 +6,19 @@ use utils::prelude::*;
 pub struct Day10 {
     rows: usize,
     cols: usize,
-    grid: Vec<u32>,
+    grid: Vec<u8>,
 }
 
 impl Day10 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let (rows, cols, grid) = grid::from_str(input, |b| match b {
-            b'0'..=b'9' => Some((b - b'0') as u32),
-            _ => None,
-        })?;
+        let (rows, cols, grid) = grid::parse(
+            input,
+            0,
+            0,
+            |b| b.wrapping_sub(b'0'),
+            |b| b.is_ascii_digit(),
+            |_, _| Err("expected digit"),
+        )?;
 
         Ok(Self { rows, cols, grid })
     }
@@ -38,7 +42,7 @@ impl Day10 {
         &self,
         r: usize,
         c: usize,
-        next: u32,
+        next: u8,
         visited: &mut [usize],
         visited_key: usize,
     ) -> u32 {
@@ -85,7 +89,7 @@ impl Day10 {
         total
     }
 
-    fn count_trails(&self, r: usize, c: usize, next: u32, cache: &mut [Option<u32>]) -> u32 {
+    fn count_trails(&self, r: usize, c: usize, next: u8, cache: &mut [Option<u32>]) -> u32 {
         let index = r * self.cols + c;
         if let Some(cache) = cache[index] {
             return cache;

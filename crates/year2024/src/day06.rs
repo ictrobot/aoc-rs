@@ -15,20 +15,34 @@ const DIRECTIONS: [Vec2<isize>; 4] = [Vec2::DOWN, Vec2::RIGHT, Vec2::UP, Vec2::L
 
 impl Day06 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let (rows, cols, mut grid) = grid::from_str(input, |b| match b {
-            b'.' | b'#' | b'^' => Some(b),
-            _ => None,
-        })?;
+        let mut start = None;
+        let (rows, cols, grid) = grid::parse(
+            input,
+            0,
+            0,
+            |b| b,
+            |b| matches!(b, b'.' | b'#'),
+            |i, b| {
+                if b == b'^' && start.is_none() {
+                    start = Some(i);
+                    Ok(b'.')
+                } else if b == b'^' {
+                    Err("expected only one '^'")
+                } else {
+                    Err("expected '.', '#' or '^'")
+                }
+            },
+        )?;
 
-        let start_index = grid.iter().position(|&c| c == b'^').unwrap();
-        let start = Vec2::new(start_index % cols, start_index / cols);
-        grid[start_index] = b'.';
+        let Some(start) = start else {
+            return Err(InputError::new(input, 0, "expected one '^'"));
+        };
 
         Ok(Self {
             rows,
             cols,
             grid,
-            start,
+            start: Vec2::new(start % cols, start / cols),
         })
     }
 
