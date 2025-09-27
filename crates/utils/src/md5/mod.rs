@@ -270,7 +270,7 @@ multiversion! {
     }
 }
 
-const BENCH_STRING: [[u8; 32]; 128] = {
+static BENCH_STRING: [[u8; 32]; 128] = {
     let mut out = [*b"abcdefghijklmnopqrstuvwxyz012345"; 128];
     let mut i = 0;
 
