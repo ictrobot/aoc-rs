@@ -1,3 +1,4 @@
+use crate::ascii::AsciiSet;
 use crate::parser::then::Then2;
 use crate::parser::{ParseResult, Parser};
 use std::error::Error;
@@ -15,6 +16,8 @@ pub enum ParseError {
     ExpectedByte(u8),
     /// Expected $min - $max.
     ExpectedByteRange(u8, u8),
+    /// Expected one of $set.
+    ExpectedOneOf(AsciiSet),
     /// Expected at least $n matches.
     ExpectedMatches(usize),
     /// Expected $n items or less.
@@ -68,6 +71,7 @@ impl Display for ParseError {
                     max.escape_ascii().to_string(),
                 )
             }
+            ParseError::ExpectedOneOf(set) => write!(f, "expected one of {set}"),
             ParseError::ExpectedEof() => write!(f, "expected end of input"),
             ParseError::ExpectedMatches(x) => write!(f, "expected at least {x} match"),
             ParseError::ExpectedLessItems(x) => write!(f, "expected {x} items or less"),

@@ -24,37 +24,6 @@ macro_rules! parser_byte_map {
     (
         $($($l:literal)|+ => $e:expr),+$(,)?
     ) => {{
-        // `let _: u8 = $l` ensures $l is used in the repetition and also ensures all the literals
-        // are byte literals
-        const COUNT: usize = 0usize $($(+ {let _: u8 = $l; 1usize})+)+;
-        const LEN: usize = 14 + 5 * COUNT;
-        const {
-            assert!(COUNT >= 2, "at least two literals must be provided");
-        }
-
-        // Once concat_bytes! is stabilized this error message can be created in the macro similar
-        // to parser_literal_map!
-        const ERROR: [u8; LEN] = {
-            let mut result = [0u8; LEN];
-            let (prefix, vals) = result.split_at_mut(16);
-            prefix.copy_from_slice(b"expected one of ");
-
-            let mut i = 0;
-            let literals = [$($($l),+),+];
-            while i < COUNT {
-                vals[i * 5] = b'\'';
-                vals[i * 5 + 1] = literals[i];
-                vals[i * 5 + 2] = b'\'';
-                if i + 1 < COUNT {
-                    vals[i * 5 + 3] = b',';
-                    vals[i * 5 + 4] = b' ';
-                }
-                i += 1;
-            }
-
-            result
-        };
-
         $crate::parser::byte_lut(&const {
             // Don't use a const item for the lut to avoid naming the value type
             let mut lut = [None; 256];
@@ -63,11 +32,14 @@ macro_rules! parser_byte_map {
                 lut[$l as usize] = Some($e);
             )+)+
             lut
-        }, const {
-            match str::from_utf8(&ERROR) {
-                Ok(v) => v,
-                Err(_) => panic!("one or more of the provided literals is invalid unicode"),
-            }
+        }, {
+            let mut set = 0u128;
+            $($(
+                let v: u8 = $l;
+                assert!(v < 128, "invalid ASCII");
+                set |= 1u128 << v;
+            )+)+
+            $crate::parser::ParseError::ExpectedOneOf($crate::ascii::AsciiSet::new(set))
         })
     }};
 }

@@ -42,7 +42,7 @@ pub fn byte() -> Byte {
 #[derive(Copy, Clone)]
 pub struct ByteLut<'a, O> {
     lut: &'a [Option<O>; 256],
-    error: &'static str,
+    error: ParseError,
 }
 impl<'i, O: Copy> Parser<'i> for ByteLut<'_, O> {
     type Output = O;
@@ -55,7 +55,7 @@ impl<'i, O: Copy> Parser<'i> for ByteLut<'_, O> {
         {
             Ok((output, remaining))
         } else {
-            Err((ParseError::Custom(self.error), input))
+            Err((self.error, input))
         }
     }
 }
@@ -78,14 +78,14 @@ impl<'i, O: Copy> Parser<'i> for ByteLut<'_, O> {
 ///     x
 /// };
 ///
-/// let parser = parser::byte_lut(&LOOKUP, "expected '#' or '.'");
+/// let parser = parser::byte_lut(&LOOKUP, ParseError::Custom("expected '#' or '.'"));
 /// assert_eq!(parser.parse(b"#..##"), Ok((true, &b"..##"[..])));
 /// assert_eq!(parser.parse(b"..##"), Ok((false, &b".##"[..])));
 /// assert_eq!(parser.parse(b"abc"), Err((ParseError::Custom("expected '#' or '.'"), &b"abc"[..])));
 /// ```
 #[inline]
 #[must_use]
-pub fn byte_lut<'a, T: Copy>(lut: &'a [Option<T>; 256], error: &'static str) -> ByteLut<'a, T> {
+pub fn byte_lut<T: Copy>(lut: &'_ [Option<T>; 256], error: ParseError) -> ByteLut<'_, T> {
     ByteLut { lut, error }
 }
 

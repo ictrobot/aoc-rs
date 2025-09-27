@@ -2,6 +2,7 @@
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 
 pub mod array;
+pub mod ascii;
 pub mod bit;
 pub mod date;
 mod framework;
