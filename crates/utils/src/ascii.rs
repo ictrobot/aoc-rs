@@ -43,22 +43,67 @@ impl AsciiSet {
     pub const fn len(&self) -> usize {
         self.set.count_ones() as usize
     }
+
+    #[expect(clippy::cast_possible_truncation)]
+    fn write_next_entry(&mut self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let b = self.set.trailing_zeros() as u8;
+        let run = (self.set >> b).trailing_ones() as u8;
+
+        let class_end = match b {
+            b'0'..=b'9' => b'9',
+            b'a'..=b'z' => b'z',
+            b'A'..=b'Z' => b'Z',
+            _ => b,
+        };
+        let range_len = (class_end - b + 1).min(run);
+
+        if range_len >= 4 {
+            self.set &= !(((1 << range_len) - 1) << b);
+            write!(f, "{:?}-{:?}", b as char, (b + range_len - 1) as char)
+        } else {
+            self.set &= !(1 << b);
+            write!(f, "{:?}", b as char)
+        }
+    }
 }
 
+/// Format the set for display, combining digit and letter ranges.
+///
+/// # Examples
+///
+/// ```
+/// # use utils::ascii::AsciiSet;
+/// assert_eq!(
+///     AsciiSet::from(|b: u8| b.is_ascii_lowercase()).to_string(),
+///     "'a'-'z'"
+/// );
+/// assert_eq!(
+///     AsciiSet::from(|b: u8| b.is_ascii_alphabetic()).to_string(),
+///     "'A'-'Z', 'a'-'z'"
+/// );
+/// assert_eq!(
+///     AsciiSet::from(|b: u8| matches!(b, b'.' | b'#' | b'0'..=b'9')).to_string(),
+///     "'#', '.', '0'-'9'"
+/// );
+/// assert_eq!(
+///     AsciiSet::from(|b: u8| b.is_ascii_graphic()).to_string(),
+///     concat!(
+///         "'!', '\"', '#', '$', '%', '&', '\\'', '(', ')', '*', '+', ',', '-', '.', '/', ",
+///         "'0'-'9', ':', ';', '<', '=', '>', '?', '@', 'A'-'Z', '[', '\\\\', ']', '^', '_', ",
+///         "'`', 'a'-'z', '{', '|', '}', '~'"
+///     )
+/// );
+/// ```
 impl Display for AsciiSet {
-    #[expect(clippy::cast_possible_truncation)]
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if self.set == 0 {
+        if self.is_empty() {
             return write!(f, "(empty)");
         }
-
-        for (i, (c, _)) in BitIterator::ones(self.set).enumerate() {
-            let c = c as u8 as char;
-            if i == 0 {
-                write!(f, "{c:?}")?;
-            } else {
-                write!(f, ", {c:?}")?;
-            }
+        let mut set = *self;
+        set.write_next_entry(f)?;
+        while !set.is_empty() {
+            write!(f, ", ")?;
+            set.write_next_entry(f)?;
         }
         Ok(())
     }
