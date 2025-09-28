@@ -2,7 +2,7 @@
 
 use crate::number::{Integer, Number, Signed, UnsignedInteger};
 use std::fmt::Debug;
-use std::ops::{Add, AddAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Mul, MulAssign, Not, Sub, SubAssign};
 
 macro_rules! vec_impl {
     ($n:literal, $tuple:tt =>
@@ -168,6 +168,7 @@ impl<T: Signed> Vec2<T> {
         x: T::MINUS_ONE,
         y: T::ZERO,
     };
+    pub const DIRECTIONS: [Self; 4] = [Self::UP, Self::RIGHT, Self::DOWN, Self::LEFT];
 
     /// Rotate this vector 90 degrees clockwise.
     #[inline]
@@ -194,4 +195,98 @@ vec_impl! {3, (T, T, T) =>
     /// Struct representing a 3D vector or point.
     #[doc(alias("Vector3", "Point3", "Point3D"))]
     pub struct Vec3{0 => x, 1 => y, 2 => z}
+}
+
+/// Enum representing the four cardinal directions.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum Direction {
+    #[default]
+    Up = 0,
+    Right,
+    Down,
+    Left,
+}
+
+impl Direction {
+    /// Rotate this direction by the provided turn.
+    #[inline]
+    #[must_use]
+    pub fn turn(self, turn: Turn) -> Self {
+        Self::from((self as u8).wrapping_add_signed(turn as i8))
+    }
+
+    /// Rotate this direction 90 degrees anticlockwise.
+    #[inline]
+    #[must_use]
+    pub fn turn_left(self) -> Self {
+        self.turn(Turn::Left)
+    }
+
+    /// Rotate this direction 90 degrees clockwise.
+    #[inline]
+    #[must_use]
+    pub fn turn_right(self) -> Self {
+        self.turn(Turn::Right)
+    }
+}
+
+impl From<u8> for Direction {
+    #[inline]
+    fn from(value: u8) -> Self {
+        match value % 4 {
+            0 => Direction::Up,
+            1 => Direction::Right,
+            2 => Direction::Down,
+            3 => Direction::Left,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Not for Direction {
+    type Output = Self;
+
+    #[inline]
+    fn not(self) -> Self::Output {
+        Self::from((self as u8).wrapping_add(2))
+    }
+}
+
+impl<T: Signed> From<Direction> for Vec2<T> {
+    #[inline]
+    fn from(value: Direction) -> Self {
+        Vec2::DIRECTIONS[value as usize]
+    }
+}
+
+impl<T: Signed> Add<Direction> for Vec2<T> {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Direction) -> Self::Output {
+        self + Vec2::from(rhs)
+    }
+}
+
+impl<T: Signed> Sub<Direction> for Vec2<T> {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Direction) -> Self::Output {
+        self - Vec2::from(rhs)
+    }
+}
+
+/// Enum representing possible turns.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+#[repr(i8)]
+pub enum Turn {
+    #[doc(alias("Anticlockwise"))]
+    Left = -1,
+    #[doc(alias("Straight"))]
+    #[default]
+    None = 0,
+    #[doc(alias("Clockwise"))]
+    Right = 1,
 }

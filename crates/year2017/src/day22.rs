@@ -1,3 +1,4 @@
+use utils::geometry::Direction;
 use utils::grid;
 use utils::prelude::*;
 
@@ -19,15 +20,6 @@ enum State {
     Weakened = 0,
     Infected = 1,
     Flagged = 2,
-}
-
-#[derive(Copy, Clone, Debug)]
-enum Direction {
-    // Discriminants must match the From implementation
-    Up = 0,
-    Right,
-    Down,
-    Left,
 }
 
 const PADDING: usize = 250;
@@ -83,7 +75,7 @@ impl Day22 {
             let state = grid[index];
             let next = next_state(state);
 
-            direction = Direction::from(state as usize + direction as usize);
+            direction = Direction::from(state as u8 + direction as u8);
             grid[index] = next;
             index = index.wrapping_add_signed(direction_offsets[direction as usize]);
 
@@ -102,19 +94,6 @@ impl From<usize> for State {
             0 => State::Weakened,
             1 => State::Infected,
             2 => State::Flagged,
-            _ => unreachable!(),
-        }
-    }
-}
-
-impl From<usize> for Direction {
-    #[inline]
-    fn from(value: usize) -> Self {
-        match value % 4 {
-            0 => Direction::Up,
-            1 => Direction::Right,
-            2 => Direction::Down,
-            3 => Direction::Left,
             _ => unreachable!(),
         }
     }
