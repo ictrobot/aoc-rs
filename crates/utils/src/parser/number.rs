@@ -113,6 +113,7 @@ impl<'i, I: Integer + Parseable> Parser<'i> for NumberRange<I> {
     type Output = I;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
+    #[inline]
     fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         let (v, remaining) = I::PARSER.parse(input)?;
         if v < self.min {
@@ -155,6 +156,7 @@ impl<'i> Parser<'i> for Digit {
     type Output = u8;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
+    #[inline]
     fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         if let Some(d @ b'0'..=b'9') = input.first() {
             Ok((d - b'0', &input[1..]))
