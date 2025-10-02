@@ -13,7 +13,7 @@ mod then;
 pub use base::*;
 pub use error::ParseError;
 pub use iterator::{ParserIterator, ParserMatchesIterator};
-pub use number::{i8, i16, i32, i64, i128, number_range, u8, u16, u32, u64, u128};
+pub use number::{digit, i8, i16, i32, i64, i128, number_range, u8, u16, u32, u64, u128};
 pub use one_of::one_of;
 pub use simple::{byte, byte_lut, byte_range, constant, eof, eol, noop, take_while, take_while1};
 

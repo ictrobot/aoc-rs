@@ -147,3 +147,35 @@ pub fn number_range<I: Integer + Parseable>(range: RangeInclusive<I>) -> NumberR
     assert!(min <= max);
     NumberRange { min, max }
 }
+
+#[derive(Copy, Clone)]
+pub struct Digit {}
+
+impl<'i> Parser<'i> for Digit {
+    type Output = u8;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
+
+    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+        if let Some(d @ b'0'..=b'9') = input.first() {
+            Ok((d - b'0', &input[1..]))
+        } else {
+            Err((ParseError::Expected("digit"), input))
+        }
+    }
+}
+
+/// Parser for single digits.
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{self, Parser};
+/// assert_eq!(
+///     parser::digit().parse(b"12345"),
+///     Ok((1u8, &b"2345"[..]))
+/// );
+/// ```
+#[inline]
+#[must_use]
+pub fn digit() -> Digit {
+    Digit {}
+}
