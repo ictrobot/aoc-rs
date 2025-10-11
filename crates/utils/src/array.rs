@@ -231,3 +231,9 @@ impl<T: Default + Copy, const N: usize> Default for ArrayVec<T, N> {
         Self::new()
     }
 }
+
+impl<T, const N: usize> From<[T; N]> for ArrayVec<T, N> {
+    fn from(data: [T; N]) -> Self {
+        ArrayVec { len: N, data }
+    }
+}

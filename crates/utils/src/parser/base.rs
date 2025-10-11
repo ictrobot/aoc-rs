@@ -228,8 +228,8 @@ pub trait Parser<'i>: Sized {
     /// ```
     /// # use utils::parser::{self, Parser};
     /// let parser = parser::u32()
-    ///     .repeat(",", 3);
-    /// assert_eq!(parser.parse(b"12,34,56,78"), Ok((vec![12, 34, 56, 78], &b""[..])));
+    ///     .repeat_arrayvec(",", 3);
+    /// assert_eq!(parser.parse(b"12,34,56,78"), Ok(([12, 34, 56, 78].into(), &b""[..])));
     /// assert!(parser.parse(b"12,34").is_err());
     /// ```
     #[inline]
