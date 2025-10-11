@@ -32,7 +32,7 @@ impl Day08 {
                 .with_suffix(" "),
             )
             .then(parser::i32())
-            .with_suffix(parser::eol())
+            .with_eol()
             .parse_iterator(input);
 
         let mut registers = HashMap::new();

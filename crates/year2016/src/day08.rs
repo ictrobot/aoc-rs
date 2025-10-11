@@ -33,7 +33,7 @@ impl Day08 {
 
         let mut grid = [[false; 50]; 6];
         for item in parser::one_of((rect, rotate_row, rotate_col))
-            .with_suffix(parser::eol())
+            .with_eol()
             .parse_iterator(input)
         {
             match item? {

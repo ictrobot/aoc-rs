@@ -41,17 +41,17 @@ impl Day25 {
         let rule = parser::byte_range(b'0'..=b'1')
             .map(|b| b == b'1')
             .with_prefix(parser::eol().then("    - Write the value "))
-            .with_suffix(".".then(parser::eol()))
+            .with_suffix(".".with_eol())
             .then(
                 Direction::PARSER
                     .with_prefix("    - Move one slot to the ")
-                    .with_suffix(".".then(parser::eol())),
+                    .with_suffix(".".with_eol()),
             )
             .then(
                 State::PARSER
                     .with_consumed()
                     .with_prefix("    - Continue with state ")
-                    .with_suffix(".".then(parser::eol())),
+                    .with_suffix(".".with_eol()),
             )
             .map(|(write_value, move_dir, (next_state, state_pos))| {
                 (
@@ -67,17 +67,17 @@ impl Day25 {
         let ((start, start_pos), steps, rules) = State::PARSER
             .with_consumed()
             .with_prefix("Begin in state ")
-            .with_suffix(".".then(parser::eol()))
+            .with_suffix(".".with_eol())
             .then(
                 parser::u32()
                     .with_prefix("Perform a diagnostic checksum after ")
-                    .with_suffix(" steps.".then(parser::eol()).then(parser::eol())),
+                    .with_suffix(" steps.".with_eol().with_eol()),
             )
             .then(
                 State::PARSER
                     .with_consumed()
                     .with_prefix("In state ")
-                    .with_suffix(":".then(parser::eol()))
+                    .with_suffix(":".with_eol())
                     .then(rule.with_prefix("  If the current value is 0:"))
                     .then(rule.with_prefix("  If the current value is 1:"))
                     .repeat(parser::eol(), 2),

@@ -34,6 +34,7 @@ impl<'i> Parser<'i> for Byte {
 ///     Ok((b'1', &b"23"[..]))
 /// );
 /// ```
+#[inline]
 #[must_use]
 pub fn byte() -> Byte {
     Byte()
@@ -155,6 +156,7 @@ impl<'i, V: Copy> Parser<'i> for Constant<V> {
 ///     Ok((1, &b"abc"[..]))
 /// );
 /// ```
+#[inline]
 #[must_use]
 pub fn constant<T: Copy>(v: T) -> Constant<T> {
     Constant(v)
@@ -170,6 +172,7 @@ pub fn constant<T: Copy>(v: T) -> Constant<T> {
 ///     Ok(((), &b"abc"[..]))
 /// );
 /// ```
+#[inline]
 #[must_use]
 pub fn noop() -> Constant<()> {
     const {
@@ -217,6 +220,7 @@ impl<'i> Parser<'i> for Eof {
 ///     vec![12, 34, 56],
 /// );
 /// ```
+#[inline]
 #[must_use]
 pub fn eof() -> Eof {
     Eof()
@@ -258,6 +262,7 @@ impl<'i> Parser<'i> for Eol {
 ///     Ok(((), &b""[..]))
 /// );
 /// ```
+#[inline]
 #[must_use]
 pub fn eol() -> Eol {
     Eol()
@@ -298,6 +303,7 @@ impl<'i, const N: usize> Parser<'i> for TakeWhile<N> {
 ///     Ok((&b""[..], &b"ABC"[..]))
 /// );
 /// ```
+#[inline]
 #[must_use]
 pub fn take_while(f: fn(&u8) -> bool) -> TakeWhile<0> {
     TakeWhile(f)
@@ -315,6 +321,7 @@ pub fn take_while(f: fn(&u8) -> bool) -> TakeWhile<0> {
 /// );
 /// assert!(parser.parse(b"ABC").is_err());
 /// ```
+#[inline]
 #[must_use]
 pub fn take_while1(f: fn(&u8) -> bool) -> TakeWhile<1> {
     TakeWhile(f)

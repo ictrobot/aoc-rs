@@ -44,7 +44,7 @@ impl Day24 {
             .with_suffix(": ")
             .then(parser::byte_range(b'0'..=b'1'))
             .with_consumed()
-            .with_suffix(parser::eol())
+            .with_eol()
             .parse_iterator(initial_str)
         {
             let ((wire, b), line) = item?;
@@ -85,7 +85,7 @@ impl Day24 {
             ))
             .then(wire.with_suffix(" -> "))
             .then(wire)
-            .with_suffix(parser::eol())
+            .with_eol()
             .parse_iterator(gate_str)
         {
             let (in1, gate, in2, out) = item?;

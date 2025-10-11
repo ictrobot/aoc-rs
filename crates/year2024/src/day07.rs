@@ -12,7 +12,7 @@ impl Day07 {
         let parser = parser::u64()
             .with_suffix(": ")
             .then(parser::number_range(0u64..=999).repeat_arrayvec::<12, _>(b' ', 2))
-            .with_suffix(parser::eol());
+            .with_eol();
 
         let (mut part1, mut part2) = (0, 0);
         for item in parser.parse_iterator(input) {

@@ -36,7 +36,7 @@ impl Day18 {
             .then(parser::number_range(0..=max_coord).with_prefix(b','))
             .map(Vec2::from)
             .with_consumed()
-            .with_suffix(parser::eol())
+            .with_eol()
             .parse_iterator(input)
         {
             let (pos, line) = item?;

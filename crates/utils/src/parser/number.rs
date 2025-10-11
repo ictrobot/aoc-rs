@@ -83,6 +83,7 @@ macro_rules! parser_for {
         }
 
         #[doc = concat!("Parser for [`prim@", stringify!($n), "`] values.")]
+        #[inline]
         #[must_use]
         pub fn $n() -> $p<std::primitive::$n> {
             $p(PhantomData)

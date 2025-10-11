@@ -45,7 +45,7 @@ impl<'a, P: Parser<'a>> ParserIterator<'a, P> {
     /// # use utils::input::InputError;
     /// # use utils::parser::{self, Parser};
     /// let mut iterator = parser::u32()
-    ///     .with_suffix(parser::eol())
+    ///     .with_eol()
     ///     .parse_iterator("12\n34\n56\n78");
     /// assert_eq!(iterator.next().unwrap().unwrap(), 12);
     /// assert_eq!(iterator.next().unwrap().unwrap(), 34);

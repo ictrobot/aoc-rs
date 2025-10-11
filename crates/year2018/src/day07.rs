@@ -20,7 +20,7 @@ impl Day07 {
             .with_prefix("Step ")
             .with_suffix(" must be finished before step ")
             .then(step.with_suffix(" can begin."))
-            .with_suffix(parser::eol())
+            .with_eol()
             .parse_iterator(input)
         {
             let (first, second) = item?;

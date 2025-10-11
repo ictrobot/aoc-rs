@@ -33,7 +33,7 @@ impl Day21 {
                 .then(Self::parse_square::<3>)
                 .map(|(a, b)| Rule::TwoToThree(a, b)),
         ))
-        .with_suffix(parser::eol())
+        .with_eol()
         .parse_iterator(input);
 
         let mut rules_2x2_to_3x3 = [0usize; 16];

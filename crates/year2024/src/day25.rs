@@ -16,7 +16,8 @@ impl Day25 {
             .repeat_n::<5, _>(parser::noop())
             .repeat_n::<7, _>(parser::eol())
             .with_consumed()
-            .with_suffix(parser::eol().then(parser::eol()))
+            .with_eol()
+            .with_eol()
             .parse_iterator(input)
         {
             let (grid, grid_str) = item?;

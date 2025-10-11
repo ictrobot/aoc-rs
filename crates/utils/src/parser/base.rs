@@ -14,6 +14,7 @@ pub type ParseResult<'i, T> = Result<(T, &'i [u8]), (ParseError, &'i [u8])>;
 /// Parser trait.
 ///
 /// Implementations should avoid allocating where possible.
+#[must_use]
 pub trait Parser<'i>: Sized {
     /// Type of the value produced by [`parse`](Self::parse) when successful.
     type Output;
@@ -54,6 +55,7 @@ pub trait Parser<'i>: Sized {
     ///     Ok(((123, -123), &b""[..]))
     /// );
     /// ```
+    #[inline]
     fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
         Then::then(self, next)
     }
@@ -81,6 +83,7 @@ pub trait Parser<'i>: Sized {
     ///     Ok((1000, &b""[..]))
     /// );
     /// ```
+    #[inline]
     fn or<T: Parser<'i, Output = Self::Output>>(self, alternative: T) -> Or<Self, T> {
         Or {
             first: self,
@@ -112,6 +115,7 @@ pub trait Parser<'i>: Sized {
     ///     Ok(((&b"123"[..], &[1, 2, 3][..]), &b""[..]))
     /// );
     /// ```
+    #[inline]
     fn map<O, F: Fn(Self::Output) -> O>(self, f: F) -> Map<Self, F> {
         Map {
             parser: self,
@@ -155,6 +159,7 @@ pub trait Parser<'i>: Sized {
     ///     Ok(((&b"123"[..], &[1, 2, 3][..]), &b""[..]))
     /// );
     /// ```
+    #[inline]
     fn map_res<O, F: Fn(Self::Output) -> Result<O, &'static str>>(
         self,
         f: F,
@@ -181,6 +186,7 @@ pub trait Parser<'i>: Sized {
     ///     Ok((None, &b"abc"[..]))
     /// );
     /// ```
+    #[inline]
     fn optional(self) -> Optional<Self> {
         Optional { parser: self }
     }
@@ -200,6 +206,7 @@ pub trait Parser<'i>: Sized {
     ///     Ok(([12, 34, 56], &b""[..]))
     /// );
     /// ```
+    #[inline]
     fn repeat_n<const N: usize, S: Parser<'i>>(self, separator: S) -> RepeatN<N, Self, S>
     where
         Self::Output: Copy + Default,
@@ -225,6 +232,7 @@ pub trait Parser<'i>: Sized {
     /// assert_eq!(parser.parse(b"12,34,56,78"), Ok((vec![12, 34, 56, 78], &b""[..])));
     /// assert!(parser.parse(b"12,34").is_err());
     /// ```
+    #[inline]
     fn repeat_arrayvec<const N: usize, S: Parser<'i>>(
         self,
         separator: S,
@@ -254,6 +262,7 @@ pub trait Parser<'i>: Sized {
     /// assert_eq!(parser.parse(b"12,34,56,78"), Ok((vec![12, 34, 56, 78], &b""[..])));
     /// assert!(parser.parse(b"12,34").is_err());
     /// ```
+    #[inline]
     fn repeat<S: Parser<'i>>(self, separator: S, min_elements: usize) -> RepeatVec<Self, S> {
         RepeatVec {
             parser: self,
@@ -275,6 +284,7 @@ pub trait Parser<'i>: Sized {
     ///     Ok(((12, &b"012"[..]), &b",345,678"[..]))
     /// );
     /// ```
+    #[inline]
     fn with_consumed(self) -> WithConsumed<Self> {
         WithConsumed { parser: self }
     }
@@ -293,6 +303,7 @@ pub trait Parser<'i>: Sized {
     ///     Ok((123, &b""[..]))
     /// );
     /// ```
+    #[inline]
     fn with_prefix<T: Parser<'i>>(self, prefix: T) -> WithPrefix<Self, T> {
         WithPrefix {
             parser: self,
@@ -314,10 +325,32 @@ pub trait Parser<'i>: Sized {
     ///     Ok((123, &b""[..]))
     /// );
     /// ```
+    #[inline]
     fn with_suffix<T: Parser<'i>>(self, suffix: T) -> WithSuffix<Self, T> {
         WithSuffix {
             parser: self,
             suffix,
+        }
+    }
+
+    /// Parse a end of line (or end of string) after this parser.
+    ///
+    /// Equivalent to [`parser.with_suffix`](Parser::with_suffix)`(`[`parser::eol()`](super::eol)`)`.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// assert_eq!(
+    ///     parser::u32().with_eol()
+    ///         .parse(b"123\nabc"),
+    ///     Ok((123, &b"abc"[..]))
+    /// );
+    /// ```
+    #[inline]
+    fn with_eol(self) -> WithSuffix<Self, Eol> {
+        WithSuffix {
+            parser: self,
+            suffix: Eol(),
         }
     }
 
@@ -337,6 +370,7 @@ pub trait Parser<'i>: Sized {
     ///     Err((ParseError::Custom("expected power level"), &b"abc"[..]))
     /// );
     /// ```
+    #[inline]
     fn error_msg(self, message: &'static str) -> WithErrorMsg<Self> {
         WithErrorMsg {
             parser: self,
@@ -352,6 +386,7 @@ pub trait Parser<'i>: Sized {
     /// assert_eq!(parser::u32().parse_complete("1234").unwrap(), 1234);
     /// assert!(parser::u32().parse_complete("1234abc").is_err());
     /// ```
+    #[inline]
     fn parse_complete(&self, input: &'i str) -> Result<Self::Output, InputError> {
         match self.parse(input.as_bytes()).map_with_input(input)? {
             (v, []) => Ok(v),
@@ -379,6 +414,7 @@ pub trait Parser<'i>: Sized {
     ///     ]
     /// );
     /// ```
+    #[inline]
     fn parse_all(&self, input: &'i str) -> Result<Vec<Self::Output>, InputError> {
         ParserRef(self)
             .repeat(Constant(()), 0)
@@ -387,7 +423,7 @@ pub trait Parser<'i>: Sized {
 
     /// Similar to [`parse_all`](Self::parse_all) but expects a newline after each item.
     ///
-    /// Equivalent to `parser.with_suffix(`[`parser::eol()`](super::eol)`).parse_all(input)`.
+    /// Equivalent to [`parser.with_eol()`](Parser::with_eol)`.parse_all(input)`.
     ///
     /// # Examples
     /// ```
@@ -404,6 +440,7 @@ pub trait Parser<'i>: Sized {
     ///     ]
     /// );
     /// ```
+    #[inline]
     fn parse_lines(&self, input: &'i str) -> Result<Vec<Self::Output>, InputError> {
         ParserRef(self)
             .with_suffix(Eol())
@@ -423,7 +460,7 @@ pub trait Parser<'i>: Sized {
     /// # use utils::input::InputError;
     /// # use utils::parser::{self, Parser};
     /// let iterator = parser::u32()
-    ///     .with_suffix(parser::eol())
+    ///     .with_eol()
     ///     .parse_iterator("12\n34\n56\n78");
     /// for item in iterator {
     ///     println!("{}", item?);
@@ -434,7 +471,7 @@ pub trait Parser<'i>: Sized {
     /// ```
     /// # use utils::parser::{self, Parser};
     /// let mut iterator = parser::u32()
-    ///     .with_suffix(parser::eol())
+    ///     .with_eol()
     ///     .parse_iterator("12\n34\nnot a integer");
     /// assert_eq!(iterator.next().unwrap().unwrap(), 12);
     /// assert_eq!(iterator.next().unwrap().unwrap(), 34);
@@ -446,13 +483,14 @@ pub trait Parser<'i>: Sized {
     /// # use utils::input::InputError;
     /// # use utils::parser::{self, Parser};
     /// let filtered = parser::u32()
-    ///     .with_suffix(parser::eol())
+    ///     .with_eol()
     ///     .parse_iterator("11\n22\n33\n44\n55")
     ///     .filter(|r| r.is_err() || r.as_ref().is_ok_and(|v| v % 2 == 0))
     ///     .collect::<Result<Vec<u32>, InputError>>()?;
     /// assert_eq!(filtered, vec![22, 44]);
     /// # Ok::<(), InputError>(())
     /// ```
+    #[inline]
     fn parse_iterator(self, input: &str) -> ParserIterator<'_, Self> {
         ParserIterator {
             input,
@@ -477,6 +515,7 @@ pub trait Parser<'i>: Sized {
     ///     vec![123, 456, 7, 8, 9]
     /// );
     /// ```
+    #[inline]
     fn matches_iterator(self, input: &str) -> ParserMatchesIterator<'_, Self> {
         ParserMatchesIterator {
             remaining: input.as_bytes(),

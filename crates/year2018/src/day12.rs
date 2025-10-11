@@ -29,7 +29,8 @@ impl Day12 {
         let (initial, rules) = cell
             .repeat_arrayvec::<100, _>(parser::noop(), 1)
             .with_prefix("initial state: ")
-            .with_suffix(parser::eol().then(parser::eol()))
+            .with_eol()
+            .with_eol()
             .then(
                 cell.repeat_n::<5, _>(parser::noop())
                     .with_suffix(" => ")

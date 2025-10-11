@@ -70,7 +70,7 @@ impl Day19 {
         combinations[0] = 1;
         for item in letter
             .repeat_arrayvec::<MAX_DESIGN_LENGTH, _>(parser::noop(), 1)
-            .with_suffix(parser::eol())
+            .with_eol()
             .parse_iterator(designs)
         {
             let design = item?;

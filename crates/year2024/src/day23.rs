@@ -17,7 +17,7 @@ impl Day23 {
         for item in parser::byte_range(b'a'..=b'z')
             .repeat_n::<2, _>(parser::noop())
             .repeat_n::<2, _>(b'-')
-            .with_suffix(parser::eol())
+            .with_eol()
             .parse_iterator(input)
         {
             let [n1, n2] = item?;

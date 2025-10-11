@@ -16,12 +16,13 @@ impl Day17 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let (a_start, b_start, c_start, program) = parser::u64()
             .with_prefix("Register A: ")
-            .then(parser::u64().with_prefix(parser::eol().then("Register B: ")))
-            .then(parser::u64().with_prefix(parser::eol().then("Register C: ")))
+            .with_eol()
+            .then(parser::u64().with_prefix("Register B: ").with_eol())
+            .then(parser::u64().with_prefix("Register C: ").with_eol())
             .then(
                 parser::number_range(0..=7)
                     .repeat(b',', 2)
-                    .with_prefix(parser::eol().then(parser::eol()).then("Program: ")),
+                    .with_prefix(parser::eol().then("Program: ")),
             )
             .parse_complete(input)?;
 

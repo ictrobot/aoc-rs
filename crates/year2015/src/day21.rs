@@ -24,8 +24,9 @@ impl Day21 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let (boss_health, boss_damage, boss_armor) = parser::u32()
             .with_prefix("Hit Points: ")
-            .then(parser::u32().with_prefix(parser::eol().then("Damage: ")))
-            .then(parser::u32().with_prefix(parser::eol().then("Armor: ")))
+            .with_eol()
+            .then(parser::u32().with_prefix("Damage: ").with_eol())
+            .then(parser::u32().with_prefix("Armor: "))
             .parse_complete(input)?;
 
         let mut min_gold_win = u32::MAX;

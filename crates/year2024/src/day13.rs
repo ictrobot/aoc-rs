@@ -19,12 +19,11 @@ impl Day13 {
         Ok(Self {
             machines: parser::u64()
                 .with_prefix("Button A: X+")
-                .then(parser::u64().with_prefix(", Y+"))
-                .then(parser::u64().with_prefix(parser::eol().then("Button B: X+")))
-                .then(parser::u64().with_prefix(", Y+"))
-                .then(parser::u64().with_prefix(parser::eol().then("Prize: X=")))
-                .then(parser::u64().with_prefix(", Y="))
-                .with_suffix(parser::eol())
+                .then(parser::u64().with_prefix(", Y+").with_eol())
+                .then(parser::u64().with_prefix("Button B: X+"))
+                .then(parser::u64().with_prefix(", Y+").with_eol())
+                .then(parser::u64().with_prefix("Prize: X="))
+                .then(parser::u64().with_prefix(", Y=").with_eol())
                 .map_res(|(ax, ay, bx, by, px, py)| {
                     let m = Machine {
                         button_a: Vec2::new(ax, ay),

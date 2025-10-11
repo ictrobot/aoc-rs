@@ -23,7 +23,8 @@ impl Day05 {
         let updates_parser = num.repeat(b',', 1).repeat(parser::eol(), 1);
 
         let (rule_list, updates) = rules_parser
-            .then(updates_parser.with_prefix(parser::eol()))
+            .with_eol()
+            .then(updates_parser)
             .parse_complete(input)?;
 
         let mut before: Rules = [[false; RANGE]; RANGE];

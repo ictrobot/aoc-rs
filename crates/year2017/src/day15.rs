@@ -32,7 +32,7 @@ impl Day15 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let (start_a, start_b) = parser::u32()
             .with_prefix("Generator A starts with ")
-            .with_suffix(parser::eol())
+            .with_eol()
             .then(parser::u32().with_prefix("Generator B starts with "))
             .parse_complete(input)?;
 

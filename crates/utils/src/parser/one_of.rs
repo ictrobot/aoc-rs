@@ -113,6 +113,8 @@ impl<'i, O: ParserOneOfTuple<'i>> Parser<'i> for OneOf<O> {
 ///     ParseError::NumberTooSmall(-2147483648)
 /// );
 /// ```
+#[inline]
+#[must_use]
 pub fn one_of<'i, L: ParserOneOfTuple<'i>>(options: L) -> OneOf<L> {
     OneOf { options }
 }
