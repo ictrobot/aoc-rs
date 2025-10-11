@@ -39,6 +39,38 @@ impl<T, const N: usize> ArrayVec<T, N> {
         }
     }
 
+    /// Creates a new `ArrayVec`, copying initial data from the provided slice.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::array::ArrayVec;
+    /// let mut vec: ArrayVec<i32, 5> = ArrayVec::<i32, 5>::from_slice(&[1, 2, 3]).unwrap();
+    /// assert_eq!(vec.len(), 3);
+    /// assert_eq!(vec.pop(), Some(3));
+    /// assert_eq!(vec.pop(), Some(2));
+    /// assert_eq!(vec.pop(), Some(1));
+    /// assert_eq!(vec.pop(), None);
+    ///
+    /// assert_eq!(ArrayVec::<i32, 5>::from_slice(&[1, 2, 3, 4, 5, 6]), None);
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn from_slice(slice: &[T]) -> Option<Self>
+    where
+        T: Copy + Default,
+    {
+        if slice.len() > N {
+            None
+        } else {
+            let mut data = [T::default(); N];
+            data[..slice.len()].copy_from_slice(slice);
+            Some(Self {
+                len: slice.len(),
+                data,
+            })
+        }
+    }
+
     /// Adds an element to the end of the vector.
     ///
     /// Returns [`Err`] containing the provided value if the vector is already full.

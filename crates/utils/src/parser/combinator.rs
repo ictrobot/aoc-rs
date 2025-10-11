@@ -113,6 +113,7 @@ impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>, S: Parser<'i>> P
     fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
         let mut output = ArrayVec::new();
 
+        let mut input_before_sep = input;
         let err = loop {
             let (v, remaining) = match self.parser.parse(input) {
                 Ok(v) => v,
@@ -125,16 +126,16 @@ impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>, S: Parser<'i>> P
             if output.push(v).is_err() {
                 return Err((ParseError::ExpectedLessItems(N), input));
             }
-            input = remaining;
+            input_before_sep = remaining;
 
-            match self.separator.parse(input) {
+            match self.separator.parse(remaining) {
                 Ok((_, remaining)) => input = remaining,
                 Err(err) => break err,
             }
         };
 
         if output.len() >= self.min_elements {
-            Ok((output, input))
+            Ok((output, input_before_sep))
         } else {
             Err(err)
         }
@@ -152,6 +153,7 @@ impl<'i, P: Parser<'i>, S: Parser<'i>> RepeatVec<P, S> {
     fn helper(&self, mut input: &'i [u8], consume_all: bool) -> ParseResult<'i, Vec<P::Output>> {
         let mut output = Vec::new();
 
+        let mut input_before_sep = input;
         let err = loop {
             let (v, remaining) = match self.parser.parse(input) {
                 Ok(v) => v,
@@ -168,20 +170,20 @@ impl<'i, P: Parser<'i>, S: Parser<'i>> RepeatVec<P, S> {
             }
 
             output.push(v);
-            input = remaining;
+            input_before_sep = remaining;
 
-            match self.separator.parse(input) {
+            match self.separator.parse(remaining) {
                 Ok((_, remaining)) => input = remaining,
                 Err(err) => break err,
             }
         };
 
-        if (consume_all && !input.is_empty()) || output.len() < self.min_elements {
+        if (consume_all && !input_before_sep.is_empty()) || output.len() < self.min_elements {
             // Return the last parsing error if this parser should consume the entire input and it
             // hasn't, or if the minimum number of elements isn't met.
             Err(err)
         } else {
-            Ok((output, input))
+            Ok((output, input_before_sep))
         }
     }
 }

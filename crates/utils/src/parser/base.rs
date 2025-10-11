@@ -226,10 +226,18 @@ pub trait Parser<'i>: Sized {
     ///
     /// # Examples
     /// ```
-    /// # use utils::parser::{self, Parser};
+    /// # use utils::array::ArrayVec;
+    /// use utils::parser::{self, Parser};
     /// let parser = parser::u32()
-    ///     .repeat_arrayvec(",", 3);
-    /// assert_eq!(parser.parse(b"12,34,56,78"), Ok(([12, 34, 56, 78].into(), &b""[..])));
+    ///     .repeat_arrayvec::<5, _>(",", 3);
+    /// assert_eq!(
+    ///     parser.parse(b"12,34,56,78"),
+    ///     Ok((ArrayVec::from_slice(&[12, 34, 56, 78]).unwrap(), &b""[..]))
+    /// );
+    /// assert_eq!(
+    ///     parser.parse(b"12,34,56,abc"),
+    ///     Ok((ArrayVec::from_slice(&[12, 34, 56]).unwrap(), &b",abc"[..]))
+    /// );
     /// assert!(parser.parse(b"12,34").is_err());
     /// ```
     #[inline]
@@ -260,6 +268,7 @@ pub trait Parser<'i>: Sized {
     /// let parser = parser::u32()
     ///     .repeat(",", 3);
     /// assert_eq!(parser.parse(b"12,34,56,78"), Ok((vec![12, 34, 56, 78], &b""[..])));
+    /// assert_eq!(parser.parse(b"12,34,56,abc"), Ok((vec![12, 34, 56], &b",abc"[..])));
     /// assert!(parser.parse(b"12,34").is_err());
     /// ```
     #[inline]

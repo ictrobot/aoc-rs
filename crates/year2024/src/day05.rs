@@ -24,6 +24,7 @@ impl Day05 {
 
         let (rule_list, updates) = rules_parser
             .with_eol()
+            .with_eol()
             .then(updates_parser)
             .parse_complete(input)?;
 
