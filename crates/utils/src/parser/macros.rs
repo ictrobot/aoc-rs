@@ -104,9 +104,10 @@ macro_rules! parser_literal_map {
     };
 }
 
-/// Macro to define an enum that implements [`Parseable`](crate::parser::Parseable).
+/// Macro to define an enumerable enum that implements [`Parseable`](crate::parser::Parseable).
 ///
-/// The parser is implemented using [`parser::literal_map!`](crate::parser::literal_map).
+/// The parser is implemented using [`parser::literal_map!`](crate::parser::literal_map) and
+/// [`enumerable_enum!`](crate::enumerable_enum!).
 ///
 /// # Examples
 /// ```
@@ -125,26 +126,48 @@ macro_rules! parser_literal_map {
 /// assert_eq!(Direction::PARSER.parse(b"north"), Ok((Direction::North, &b""[..])));
 /// assert_eq!(Direction::PARSER.parse(b"s"), Ok((Direction::South, &b""[..])));
 /// assert!(Direction::PARSER.parse(b"a").is_err());
+///
+/// assert_eq!(Direction::COUNT, 4);
+/// ```
+///
+/// With discriminant helpers (requires an explicit `#[repr(...)]` attribute first):
+/// ```
+/// # use utils::parser::{Parser, Parseable, self};
+/// parser::parsable_enum! {
+///     #[repr(u8)]
+///     #[derive(Debug, PartialEq)]
+///     enum Operation {
+///         "add" => Add,
+///         "mul" => Mul,
+///         "div" => Div,
+///         "mod" => Mod,
+///         "eql" => Eql,
+///     }
+/// }
+///
+/// assert_eq!(Operation::PARSER.parse(b"add5"), Ok((Operation::Add, &b"5"[..])));
+/// assert_eq!(Operation::PARSER.parse(b"eql"), Ok((Operation::Eql, &b""[..])));
+///
+/// assert_eq!(Operation::COUNT, 5);
+/// assert_eq!(Operation::checked_from_discriminant(2), Some(Operation::Div));
 /// ```
 #[macro_export]
 macro_rules! parser_parsable_enum {
     (
-        $(#[$enum_meta:meta])*
+        $(#[$($enum_meta:tt)+])*
         enum $name:ident {$(
             $(#[$meta:meta])*
             $($l:literal)|+ => $variant:ident $(= $value:expr)?,
         )+}
     ) => {
-        $(#[$enum_meta])*
-        pub enum $name {$(
-            $(#[$meta])*
-            $variant $(= $value)?,
-        )+}
-
-        impl $name {
-            const ALL: &'static [$name] = &[$(
-                Self::$variant,
-            )+];
+        // Use tt for enum_meta to avoid the attributes being captured as opaque fragments, which
+        // is required for the correct enumerable_enum arm to be selected for repr enums.
+        $crate::enumerable_enum! {
+            $(#[$($enum_meta)+])*
+            enum $name {$(
+                $(#[$meta])*
+                $variant $(= $value)?,
+            )+}
         }
 
         impl $crate::parser::Parseable for $name {

@@ -7,20 +7,22 @@ pub struct Day21 {
     codes: Vec<u16>,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[rustfmt::skip]
-enum NumericKeypad {
-    Key7 = 7, Key8 = 8, Key9 = 9,
-    Key4 = 4, Key5 = 5, Key6 = 6,
-    Key1 = 1, Key2 = 2, Key3 = 3,
-              Key0 = 0, Activate = 10,
+utils::enumerable_enum! {
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    enum NumericKeypad {
+        Key7 = 7, Key8 = 8, Key9 = 9,
+        Key4 = 4, Key5 = 5, Key6 = 6,
+        Key1 = 1, Key2 = 2, Key3 = 3,
+                  Key0 = 0, Activate = 10,
+    }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[rustfmt::skip]
-enum DirectionalKeypad {
-              Up   = 0, Activate = 4,
-    Left = 1, Down = 2, Right = 3,
+utils::enumerable_enum! {
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    enum DirectionalKeypad {
+                  Up   = 0, Activate = 4,
+        Left = 1, Down = 2, Right = 3,
+    }
 }
 
 #[cfg(feature = "const_lut")]
@@ -70,7 +72,7 @@ impl Day21 {
     }
 }
 
-const fn num_matrix(robots: u32) -> [[u64; NumericKeypad::LEN]; NumericKeypad::LEN] {
+const fn num_matrix(robots: u32) -> [[u64; NumericKeypad::COUNT]; NumericKeypad::COUNT] {
     let mut dir_matrix = [[1; 5]; 5];
     let mut i = 0;
     while i < robots {
@@ -84,11 +86,11 @@ const fn num_matrix(robots: u32) -> [[u64; NumericKeypad::LEN]; NumericKeypad::L
 macro_rules! cost_matrix_functions {
     () => {
         const fn cost_matrix(
-            dir_matrix: [[u64; DirectionalKeypad::LEN]; DirectionalKeypad::LEN],
-        ) -> [[u64; Self::LEN]; Self::LEN] {
-            let mut result = [[u64::MAX; Self::LEN]; Self::LEN];
+            dir_matrix: [[u64; DirectionalKeypad::COUNT]; DirectionalKeypad::COUNT],
+        ) -> [[u64; Self::COUNT]; Self::COUNT] {
+            let mut result = [[u64::MAX; Self::COUNT]; Self::COUNT];
             let mut i = 0;
-            while i < Self::LEN {
+            while i < Self::COUNT {
                 result[i][i] = 1;
                 Self::visit(
                     0,
@@ -108,8 +110,8 @@ macro_rules! cost_matrix_functions {
             current: Self,
             parent: DirectionalKeypad,
             start: Self,
-            dir_matrix: [[u64; DirectionalKeypad::LEN]; DirectionalKeypad::LEN],
-            result: &mut [[u64; Self::LEN]; Self::LEN],
+            dir_matrix: [[u64; DirectionalKeypad::COUNT]; DirectionalKeypad::COUNT],
+            result: &mut [[u64; Self::COUNT]; Self::COUNT],
         ) {
             let cost_with_activate =
                 cost + dir_matrix[parent as usize][DirectionalKeypad::Activate as usize];
@@ -146,15 +148,6 @@ macro_rules! cost_matrix_functions {
 }
 
 impl DirectionalKeypad {
-    const ALL: [Self; 5] = [
-        DirectionalKeypad::Up,
-        DirectionalKeypad::Activate,
-        DirectionalKeypad::Left,
-        DirectionalKeypad::Down,
-        DirectionalKeypad::Right,
-    ];
-    const LEN: usize = 5;
-
     const fn neighbours(self) -> &'static [(DirectionalKeypad, Self)] {
         use DirectionalKeypad::*;
         match self {
@@ -181,21 +174,6 @@ impl DirectionalKeypad {
 }
 
 impl NumericKeypad {
-    const ALL: [Self; 11] = [
-        NumericKeypad::Key7,
-        NumericKeypad::Key8,
-        NumericKeypad::Key9,
-        NumericKeypad::Key4,
-        NumericKeypad::Key5,
-        NumericKeypad::Key6,
-        NumericKeypad::Key1,
-        NumericKeypad::Key2,
-        NumericKeypad::Key3,
-        NumericKeypad::Key0,
-        NumericKeypad::Activate,
-    ];
-    const LEN: usize = 11;
-
     const fn neighbours(self) -> &'static [(DirectionalKeypad, Self)] {
         use DirectionalKeypad::{Down, Left, Right, Up};
         use NumericKeypad::*;

@@ -5,6 +5,7 @@ pub mod array;
 pub mod ascii;
 pub mod bit;
 pub mod date;
+mod r#enum;
 mod framework;
 pub mod geometry;
 pub mod graph;
