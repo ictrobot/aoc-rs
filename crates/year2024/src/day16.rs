@@ -149,6 +149,18 @@ impl Day16 {
         }
         on_best[index] |= 1 << dir;
 
+        if score < 1000 {
+            // Must not have turned, score is not high enough.
+            // This branch prevents `score - 1000` overflowing below.
+            self.reverse(
+                index.wrapping_add_signed(-self.offsets[dir]),
+                dir,
+                score - 1,
+                on_best,
+            );
+            return;
+        }
+
         let mut count = 0;
         let mut next_index = 0;
         let mut next_dir = 0;
