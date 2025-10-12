@@ -42,8 +42,8 @@ impl Day13 {
         // delay % modulus can't equal the value
         let mut constraints = BTreeMap::new();
         for &(depth, range) in &self.layers {
-            let modulus = (range as i32 - 1) * 2;
-            let disallowed_value = (-(depth as i32)).rem_euclid(modulus);
+            let modulus = (range as i64 - 1) * 2;
+            let disallowed_value = (-(depth as i64)).rem_euclid(modulus);
 
             constraints
                 .entry(modulus)
