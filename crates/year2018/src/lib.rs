@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
 
+mod elfcode;
+
 utils::year!(2018 => year2018, ${
     1 => day01::Day01,
     2 => day02::Day02,
@@ -22,4 +24,5 @@ utils::year!(2018 => year2018, ${
     18 => day18::Day18,
     19 => day19::Day19,
     20 => day20::Day20,
+    21 => day21::Day21,
 });

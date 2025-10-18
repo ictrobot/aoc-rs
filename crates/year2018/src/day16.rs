@@ -1,6 +1,8 @@
 use utils::prelude::*;
 
 /// Inferring opcode operations from examples.
+///
+/// See also [day 19](crate::Day19) and [day 21](crate::Day21).
 #[derive(Clone, Debug)]
 pub struct Day16 {
     samples: Vec<(u32, u16)>,
