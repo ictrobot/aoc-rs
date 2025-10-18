@@ -18,6 +18,7 @@ pub mod multiversion;
 pub mod number;
 pub mod parser;
 pub mod simd;
+pub mod slice;
 #[cfg(target_family = "wasm")]
 pub mod wasm;
 
