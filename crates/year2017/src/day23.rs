@@ -131,7 +131,7 @@ impl Day23 {
                 ] if b == b2 && b == b3 && reg[b as usize] >= 0
                     && d == d2 && d == d3 && d == d4
                     && e == e2 && e == e3 && e == e4
-                    && g == g2 && g == g3 && g == g4 && g == g5&& g == g6 && g == g7 && g == g8 && g == g9 && g == g10
+                    && g == g2 && g == g3 && g == g4 && g == g5 && g == g6 && g == g7 && g == g8 && g == g9 && g == g10
                 => {
                     reg[d as usize] = reg[b as usize];
                     reg[e as usize] = reg[b as usize];

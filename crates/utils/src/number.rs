@@ -248,6 +248,7 @@ number_impl! {float => f32, f64}
 /// assert_eq!(is_prime(123u32), false);
 /// ```
 #[inline]
+#[must_use]
 pub fn is_prime<T: UnsignedInteger>(n: T) -> bool {
     if n <= T::ONE {
         return false;
@@ -277,6 +278,54 @@ pub fn is_prime<T: UnsignedInteger>(n: T) -> bool {
     true
 }
 
+/// Computes the sum of the divisors for unsigned integer `n`.
+///
+/// Returns `None` if the sum overflows.
+///
+/// # Examples
+/// ```
+/// # use utils::number::sum_of_divisors;
+/// assert_eq!(sum_of_divisors(5u32), Some(6));
+/// assert_eq!(sum_of_divisors(32u32), Some(63));
+/// assert_eq!(sum_of_divisors(50u32), Some(93));
+/// assert_eq!(sum_of_divisors(857_656_800u32), None);
+/// assert_eq!(sum_of_divisors(857_656_800u64), Some(4_376_251_152));
+/// ```
+#[inline]
+#[must_use]
+pub fn sum_of_divisors<T: UnsignedInteger>(n: T) -> Option<T> {
+    if n <= T::ONE {
+        return Some(n);
+    }
+
+    let mut sum = T::ZERO;
+    let mut d = T::ONE;
+    while let Some(square) = d.checked_mul(d)
+        && square <= n
+    {
+        if n % d == T::ZERO {
+            if let Some(s) = sum.checked_add(d) {
+                sum = s;
+            } else {
+                return None;
+            }
+
+            let q = n / d;
+            if q != d {
+                if let Some(s) = sum.checked_add(q) {
+                    sum = s;
+                } else {
+                    return None;
+                }
+            }
+        }
+
+        d += T::ONE;
+    }
+
+    Some(sum)
+}
+
 /// Computes the greatest common divisor (GCD) using the extended Euclidean algorithm.
 ///
 /// Returns a tuple `(gcd, x, y)` where `x`, `y` are the coefficients of Bézout's identity:
@@ -291,6 +340,7 @@ pub fn is_prime<T: UnsignedInteger>(n: T) -> bool {
 /// assert_eq!((252 * -2) + (105 * 5), 21);
 /// ```
 #[inline]
+#[must_use]
 pub fn egcd<T: SignedInteger>(mut a: T, mut b: T) -> (T, T, T) {
     let (mut x0, mut x1, mut y0, mut y1) = (T::ONE, T::ZERO, T::ZERO, T::ONE);
 
@@ -312,6 +362,8 @@ pub fn egcd<T: SignedInteger>(mut a: T, mut b: T) -> (T, T, T) {
 /// assert_eq!(lcm(6, 4), 12);
 /// assert_eq!(lcm(21, 6), 42);
 /// ```
+#[inline]
+#[must_use]
 pub fn lcm<T: SignedInteger>(a: T, b: T) -> T {
     if a == T::ZERO || b == T::ZERO {
         return T::ZERO;
@@ -335,6 +387,7 @@ pub fn lcm<T: SignedInteger>(a: T, b: T) -> T {
 /// assert_eq!(mod_inverse(2, 8), None);
 /// ```
 #[inline]
+#[must_use]
 pub fn mod_inverse<T: SignedInteger>(a: T, b: T) -> Option<T> {
     let (gcd, x, _) = egcd(a, b);
     if gcd == T::ONE {
@@ -358,6 +411,7 @@ pub fn mod_inverse<T: SignedInteger>(a: T, b: T) -> Option<T> {
 /// assert_eq!(366 % 11, 3);
 /// ```
 #[inline]
+#[must_use]
 pub fn chinese_remainder<T: SignedInteger>(
     residues: impl IntoIterator<Item = T>,
     moduli: impl IntoIterator<Item = T, IntoIter: Clone>,
@@ -383,6 +437,7 @@ pub fn chinese_remainder<T: SignedInteger>(
 /// assert_eq!(mod_pow::<u64>(65, 100000, 2147483647), 1085966926);
 /// ```
 #[inline]
+#[must_use]
 pub fn mod_pow<T: UnsignedInteger>(base: T, exponent: T, modulus: T) -> T {
     let mut result = T::ONE;
     let mut base = base % modulus;

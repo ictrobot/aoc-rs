@@ -7,14 +7,17 @@
 /// - `ALL`: All variants (reference to a static array).
 /// - `iter()`: [`Iterator`] over all variants.
 ///
-/// Helpers for converting to and from the discriminant:
+/// Helpers for converting to and from the discriminant (requires the enum to have an explicit
+/// `#[repr(...)]` attribute before all other attributes):
 /// - `checked_from_discriminant()` & `from_discriminant()`: Safe and panicking conversions from
 ///   the discriminant.
 /// - [`From`] implementation from the enum to the discriminant.
 /// - [`TryFrom`] implementation from the discriminant to the enum.
 ///
-/// The discriminant utilities are only generated if the enum has an explicit `#[repr(...)]`
-/// attribute before all other attributes.
+/// Helpers for using variants as array indices (requires all variants to use implicit
+/// discriminants):
+/// - [`Index`](std::ops::Index) and [`IndexMut`](std::ops::IndexMut) implementations for
+///   `[T; COUNT]` arrays.
 ///
 /// See also [`parser::parsable_enum!`](crate::parser::parsable_enum), which combined this macro
 /// with building a parser.
@@ -94,6 +97,26 @@
 ///
 /// Operation::from_discriminant(64);
 /// ```
+///
+/// Index helpers:
+/// ```
+/// utils::enumerable_enum! {
+///     enum Register {
+///         A,
+///         B,
+///         C,
+///         D,
+///     }
+/// }
+///
+/// let mut registers = [0, 1, 2, 3];
+/// assert_eq!(registers[Register::A], 0);
+/// assert_eq!(registers[Register::B], 1);
+/// assert_eq!(registers[Register::C], 2);
+/// assert_eq!(registers[Register::D], 3);
+/// registers[Register::C] = 123;
+/// assert_eq!(registers[Register::C], 123);
+/// ```
 #[macro_export]
 macro_rules! enumerable_enum {
     (
@@ -158,9 +181,11 @@ macro_rules! enumerable_enum {
             $($(#[$variant_meta:meta])* $variant:ident $(= $discriminant:expr)?),+ $(,)?
         }
     ) => {
-        $(#[$meta])*
-        $vis enum $name {
-            $($(#[$variant_meta])* $variant $(= $discriminant)?,)+
+        $crate::enumerable_enum! {@enum
+            $(#[$meta])*
+            $vis enum $name {
+                $($(#[$variant_meta])* $variant $(= $discriminant)?,)+
+            }
         }
 
         impl $name {
@@ -176,5 +201,42 @@ macro_rules! enumerable_enum {
                 [$(Self::$variant),+].into_iter()
             }
         }
-    }
+    };
+    (@enum
+        $(#[$meta:meta])*
+        $vis:vis enum $name:ident {
+            $($(#[$variant_meta:meta])* $variant:ident),+ $(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        $vis enum $name {
+            $($(#[$variant_meta])* $variant,)+
+        }
+
+        impl<T> ::std::ops::Index<$name> for [T; $name::COUNT] {
+            type Output = T;
+
+            #[inline]
+            fn index(&self, index: $name) -> &Self::Output {
+                &self[index as usize]
+            }
+        }
+        impl<T> ::std::ops::IndexMut<$name> for [T; $name::COUNT] {
+            #[inline]
+            fn index_mut(&mut self, index: $name) -> &mut Self::Output {
+                &mut self[index as usize]
+            }
+        }
+    };
+    (@enum
+        $(#[$meta:meta])*
+        $vis:vis enum $name:ident {
+            $($(#[$variant_meta:meta])* $variant:ident $(= $discriminant:expr)?),+ $(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        $vis enum $name {
+            $($(#[$variant_meta])* $variant $(= $discriminant)?,)+
+        }
+    };
 }
