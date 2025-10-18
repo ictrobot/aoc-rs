@@ -13,3 +13,7 @@ pre-commit:
       run: cargo nextest run --all
     doctest:
       run: cargo test --doc --all
+    docs:
+      run: cargo doc --document-private-items
+      env:
+        RUSTDOCFLAGS: -Dwarnings

@@ -117,7 +117,7 @@ impl<'a> Day16<'a> {
         output
     }
 
-    /// See https://www.reddit.com/r/adventofcode/comments/5ititq/2016_day_16_c_how_to_tame_your_dragon_in_under_a/
+    /// See <https://www.reddit.com/r/adventofcode/comments/5ititq/2016_day_16_c_how_to_tame_your_dragon_in_under_a/>
     fn dragon_parity(n: u32) -> bool {
         let gray = n ^ (n >> 1);
         ((n & gray).count_ones() ^ gray) & 1 != 0
