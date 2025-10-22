@@ -13,10 +13,9 @@ pub fn main(args: impl Iterator<Item = String>) -> Result<(), Box<dyn Error>> {
     let date = if args.peek().is_none() {
         Date::next_puzzle().unwrap()
     } else {
-        let year = crate::year_arg(&mut args)?;
-        let day = crate::day_arg(&mut args)?;
+        let date = crate::date_args(&mut args)?;
         crate::ensure_no_args(args)?;
-        Date { year, day }
+        date
     };
     let release = date.release_time();
 
@@ -47,5 +46,5 @@ pub fn main(args: impl Iterator<Item = String>) -> Result<(), Box<dyn Error>> {
 
     println!("{ANSI_LINE_START}{ANSI_CLEAR_LINE}{date} is released!");
 
-    super::input::download(date.year, date.day)
+    super::input::download(date)
 }

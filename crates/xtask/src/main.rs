@@ -2,7 +2,7 @@
 
 use std::env;
 use std::error::Error;
-use utils::date::{Day, Year};
+use utils::date::{Date, Day, Year};
 
 pub mod cmd;
 pub mod common;
@@ -23,18 +23,19 @@ fn main() {
     }
 }
 
+pub(crate) fn date_args(args: &mut impl Iterator<Item = String>) -> Result<Date, Box<dyn Error>> {
+    Ok(Date::try_from((year_arg(args)?, day_arg(args)?))?)
+}
+
 pub(crate) fn year_arg(args: &mut impl Iterator<Item = String>) -> Result<Year, Box<dyn Error>> {
     Ok(args
         .next()
-        .ok_or_else(|| Box::<dyn Error>::from("expected year argument"))?
+        .ok_or("expected year argument")?
         .parse::<Year>()?)
 }
 
 pub(crate) fn day_arg(args: &mut impl Iterator<Item = String>) -> Result<Day, Box<dyn Error>> {
-    Ok(args
-        .next()
-        .ok_or_else(|| Box::<dyn Error>::from("expected day argument"))?
-        .parse::<Day>()?)
+    Ok(args.next().ok_or("expected day argument")?.parse::<Day>()?)
 }
 
 pub(crate) fn ensure_no_args(mut args: impl Iterator<Item = String>) -> Result<(), Box<dyn Error>> {

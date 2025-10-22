@@ -80,19 +80,19 @@ pub use ::year2024;
 ///
 /// ```
 /// # use aoc::all_puzzles;
-/// # use utils::date::{Day, Year};
-/// # use utils::{PuzzleExamples, Puzzle};
+/// # use utils::date::Date;
+/// # use utils::{PuzzleExamples, PuzzleDate};
 /// #
-/// fn example_count(year: Year, day: Day) -> Option<usize> {
+/// fn example_count(date: Date) -> Option<usize> {
 ///     macro_rules! callback {
 ///         ($(
 ///             $y:literal => $year:ident{$(
 ///                 $d:literal => $day:ident,
 ///             )*}
 ///         )*) => {
-///             match (year, day) {
+///             match date {
 ///                 $($(
-///                     (aoc::$year::$day::YEAR, aoc::$year::$day::DAY) => Some(aoc::$year::$day::EXAMPLES.len()),
+///                     aoc::$year::$day::DATE => Some(aoc::$year::$day::EXAMPLES.len()),
 ///                 )*)*
 ///                 _ => None,
 ///             }

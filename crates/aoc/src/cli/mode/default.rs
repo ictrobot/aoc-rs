@@ -21,9 +21,12 @@ pub fn main(args: &Arguments) -> Result<(), Box<dyn Error>> {
         "────────┼────────────────────────────┼────────────────────────────────────────┼───────────"
     );
     let mut total = Duration::default();
-    for (year, day, f) in puzzles {
+    for (date, f) in puzzles {
+        let year = date.year();
+        let day = date.day();
+
         let input = args
-            .read_input(year, day)
+            .read_input(date)
             .map_err(|(path, err)| format!("{year:#} {day:#}: failed to read {path:?}: {err}"))?;
 
         let start = Instant::now();

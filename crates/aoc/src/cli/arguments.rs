@@ -6,7 +6,7 @@ use std::error::Error;
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::{fs, io};
-use utils::date::{Day, Year};
+use utils::date::{Date, Day, Year};
 use utils::multiversion::{VERSIONS, Version};
 
 #[derive(Debug, Default)]
@@ -18,7 +18,7 @@ pub struct Arguments {
     pub inputs_dir: Option<PathBuf>,
     mode: Option<MainFn>,
     pub year: Option<Year>,
-    pub day: Option<Day>,
+    pub date: Option<Date>,
     pub extra_args: VecDeque<String>,
 }
 
@@ -87,16 +87,20 @@ impl Arguments {
         }
 
         if let Some(year) = args.pop_front() {
-            result.year = match year.parse() {
-                Ok(y) => Some(y),
-                Err(err) => return Err(UsageError::InvalidArguments(err.into())),
-            };
+            let year = year
+                .parse::<Year>()
+                .map_err(|err| UsageError::InvalidArguments(err.into()))?;
+            result.year = Some(year);
 
             if let Some(day) = args.pop_front() {
-                result.day = match day.parse() {
-                    Ok(y) => Some(y),
-                    Err(err) => return Err(UsageError::InvalidArguments(err.into())),
-                };
+                let day = day
+                    .parse::<Day>()
+                    .map_err(|err| UsageError::InvalidArguments(err.into()))?;
+
+                result.date = Some(
+                    Date::try_from((year, day))
+                        .map_err(|err| UsageError::InvalidArguments(err.into()))?,
+                );
 
                 if !args.is_empty() {
                     return Err(UsageError::TooManyArguments);
@@ -221,12 +225,22 @@ Options:
         self.mode.unwrap_or(mode::default::main)
     }
 
-    pub fn matching_puzzles(&self) -> Vec<(Year, Day, PuzzleFn)> {
-        PUZZLES
-            .iter()
-            .copied()
-            .filter(|&(y, d, ..)| self.year.unwrap_or(y) == y && self.day.unwrap_or(d) == d)
-            .collect()
+    pub fn matching_puzzles(&self) -> Vec<(Date, PuzzleFn)> {
+        if let Some(date) = self.date {
+            PUZZLES
+                .iter()
+                .copied()
+                .filter(|&(d, ..)| d == date)
+                .collect()
+        } else if let Some(year) = self.year {
+            PUZZLES
+                .iter()
+                .copied()
+                .filter(|&(d, ..)| d.year() == year)
+                .collect()
+        } else {
+            PUZZLES.to_vec()
+        }
     }
 
     pub fn inputs_dir(&self) -> PathBuf {
@@ -235,10 +249,10 @@ Options:
             .unwrap_or_else(|| PathBuf::from("./inputs"))
     }
 
-    pub fn read_input(&self, year: Year, day: Day) -> Result<String, (String, io::Error)> {
+    pub fn read_input(&self, date: Date) -> Result<String, (String, io::Error)> {
         let mut path = self.inputs_dir();
-        path.push(format!("year{year:#}"));
-        path.push(format!("day{day:#}.txt"));
+        path.push(format!("year{:#}", date.year()));
+        path.push(format!("day{:#}.txt", date.day()));
         fs::read_to_string(&path).map_err(|err| (path.to_string_lossy().to_string(), err))
     }
 }

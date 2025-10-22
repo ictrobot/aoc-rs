@@ -15,7 +15,7 @@ mod test_case;
 mod thread;
 
 pub fn main(args: &Arguments) -> Result<(), Box<dyn Error>> {
-    if args.day.is_some() {
+    if args.date.is_some() {
         return Err(UsageError::InvalidArguments(
             "specifying day is incompatible with --test".into(),
         )

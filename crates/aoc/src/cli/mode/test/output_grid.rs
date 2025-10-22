@@ -25,7 +25,7 @@ impl<W: Write> OutputGrid<W> {
             out,
             cursor_row: 0,
             cursor_col: 0,
-            statuses: PuzzleVec::new(min_year, max_year, |_, _| Status::default()),
+            statuses: PuzzleVec::new(min_year, max_year),
         };
 
         grid.print_grid()?;

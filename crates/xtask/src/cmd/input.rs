@@ -6,7 +6,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::SystemTime;
 use std::{env, panic};
-use utils::date::{Date, Day, Year};
+use utils::date::Date;
 
 // Follow UA format from https://www.reddit.com/r/adventofcode/comments/z9dhtd/please_include_your_contact_info_in_the_useragent/
 const USER_AGENT: &str = concat!(
@@ -24,34 +24,35 @@ const HOME_VAR: &str = "HOME";
 const HOME_VAR: &str = "USERPROFILE";
 
 pub fn main(mut args: impl Iterator<Item = String>) -> Result<(), Box<dyn Error>> {
-    let year = crate::year_arg(&mut args)?;
-    let day = crate::day_arg(&mut args)?;
+    let date = crate::date_args(&mut args)?;
     crate::ensure_no_args(args)?;
 
-    download(year, day)
+    download(date)
 }
 
-pub fn download(year: Year, day: Day) -> Result<(), Box<dyn Error>> {
-    if (Date { year, day }).release_time() > SystemTime::now() {
+pub fn download(date: Date) -> Result<(), Box<dyn Error>> {
+    if date.release_time() > SystemTime::now() {
         return Err("puzzle is not released yet".into());
     }
 
-    let input = fetch(year, day)?;
+    let input = fetch(date)?;
 
-    let year_inputs_dir = repo_dir_path().join("inputs").join(year_create_name(year));
+    let year_inputs_dir = repo_dir_path()
+        .join("inputs")
+        .join(year_create_name(date.year()));
     if !year_inputs_dir.is_dir() {
         create_dir(&year_inputs_dir)?;
     }
 
     write_file(
         year_inputs_dir
-            .join(day_mod_name(day))
+            .join(day_mod_name(date.day()))
             .with_extension("txt"),
         input,
     )
 }
 
-fn fetch(year: Year, day: Day) -> Result<String, Box<dyn Error>> {
+fn fetch(date: Date) -> Result<String, Box<dyn Error>> {
     let token = read_session_token()?;
     if token.chars().any(|c| !c.is_ascii_alphanumeric()) {
         return Err("invalid session token".into());
@@ -59,8 +60,8 @@ fn fetch(year: Year, day: Day) -> Result<String, Box<dyn Error>> {
 
     let url = format!(
         "https://adventofcode.com/{}/day/{}/input",
-        year.to_u16(),
-        day.to_u8(),
+        date.year().to_u16(),
+        date.day().to_u8(),
     );
     println!("fetching {url}");
 

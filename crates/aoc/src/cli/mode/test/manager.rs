@@ -37,7 +37,7 @@ impl Manager {
             test_cases: TestCases::new(input_dir, min_year, max_year)?,
             process_pool: ProcessPool::new(multithreading::get_thread_count())?,
             pending_updates: BTreeSet::new(),
-            puzzles: PuzzleVec::new(min_year, max_year, |_, _| Puzzle::default()),
+            puzzles: PuzzleVec::new(min_year, max_year),
         };
         let mut stdout = stdout().lock();
         let mut grid = OutputGrid::new(min_year, max_year, &mut stdout)?;

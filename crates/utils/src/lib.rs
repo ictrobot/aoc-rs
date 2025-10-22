@@ -22,7 +22,7 @@ pub mod slice;
 #[cfg(target_family = "wasm")]
 pub mod wasm;
 
-pub use framework::{Puzzle, PuzzleExamples};
+pub use framework::{PuzzleDate, PuzzleExamples};
 #[cfg(target_family = "wasm")]
 pub use wasm::multithreading;
 

@@ -1,14 +1,14 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::process::ExitCode;
-use utils::date::{Day, Year};
+use utils::date::Date;
 
 #[derive(Debug)]
 pub enum UsageError {
     InvalidArguments(Box<dyn Error>),
     MissingArguments(Box<dyn Error>),
     TooManyArguments,
-    UnsupportedPuzzle(Year, Day),
+    UnsupportedPuzzle(Date),
     NoSupportedPuzzles,
 }
 
@@ -18,8 +18,8 @@ impl Display for UsageError {
             UsageError::InvalidArguments(err) => write!(f, "invalid arguments: {err}"),
             UsageError::MissingArguments(err) => write!(f, "missing required arguments: {err}"),
             UsageError::TooManyArguments => write!(f, "too many arguments"),
-            UsageError::UnsupportedPuzzle(year, day) => {
-                write!(f, "unsupported puzzle: {year:#} day {day:#}")
+            UsageError::UnsupportedPuzzle(d) => {
+                write!(f, "unsupported puzzle: {:#} day {:#}", d.year(), d.day())
             }
             UsageError::NoSupportedPuzzles => write!(f, "no matching supported puzzles"),
         }

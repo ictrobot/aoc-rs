@@ -142,7 +142,7 @@ impl Puzzle {
     pub fn iter(min_year: Year, max_year: Year) -> impl FusedIterator<Item = (Year, Day)> {
         (min_year.to_u16()..=max_year.to_u16())
             .map(|y| Year::new(y).unwrap())
-            .flat_map(|y| (1..=25).map(|d| Day::new(d).unwrap()).map(move |d| (y, d)))
+            .flat_map(|y| y.days().map(move |d| (y, d)))
     }
 }
 
@@ -190,12 +190,16 @@ pub struct PuzzleVec<T> {
 }
 
 impl<T> PuzzleVec<T> {
-    pub fn new(min_year: Year, max_year: Year, init_fn: impl Fn(Year, Day) -> T) -> Self {
+    pub fn new(min_year: Year, max_year: Year) -> Self
+    where
+        T: Default,
+    {
         Self {
             min_year,
             max_year,
-            vec: Puzzle::iter(min_year, max_year)
-                .map(|(y, d)| init_fn(y, d))
+            // Store 25 days even if the year is shorter to make indexing easier
+            vec: std::iter::repeat_with(T::default)
+                .take(25 * (max_year.to_u16() as usize - min_year.to_u16() as usize + 1))
                 .collect(),
         }
     }
@@ -211,7 +215,8 @@ impl<T> PuzzleVec<T> {
     }
 
     pub fn iter(&self) -> impl FusedIterator<Item = ((Year, Day), &T)> {
-        self.puzzles().zip(self.vec.iter())
+        self.puzzles()
+            .map(|(year, day)| ((year, day), &self[(year, day)]))
     }
 }
 
@@ -221,7 +226,7 @@ impl<T> Index<Year> for PuzzleVec<T> {
     #[inline]
     fn index(&self, year: Year) -> &Self::Output {
         let index = self.index(year, Day::new_const::<1>());
-        &self.vec[index..index + 25]
+        &self.vec[index..index + year.max_day().to_u8() as usize]
     }
 }
 
@@ -229,7 +234,7 @@ impl<T> IndexMut<Year> for PuzzleVec<T> {
     #[inline]
     fn index_mut(&mut self, year: Year) -> &mut Self::Output {
         let index = self.index(year, Day::new_const::<1>());
-        &mut self.vec[index..index + 25]
+        &mut self.vec[index..index + year.max_day().to_u8() as usize]
     }
 }
 

@@ -8,12 +8,34 @@ use std::time::{Duration, SystemTime};
 /// Represents the [`Year`] and [`Day`] a puzzle was released.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Date {
-    pub year: Year,
-    pub day: Day,
+    year: Year,
+    day: Day,
 }
 
 impl Date {
     const FIRST_RELEASE_TIMESTAMP: u64 = 1_448_946_000; // 2015-12-01 05:00 UTC
+
+    #[inline]
+    #[must_use]
+    pub const fn new(year: Year, day: Day) -> Option<Date> {
+        if day.0 <= year.max_day().0 {
+            Some(Self { year, day })
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn year(self) -> Year {
+        self.year
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn day(self) -> Day {
+        self.day
+    }
 
     fn release_timestamp(self) -> u64 {
         let mut days = u64::from(self.day.0) - 1;
@@ -60,7 +82,7 @@ impl Date {
         }
 
         while date.release_timestamp() < now {
-            if date.day.0 < 25 {
+            if date.day.0 < date.year.max_day().0 {
                 date.day.0 += 1;
             } else if date.year.0 < 9999 {
                 date.year.0 += 1;
@@ -71,6 +93,15 @@ impl Date {
         }
 
         Some(date)
+    }
+}
+
+impl TryFrom<(Year, Day)> for Date {
+    type Error = InvalidDateError;
+
+    #[inline]
+    fn try_from((year, day): (Year, Day)) -> Result<Self, Self::Error> {
+        Self::new(year, day).ok_or(InvalidDateError(year))
     }
 }
 
@@ -85,9 +116,10 @@ impl Display for Date {
 pub struct Year(u16);
 
 impl Year {
+    #[inline]
     #[must_use]
-    pub fn new(year: u16) -> Option<Self> {
-        if (2015..=9999).contains(&year) {
+    pub const fn new(year: u16) -> Option<Self> {
+        if year >= 2015 && year <= 9999 {
             Some(Self(year))
         } else {
             None
@@ -105,25 +137,54 @@ impl Year {
     /// let year = Year::new_const::<2015>();
     /// ```
     ///
-    /// ```should_panic
+    /// ```compile_fail
     /// # use utils::date::Year;
     /// let year = Year::new_const::<2000>();
     /// ```
+    #[inline]
     #[must_use]
+    #[track_caller]
     pub const fn new_const<const YEAR: u16>() -> Self {
-        assert!(YEAR >= 2015 && YEAR <= 9999);
+        const {
+            assert!(YEAR >= 2015 && YEAR <= 9999);
+        }
         Self(YEAR)
     }
 
+    #[inline]
     #[must_use]
     pub const fn to_u16(self) -> u16 {
         self.0
+    }
+
+    /// Returns the maximum day for the given year.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::date::{Day, Year};
+    /// assert_eq!(Year::new_const::<2015>().max_day(), Day::new_const::<25>());
+    /// assert_eq!(Year::new_const::<2025>().max_day(), Day::new_const::<12>());
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn max_day(self) -> Day {
+        if self.0 < 2025 {
+            Day::new_const::<25>()
+        } else {
+            Day::new_const::<12>()
+        }
+    }
+
+    #[inline]
+    pub fn days(self) -> impl Iterator<Item = Day> {
+        (1..=self.max_day().to_u8()).map(|d| Day::new(d).unwrap())
     }
 }
 
 impl TryFrom<u16> for Year {
     type Error = InvalidYearError;
 
+    #[inline]
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         Self::new(value).ok_or(InvalidYearError)
     }
@@ -156,9 +217,10 @@ impl Display for Year {
 pub struct Day(u8);
 
 impl Day {
+    #[inline]
     #[must_use]
-    pub fn new(day: u8) -> Option<Self> {
-        if (1..=25).contains(&day) {
+    pub const fn new(day: u8) -> Option<Self> {
+        if day >= 1 && day <= 25 {
             Some(Self(day))
         } else {
             None
@@ -176,16 +238,21 @@ impl Day {
     /// let year = Day::new_const::<17>();
     /// ```
     ///
-    /// ```should_panic
+    /// ```compile_fail
     /// # use utils::date::Day;
     /// let year = Day::new_const::<26>();
     /// ```
+    #[inline]
     #[must_use]
+    #[track_caller]
     pub const fn new_const<const DAY: u8>() -> Self {
-        assert!(DAY >= 1 && DAY <= 25);
+        const {
+            assert!(DAY >= 1 && DAY <= 25);
+        }
         Self(DAY)
     }
 
+    #[inline]
     #[must_use]
     pub const fn to_u8(self) -> u8 {
         self.0
@@ -195,6 +262,7 @@ impl Day {
 impl TryFrom<u8> for Day {
     type Error = InvalidDayError;
 
+    #[inline]
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         Self::new(value).ok_or(InvalidDayError)
     }
@@ -221,6 +289,18 @@ impl Display for Day {
         }
     }
 }
+
+/// Error type returned when trying to construct an invalid [`Date`].
+#[derive(Debug)]
+pub struct InvalidDateError(Year);
+
+impl Display for InvalidDateError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid day for year {:#}", self.0)
+    }
+}
+
+impl Error for InvalidDateError {}
 
 /// Error type returned when trying to convert an invalid value to a [`Year`].
 #[derive(Debug)]

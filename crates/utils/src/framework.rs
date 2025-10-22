@@ -1,12 +1,11 @@
-use crate::date::{Day, Year};
+use crate::date::Date;
 use std::fmt::{Debug, Display};
 
-/// Common trait implemented by puzzles to provide [`Year`] and [`Day`].
+/// Common trait implemented by puzzles to provide the puzzle's [`Date`].
 ///
 /// [`year!`](crate::year!) implements this automatically.
-pub trait Puzzle {
-    const YEAR: Year;
-    const DAY: Day;
+pub trait PuzzleDate {
+    const DATE: Date;
 }
 
 /// Trait implemented by puzzles to provide example inputs and answers.
@@ -18,7 +17,7 @@ pub trait PuzzleExamples<P1: Debug + Display + 'static, P2: Debug + Display + 's
 
 /// Macro to generate the crate root for each year crate, implementing common items.
 ///
-/// For each day, the module is declared, the struct re-exported and the [`Puzzle`] trait
+/// For each day, the module is declared, the struct re-exported and the [`PuzzleDate`] trait
 /// implemented.
 ///
 /// A `puzzle!` macro is defined and exported, which takes one or more callback macro paths and a
@@ -47,11 +46,12 @@ macro_rules! year {
             mod $day_mod;
             #[doc = concat!("[", $year, " Day ", $day, "](https://adventofcode.com/", $year, "/day/", $day, "):")]
             pub use $day_mod::$day_struct;
-            impl $crate::Puzzle for $day_struct$(<$lifetime>)? {
-                #[doc = concat!("Year ", $year)]
-                const YEAR: $crate::date::Year = $crate::date::Year::new_const::<$year>();
-                #[doc = concat!("Day ", $day)]
-                const DAY: $crate::date::Day = $crate::date::Day::new_const::<$day>();
+            impl $crate::PuzzleDate for $day_struct$(<$lifetime>)? {
+                #[doc = concat!($year, " Day ", $day)]
+                const DATE: $crate::date::Date = $crate::date::Date::new(
+                    $crate::date::Year::new_const::<$year>(),
+                    $crate::date::Day::new_const::<$day>()
+                ).unwrap();
             }
         )+
 
