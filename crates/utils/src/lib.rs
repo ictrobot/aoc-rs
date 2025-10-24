@@ -17,6 +17,7 @@ pub mod multithreading;
 pub mod multiversion;
 pub mod number;
 pub mod parser;
+pub mod queue;
 pub mod simd;
 pub mod slice;
 #[cfg(target_family = "wasm")]
