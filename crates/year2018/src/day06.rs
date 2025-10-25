@@ -16,9 +16,7 @@ impl Day06 {
             .repeat_n(", ")
             .map(Vec2::from)
             .parse_lines(input)?;
-        if locations.is_empty() {
-            return Err(InputError::new(input, 0, "expected at least one location"));
-        }
+
         if locations.len() >= u8::MAX as usize {
             return Err(InputError::new(input, 0, "too many locations"));
         }

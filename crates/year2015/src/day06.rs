@@ -138,7 +138,7 @@ examples!(Day06 -> (u32, u32) [
     },
     {
         input: "turn on 0,0 through 0,0\n\
-            toggle 0,0 through 999,999\n",
+            toggle 0,0 through 999,999",
         part2: 2000001,
     },
 ]);

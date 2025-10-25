@@ -426,7 +426,7 @@ pub trait Parser<'i>: Sized {
     #[inline]
     fn parse_all(&self, input: &'i str) -> Result<Vec<Self::Output>, InputError> {
         ParserRef(self)
-            .repeat(Constant(()), 0)
+            .repeat(Constant(()), 1)
             .parse_complete(input)
     }
 
@@ -451,10 +451,7 @@ pub trait Parser<'i>: Sized {
     /// ```
     #[inline]
     fn parse_lines(&self, input: &'i str) -> Result<Vec<Self::Output>, InputError> {
-        ParserRef(self)
-            .with_suffix(Eol())
-            .repeat(Constant(()), 0)
-            .parse_complete(input)
+        ParserRef(self).repeat(Eol(), 1).parse_complete(input)
     }
 
     /// Create an iterator which applies this parser repeatedly until the provided input is fully

@@ -34,10 +34,6 @@ impl Day17 {
             })
             .parse_lines(input)?;
 
-        if segments.is_empty() {
-            return Err(InputError::new(input, 0, "expected at least one line"));
-        }
-
         let (mut x_min, mut x_max, mut y_min, mut y_max) = (500, 500, usize::MAX, 0);
         for &(axis, c1, c2, c3) in &segments {
             if axis == b'x' {

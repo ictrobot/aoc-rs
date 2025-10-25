@@ -17,7 +17,8 @@ impl Day20 {
                     Err("end value cannot be less than start")
                 }
             })
-            .parse_lines(input)?;
+            .repeat(parser::eol(), 0)
+            .parse_complete(input)?;
         ranges.sort_unstable();
         Ok(Self { ranges })
     }
