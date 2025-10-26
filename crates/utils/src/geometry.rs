@@ -22,6 +22,13 @@ macro_rules! vec_impl {
                 Self{$($f),+}
             }
 
+            /// Returns a vector with all components set to the provided value.
+            #[inline]
+            #[must_use]
+            pub const fn splat(v: T) -> Self {
+                Self{$($f: v),+}
+            }
+
             /// Returns the manhattan distance from the origin.
             #[inline]
             #[must_use]
@@ -32,14 +39,27 @@ macro_rules! vec_impl {
                 T::Unsigned::ZERO $(+ self.$f.unsigned_abs())+
             }
 
-            /// Returns the manhattan distance from the specified point.
+            /// Returns the manhattan distance to the specified point.
             #[inline]
             #[must_use]
-            pub fn manhattan_distance_from(self, rhs: Self) -> T::Unsigned
+            pub fn manhattan_distance_to(self, rhs: Self) -> T::Unsigned
             where
                 T: Integer
             {
                 T::Unsigned::ZERO $(+ self.$f.abs_diff(rhs.$f))+
+            }
+
+            /// Returns the manhattan distance to the specified axis-aligned bounding box.
+            #[inline]
+            #[must_use]
+            pub fn manhattan_distance_to_aabb(self, min: Self, max: Self) -> T::Unsigned
+            where
+                T: Integer
+            {
+                T::Unsigned::ZERO $(
+                    + min.$f.saturating_sub_0(self.$f)
+                    + self.$f.saturating_sub_0(max.$f)
+                )+
             }
 
             /// Add the provided signed vector, wrapping on overflow.

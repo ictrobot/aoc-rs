@@ -82,6 +82,8 @@ pub trait Integer:
     fn trailing_zeros(self) -> u32;
     #[must_use]
     fn unsigned_abs(self) -> Self::Unsigned;
+    #[must_use]
+    fn saturating_sub_0(self, rhs: Self) -> Self::Unsigned;
 }
 
 /// Trait implemented by the primitive unsigned integer types.
@@ -94,7 +96,7 @@ pub trait UnsignedInteger: Integer<Unsigned = Self> + From<u8> {
 pub trait SignedInteger: Integer<Signed = Self> + Signed {}
 
 macro_rules! number_impl {
-    (int => $($u:ty: $s:ty ),+) => {
+    (int => $($u:ident: $s:ident ),+) => {
         $(impl Number for $u {
             const ZERO: Self = 0;
             const ONE: Self = 1;
@@ -143,6 +145,10 @@ macro_rules! number_impl {
             #[inline]
             fn unsigned_abs(self) -> Self::Unsigned {
                 self // no-op for unsigned integers
+            }
+            #[inline]
+            fn saturating_sub_0(self, rhs: Self) -> Self::Unsigned {
+                self.saturating_sub(rhs)
             }
         })+
 
@@ -206,11 +212,20 @@ macro_rules! number_impl {
             fn unsigned_abs(self) -> Self::Unsigned {
                 self.unsigned_abs()
             }
+            #[inline]
+            #[expect(clippy::cast_sign_loss)]
+            fn saturating_sub_0(self, rhs: Self) -> Self::Unsigned {
+                // Equivalent to `self.saturating_sub(rhs).max(0) as $u`, but avoids overflow for
+                // e.g. i32::MAX - i32::MIN
+                let diff = (self as $u).wrapping_sub(rhs as $u);
+                let mask = (0 as $u).wrapping_sub($u::from(self >= rhs));
+                diff & mask
+            }
         })+
 
         $(impl SignedInteger for $s {})+
     };
-    (float => $($t:ty),+) => {$(
+    (float => $($t:ident),+) => {$(
         impl Number for $t {
             const ZERO: Self = 0.0;
             const ONE: Self = 1.0;
