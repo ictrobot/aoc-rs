@@ -1,10 +1,12 @@
 use crate::ascii::AsciiSet;
 use crate::parser::then::Then2;
-use crate::parser::{ParseResult, Parser};
+use crate::parser::{ParseState, Parser, ParserResult};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-/// Error type returned by [`Parser::parse`].
+/// Error type returned by parsers.
+///
+/// Returned by both [`Parser::parse_ctx`] and [`Leaf::parse`](super::Leaf::parse).
 #[non_exhaustive]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ParseError {
@@ -80,6 +82,21 @@ impl Display for ParseError {
 
 impl Error for ParseError {}
 
+impl PartialEq<ParseError> for Box<dyn Error> {
+    fn eq(&self, other: &ParseError) -> bool {
+        if let Some(pe) = self.downcast_ref::<ParseError>() {
+            pe == other
+        } else {
+            false
+        }
+    }
+}
+impl PartialEq<Box<dyn Error>> for ParseError {
+    fn eq(&self, other: &Box<dyn Error>) -> bool {
+        other == self
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct WithErrorMsg<P> {
     pub(super) parser: P,
@@ -90,10 +107,22 @@ impl<'i, P: Parser<'i>> Parser<'i> for WithErrorMsg<P> {
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-        match self.parser.parse(input) {
-            Ok(v) => Ok(v),
-            Err((_, pos)) => Err((ParseError::Custom(self.message), pos)),
-        }
+    fn parse_ctx(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        commit: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output> {
+        let prev_remaining = state.error.map(|e| e.1);
+        self.parser
+            .parse_ctx(input, state, commit, tail)
+            .inspect_err(|_| {
+                let remaining = state.error.unwrap().1;
+                if prev_remaining != Some(remaining) {
+                    // If the error location has changed, update the stored message
+                    state.error = Some((ParseError::Custom(self.message), remaining));
+                }
+            })
     }
 }

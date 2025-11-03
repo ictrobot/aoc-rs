@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-use crate::parser::{ParseResult, Parser};
+use crate::parser::{ParseState, Parser, ParserResult};
 
 pub trait Then<'i, P: Parser<'i>, T: Parser<'i>>: Parser<'i> {
     fn then(parser: P, then: T) -> Self;
@@ -12,7 +12,13 @@ impl<'i> Parser<'i> for Unimplemented {
     type Output = Unimplemented;
     type Then<T: Parser<'i>> = Unimplemented;
 
-    fn parse(&self, _: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse_ctx(
+        &self,
+        _: &'i [u8],
+        _: &mut ParseState<'i>,
+        _: &mut bool,
+        _: bool,
+    ) -> ParserResult<'i, Self::Output> {
         unimplemented!();
     }
 }
@@ -24,7 +30,7 @@ impl<'i, P: Parser<'i>, T: Parser<'i>> Then<'i, P, T> for Unimplemented {
 
 macro_rules! then_impl {
     (
-        $name:ident<$_:ident> => [$($t:ident),+],
+        $name:ident<$new:ident> => [$($t:ident),+],
         $next_name:ident<$next_t:ident> => $($tail:tt)*
     ) => {
         #[derive(Copy, Clone)]
@@ -36,8 +42,20 @@ macro_rules! then_impl {
             type Then<T: Parser<'i>> = $next_name<$($t),+, T>;
 
             #[inline(always)]
-            fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-                $(let ($t, input) = self.$t.parse(input)?;)+
+            #[expect(unused_variables)]
+            fn parse_ctx(
+                &self,
+                input: &'i [u8],
+                state: &mut ParseState<'i>,
+                commit: &mut bool,
+                tail: bool,
+            ) -> ParserResult<'i, Self::Output> {
+                // Create variables set to false for each $t, then shadow $new to tail to pass it
+                // through to the final parser. Then, as each parser is called, shadow the variables
+                // again with the output.
+                $(let $t = false;)+
+                let $new = tail;
+                $(let ($t, input) = self.$t.parse_ctx(input, state, commit, $t)?;)+
                 Ok((($($t),+), input))
             }
         }
@@ -49,7 +67,7 @@ macro_rules! then_impl {
         then_impl!{$next_name<$next_t> => $($tail)*}
     };
     (
-        $name:ident<$_:ident> => [$($t:ident),+],
+        $name:ident<$new:ident> => [$($t:ident),+],
     ) => {
         #[derive(Copy, Clone)]
         pub struct $name<$($t),+>{
@@ -60,8 +78,17 @@ macro_rules! then_impl {
             type Then<T: Parser<'i>> = Unimplemented;
 
             #[inline(always)]
-            fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-                $(let ($t, input) = self.$t.parse(input)?;)+
+            #[expect(unused_variables)]
+            fn parse_ctx(
+                &self,
+                input: &'i [u8],
+                state: &mut ParseState<'i>,
+                commit: &mut bool,
+                tail: bool,
+            ) -> ParserResult<'i, Self::Output> {
+                $(let $t = false;)+
+                let $new = tail;
+                $(let ($t, input) = self.$t.parse_ctx(input, state, commit, $t)?;)+
                 Ok((($($t),+), input))
             }
         }

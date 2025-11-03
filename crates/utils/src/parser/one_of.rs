@@ -1,11 +1,17 @@
 use crate::parser::then::Then2;
-use crate::parser::{ParseResult, Parser};
+use crate::parser::{ParseState, Parser, ParserResult};
 
 /// Use a second trait to force usage of the [`one_of`] method, preventing tuples from being used as
 /// parsers directly, which could be confusing.
+#[doc(hidden)]
 pub trait ParserOneOfTuple<'i> {
     type Output;
-    fn one_of(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output>;
+    fn one_of(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output>;
 }
 
 macro_rules! one_of_impl {
@@ -14,22 +20,29 @@ macro_rules! one_of_impl {
             type Output = A::Output;
 
             #[inline(always)]
-            fn one_of(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-                let mut err = match self.0.parse(input) {
+            fn one_of(
+                &self,
+                input: &'i [u8],
+                state: &mut ParseState<'i>,
+                tail: bool,
+            ) -> ParserResult<'i, Self::Output> {
+                let mut commit = false;
+                let token = match self.0.parse_ctx(input, state, &mut commit, tail) {
                     Ok(v) => return Ok(v),
-                    Err(err) => err,
+                    Err(t) if commit => return Err(t),
+                    Err(t) => t,
                 };
 
-                $(match self.$n.parse(input) {
+                $(
+                let mut commit = false;
+                match self.$n.parse_ctx(input, state, &mut commit, tail) {
                     Ok(v) => return Ok(v),
-                    Err(this_err) => {
-                        if this_err.1.len() < err.1.len() {
-                            err = this_err;
-                        }
-                    }
-                })+
+                    Err(t) if commit => return Err(t),
+                    Err(_) => {},
+                }
+                )+
 
-                Err(err)
+                Err(token)
             }
         }
     };
@@ -56,15 +69,22 @@ impl<'i, O: ParserOneOfTuple<'i>> Parser<'i> for OneOf<O> {
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-        self.options.one_of(input)
+    fn parse_ctx(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        _: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output> {
+        self.options.one_of(input, state, tail)
     }
 }
 
-/// Attempt to parse using a list of parsers.
+/// [`Parser`] which tries a list of parsers in order until one succeeds.
 ///
-/// Similar to [`Parser::or`], each parser will be tried in order until one succeeds. If no parsers
-/// succeed, the error from the parser furthest into the input is returned.
+/// If a parser commits, no further parsers are tried.
+///
+/// This is similar to [`Parser::or`] but supports a variable number of parsers.
 ///
 /// Prefer [`parser::literal_map`](super::literal_map) if all the parsers are string literals.
 ///
@@ -105,11 +125,11 @@ impl<'i, O: ParserOneOfTuple<'i>> Parser<'i> for OneOf<O> {
 /// );
 ///
 /// assert_eq!(
-///     parser.parse(b"not a number").unwrap_err().0,
+///     parser.parse_complete("not a number").unwrap_err().into_source(),
 ///     ParseError::Expected("unsigned integer")
 /// );
 /// assert_eq!(
-///     parser.parse(b"-4294967295").unwrap_err().0,
+///     parser.parse_complete("-4294967295").unwrap_err().into_source(),
 ///     ParseError::NumberTooSmall(-2147483648)
 /// );
 /// ```

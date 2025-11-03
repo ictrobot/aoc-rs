@@ -1,4 +1,4 @@
-use utils::parser::{ParseError, ParseResult};
+use utils::parser::{Leaf, LeafResult, ParseError};
 use utils::prelude::*;
 
 /// JSON document numbers.
@@ -24,7 +24,7 @@ impl Day12 {
         self.part2
     }
 
-    fn parse(input: &[u8]) -> ParseResult<'_, (i32, i32)> {
+    fn parse(input: &[u8]) -> LeafResult<'_, (i32, i32)> {
         match input {
             [b'{', ..] => Self::parse_object(&input[1..]),
             [b'[', ..] => Self::parse_array(&input[1..]),
@@ -32,7 +32,7 @@ impl Day12 {
         }
     }
 
-    fn parse_object(mut input: &[u8]) -> ParseResult<'_, (i32, i32)> {
+    fn parse_object(mut input: &[u8]) -> LeafResult<'_, (i32, i32)> {
         let (mut part1, mut part2) = (0, 0);
         let mut red = false;
         loop {
@@ -66,7 +66,7 @@ impl Day12 {
         }
     }
 
-    fn parse_array(mut input: &[u8]) -> ParseResult<'_, (i32, i32)> {
+    fn parse_array(mut input: &[u8]) -> LeafResult<'_, (i32, i32)> {
         let (mut part1, mut part2) = (0, 0);
         loop {
             match input {

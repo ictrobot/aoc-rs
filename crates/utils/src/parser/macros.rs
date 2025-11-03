@@ -1,12 +1,10 @@
-/// Macro to define a parser which consumes a single byte and maps it using a lookup table.
+/// Helper to create a [`parser::byte_lut`](super::byte_lut) parser using `match`-like syntax.
 ///
-/// This macro is a wrapper around [`parser::byte_lut`](crate::parser::byte_lut) to allow defining
-/// the lookup table using a match-like syntax. Each expression must be const and evaluate to a
-/// value of the same copy type.
+/// Each expression must be const and must evaluate to a value of the same copy type.
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{Parser, self};
+/// # use utils::parser::{Leaf, self};
 /// let parser = parser::byte_map!(
 ///     b'#' => true,
 ///     b'.' | b'S' => false,
@@ -44,7 +42,8 @@ macro_rules! parser_byte_map {
     }};
 }
 
-/// Macro to define a parser for one or more string literals, mapping the results.
+/// Helper to create a [`Leaf`](super::Leaf) parser matching string literals using `match`-like
+/// syntax.
 ///
 /// This is a replacement for
 /// [`parser::one_of`](crate::parser::one_of())`(("a".map(|_| Enum::A), "b".map(|_| Enum::b)))`
@@ -60,7 +59,7 @@ macro_rules! parser_byte_map {
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{Parser, self};
+/// # use utils::parser::{Leaf, self};
 /// #[derive(Debug, PartialEq)]
 /// enum Example {
 ///     A,
@@ -84,9 +83,7 @@ macro_rules! parser_literal_map {
     (
         $($($l:literal)|+ => $e:expr),+$(,)?
     ) => {{
-        const fn coerce_to_parser<F: Fn(&[u8]) -> $crate::parser::ParseResult<'_, O>, O>(f: F) -> F { f }
-
-        coerce_to_parser(|input| {
+        $crate::parser::from_leaf_fn(|input| {
             $($(
                 if input.len() >= const { $l.len() } && const { $l.as_bytes() } == &input[..const { $l.len() }] {
                     return Ok((($e), &input[const { $l.len() }..]));
@@ -104,14 +101,14 @@ macro_rules! parser_literal_map {
     };
 }
 
-/// Macro to define an enumerable enum that implements [`Parseable`](crate::parser::Parseable).
+/// Helper to define a [`Parseable`](crate::parser::Parseable) fieldless unit-only enum.
 ///
 /// The parser is implemented using [`parser::literal_map!`](crate::parser::literal_map) and
 /// [`enumerable_enum!`](crate::enumerable_enum!).
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{Parser, Parseable, self};
+/// # use utils::parser::{Leaf, Parseable, self};
 /// parser::parsable_enum! {
 ///     #[derive(Debug, PartialEq, Default)]
 ///     enum Direction {
@@ -132,7 +129,7 @@ macro_rules! parser_literal_map {
 ///
 /// With discriminant helpers (requires an explicit `#[repr(...)]` attribute first):
 /// ```
-/// # use utils::parser::{Parser, Parseable, self};
+/// # use utils::parser::{Leaf, Parseable, self};
 /// parser::parsable_enum! {
 ///     #[repr(u8)]
 ///     #[derive(Debug, PartialEq)]
@@ -171,7 +168,7 @@ macro_rules! parser_parsable_enum {
         }
 
         impl $crate::parser::Parseable for $name {
-            type Parser = for<'a> fn(&'a [u8]) -> $crate::parser::ParseResult<'a, Self>;
+            type Parser = for<'a> fn(&'a [u8]) -> $crate::parser::LeafResult<'a, Self>;
             const PARSER: Self::Parser = $crate::parser_literal_map!($(
                 $($l)|+ => Self::$variant,
             )+);
@@ -179,7 +176,7 @@ macro_rules! parser_parsable_enum {
     };
 }
 
-/// Macro to define a custom parser using a `match` inspired parse tree syntax.
+/// Helper to define a custom [`Parser`](super::Parser) using a `match` inspired parse tree syntax.
 ///
 /// Each rule is made up of a list of chained parsers enclosed in brackets on the left-hand side.
 /// Parsers can be prefixed with an identifier followed by `@` to store the result of that parser in
@@ -194,8 +191,8 @@ macro_rules! parser_parsable_enum {
 ///   and parsing will continue with the following rule.
 /// - **Subtree (`=>>`)**: The right-hand side is a nested set of rules enclosed in braces.
 ///
-/// If none of the rules match successfully, the error from the rule which parsed furthest into
-/// the input is returned.
+/// Both the top-level and each `=>>` subtree create their own commit scopes. If a parser commits,
+/// no more branches within the current scope are tried.
 ///
 /// # Examples
 /// ```
@@ -251,90 +248,93 @@ macro_rules! parser_parsable_enum {
 /// ```
 #[macro_export]
 macro_rules! parser_parse_tree {
-    (@rule $input:ident $furthest_err:ident $furthest_remaining:ident [$(,)?] @expr $rhs:expr) => {
+    (@rule $input:ident $state:ident $commit:ident $token:ident [$(,)?] @expr $rhs:expr) => {
         return Ok(($rhs, $input));
     };
-    (@rule $input:ident $furthest_err:ident $furthest_remaining:ident [$(,)?] @expr_res $rhs:expr) => {
+    (@rule $input:ident $state:ident $commit:ident $token:ident [$(,)?] @expr_res $rhs:expr) => {
         match $rhs {
             Ok(v) => return Ok((v, $input)),
             Err(e) => {
-                if $input.len() < $furthest_remaining {
-                    $furthest_err = $crate::parser::ParseError::Custom(e);
-                    $furthest_remaining = $input.len();
+                $token = $state.error($crate::parser::ParseError::Custom(e), $input);
+                if ($commit) {
+                    return Err($token);
                 }
             }
         };
     };
-    (@rule $input:ident $furthest_err:ident $furthest_remaining:ident [$(,)?] @subtree $($rhs:tt)+) => {
-        $crate::parser_parse_tree!(@toplevel $input $furthest_err $furthest_remaining $($rhs)+);
+    (@rule $input:ident $state:ident $commit:ident $token:ident [$(,)?] @subtree $($rhs:tt)+) => {
+        // Consider
+        //  ("add ".commit(), r @ register, ", ") =>> {
+        //      (r2 @ register) => Instruction::Add(r, r2),
+        //      (v @ parser::i32()) => Instruction::AddConstant(r, v),
+        //  },
+        // The inner alternative has its own commit scope, so both branches are tried normally.
+        // However, if both fail then an error should be returned.
+        {
+            let mut $commit = false;
+            $crate::parser_parse_tree!(@toplevel $input $state $commit $token $($rhs)+);
+        }
+        if ($commit) {
+            return Err($token);
+        }
     };
 
-    (@rule $input:ident $furthest_err:ident $furthest_remaining:ident
+    (@rule $input:ident $state:ident $commit:ident $token:ident
         [$n:ident @ $lhs:expr $(,$($tail:tt)*)?] $($rhs:tt)+
     ) => {
-        match $crate::parser::Parser::parse(&($lhs), $input) {
+        match $crate::parser::Parser::parse_ctx(&($lhs), $input, $state, &mut $commit, false) {
             Ok(($n, $input)) => {
-                $crate::parser_parse_tree!(@rule $input $furthest_err $furthest_remaining
+                $crate::parser_parse_tree!(@rule $input $state $commit $token
                     [$($($tail)*)?] $($rhs)+
                 );
-            },
-            Err((err, remaining)) => {
-                if remaining.len() < $furthest_remaining {
-                    $furthest_err = err;
-                    $furthest_remaining = remaining.len();
-                }
             }
+            Err(t) if $commit => return Err(t),
+            Err(t) => $token = t,
         };
     };
-    (@rule $input:ident $furthest_err:ident $furthest_remaining:ident
+    (@rule $input:ident $state:ident $commit:ident $token:ident
         [$lhs:expr $(,$($tail:tt)*)?] $($rhs:tt)+
     ) => {
-        match $crate::parser::Parser::parse(&($lhs), $input) {
+        match $crate::parser::Parser::parse_ctx(&($lhs), $input, $state, &mut $commit, false) {
             Ok((_, $input)) => {
-                $crate::parser_parse_tree!(@rule $input $furthest_err $furthest_remaining
+                $crate::parser_parse_tree!(@rule $input $state $commit $token
                     [$($($tail)*)?] $($rhs)+
                 );
-            },
-            Err((err, remaining)) => {
-                if remaining.len() < $furthest_remaining {
-                    $furthest_err = err;
-                    $furthest_remaining = remaining.len();
-                }
             }
+            Err(t) if $commit => return Err(t),
+            Err(t) => $token = t,
         };
     };
 
-    (@toplevel $input:ident $furthest_err:ident $furthest_remaining:ident
+    (@toplevel $input:ident $state:ident $commit:ident $token:ident
         ($($lhs:tt)+) => $rhs:expr $(, $($tail:tt)*)?
     ) => {
-        $crate::parser_parse_tree!(@rule $input $furthest_err $furthest_remaining [$($lhs)+] @expr $rhs);
-        $($crate::parser_parse_tree!(@toplevel $input $furthest_err $furthest_remaining $($tail)*);)?
+        $crate::parser_parse_tree!(@rule $input $state $commit $token [$($lhs)+] @expr $rhs);
+        $($crate::parser_parse_tree!(@toplevel $input $state $commit $token $($tail)*);)?
     };
-    (@toplevel $input:ident $furthest_err:ident $furthest_remaining:ident
+    (@toplevel $input:ident $state:ident $commit:ident $token:ident
         ($($lhs:tt)+) =?> $rhs:expr $(, $($tail:tt)*)?
     ) => {
-        $crate::parser_parse_tree!(@rule $input $furthest_err $furthest_remaining [$($lhs)+] @expr_res $rhs);
-        $($crate::parser_parse_tree!(@toplevel $input $furthest_err $furthest_remaining $($tail)*);)?
+        $crate::parser_parse_tree!(@rule $input $state $commit $token [$($lhs)+] @expr_res $rhs);
+        $($crate::parser_parse_tree!(@toplevel $input $state $commit $token $($tail)*);)?
     };
-    (@toplevel $input:ident $furthest_err:ident $furthest_remaining:ident
+    (@toplevel $input:ident $state:ident $commit:ident $token:ident
         ($($lhs:tt)+) =>> {$($rhs:tt)+} $(, $($tail:tt)*)?
     ) => {
-        $crate::parser_parse_tree!(@rule $input $furthest_err $furthest_remaining [$($lhs)+] @subtree $($rhs)+);
-        $($crate::parser_parse_tree!(@toplevel $input $furthest_err $furthest_remaining $($tail)*);)?
+        $crate::parser_parse_tree!(@rule $input $state $commit $token [$($lhs)+] @subtree $($rhs)+);
+        $($crate::parser_parse_tree!(@toplevel $input $state $commit $token $($tail)*);)?
     };
-    (@toplevel $input:ident $furthest_err:ident $furthest_remaining:ident $(,)?) => {};
+    (@toplevel $input:ident $state:ident $commit:ident $token:ident $(,)?) => {};
 
     // Ensures this branch only matches inputs starting with (, giving each rule set a unique prefix
     (($($first:tt)+) $($tail:tt)+) => {{
-        const fn coerce_to_parser<F: Fn(&[u8]) -> $crate::parser::ParseResult<'_, O>, O>(f: F) -> F { f }
+        $crate::parser::from_parser_fn(|input, state, _, _| {
+            let mut commit = false;
+            let mut token;
 
-        coerce_to_parser(|input| {
-            let mut furthest_err = $crate::parser::ParseError::Custom("unreachable");
-            let mut furthest_remaining = usize::MAX;
+            $crate::parser_parse_tree!(@toplevel input state commit token ($($first)+) $($tail)+);
 
-            $crate::parser_parse_tree!(@toplevel input furthest_err furthest_remaining ($($first)+) $($tail)+);
-
-            Err((furthest_err, &input[input.len() - furthest_remaining..]))
+            Err(token)
         })
     }};
 }

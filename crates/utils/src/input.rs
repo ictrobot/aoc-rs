@@ -33,6 +33,7 @@ pub enum InputType {
 ///   |    ^
 /// ".trim_start());
 /// ```
+#[must_use]
 #[derive(Debug)]
 pub struct InputError {
     line_number: usize,
@@ -211,34 +212,6 @@ impl ToIndex for usize {
             "invalid string index: index {self} out of range"
         );
         self
-    }
-}
-
-/// Extension trait to simplify converting errors and locations into [`InputError`]s.
-///
-/// Note that constructing [`InputError`] is expensive, and therefore conversion should be done as
-/// late as possible, to avoid unnecessary work if the error is discarded (for example,
-/// by [`Parser::or`](crate::parser::Parser::or)).
-pub trait MapWithInputExt {
-    type Output;
-    fn map_with_input(self, input: &str) -> Self::Output;
-}
-
-impl<E: Into<Box<dyn Error>>, I: ToIndex> MapWithInputExt for (E, I) {
-    type Output = InputError;
-
-    #[cold]
-    fn map_with_input(self, input: &str) -> Self::Output {
-        InputError::new(input, self.1, self.0)
-    }
-}
-
-impl<T, E: Into<Box<dyn Error>>, I: ToIndex> MapWithInputExt for Result<T, (E, I)> {
-    type Output = Result<T, InputError>;
-
-    #[inline]
-    fn map_with_input(self, input: &str) -> Self::Output {
-        self.map_err(|err| err.map_with_input(input))
     }
 }
 

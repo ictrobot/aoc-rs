@@ -1,17 +1,15 @@
 use crate::number::{Integer, SignedInteger, UnsignedInteger};
-use crate::parser::then::Then2;
-use crate::parser::{ParseError, ParseResult, Parseable, Parser};
+use crate::parser::{Leaf, LeafResult, ParseError, Parseable};
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
 #[derive(Copy, Clone)]
 pub struct UnsignedParser<U: UnsignedInteger>(PhantomData<U>);
-impl<'i, U: UnsignedInteger> Parser<'i> for UnsignedParser<U> {
+impl<'i, U: UnsignedInteger> Leaf<'i> for UnsignedParser<U> {
     type Output = U;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, mut input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let mut n = match input {
             [d @ b'0'..=b'9', ..] => {
                 input = &input[1..];
@@ -34,13 +32,12 @@ impl<'i, U: UnsignedInteger> Parser<'i> for UnsignedParser<U> {
 
 #[derive(Copy, Clone)]
 pub struct SignedParser<S: SignedInteger>(PhantomData<S>);
-impl<'i, S: SignedInteger> Parser<'i> for SignedParser<S> {
+impl<'i, S: SignedInteger> Leaf<'i> for SignedParser<S> {
     type Output = S;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[expect(clippy::cast_possible_wrap)]
     #[inline]
-    fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, mut input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let (mut n, positive) = match input {
             [d @ b'0'..=b'9', rem @ ..] | [b'+', d @ b'0'..=b'9', rem @ ..] => {
                 input = rem;
@@ -82,7 +79,7 @@ macro_rules! parser_for {
             const PARSER: Self::Parser = $p(PhantomData);
         }
 
-        #[doc = concat!("Parser for [`prim@", stringify!($n), "`] values.")]
+        #[doc = concat!("[`Leaf`] parser for [`prim@", stringify!($n), "`] values.")]
         #[inline]
         #[must_use]
         pub fn $n() -> $p<std::primitive::$n> {
@@ -110,12 +107,11 @@ pub struct NumberRange<I> {
     max: I,
 }
 
-impl<'i, I: Integer + Parseable> Parser<'i> for NumberRange<I> {
+impl<'i, I: Integer + Parseable> Leaf<'i> for NumberRange<I> {
     type Output = I;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let (v, remaining) = I::PARSER.parse(input)?;
         if v < self.min {
             Err((ParseError::too_small(self.min), input))
@@ -127,7 +123,7 @@ impl<'i, I: Integer + Parseable> Parser<'i> for NumberRange<I> {
     }
 }
 
-/// Parser for numbers in the supplied range.
+/// [`Leaf`] parser for numbers in the supplied range.
 ///
 /// The type of the number to parse is inferred from the range's type.
 ///
@@ -135,7 +131,7 @@ impl<'i, I: Integer + Parseable> Parser<'i> for NumberRange<I> {
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser};
+/// # use utils::parser::{self, Leaf};
 /// assert_eq!(
 ///     parser::number_range(100u8..=125u8).parse(b"123, 120"),
 ///     Ok((123u8, &b", 120"[..]))
@@ -153,12 +149,11 @@ pub fn number_range<I: Integer + Parseable>(range: RangeInclusive<I>) -> NumberR
 #[derive(Copy, Clone)]
 pub struct Digit {}
 
-impl<'i> Parser<'i> for Digit {
+impl<'i> Leaf<'i> for Digit {
     type Output = u8;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         if let Some(d @ b'0'..=b'9') = input.first() {
             Ok((d - b'0', &input[1..]))
         } else {
@@ -167,11 +162,11 @@ impl<'i> Parser<'i> for Digit {
     }
 }
 
-/// Parser for single digits.
+/// [`Leaf`] parser for single digits.
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser};
+/// # use utils::parser::{self, Leaf};
 /// assert_eq!(
 ///     parser::digit().parse(b"12345"),
 ///     Ok((1u8, &b"2345"[..]))

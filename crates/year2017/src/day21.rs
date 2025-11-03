@@ -1,5 +1,5 @@
 use std::array;
-use utils::parser::{ParseError, ParseResult};
+use utils::parser::{LeafResult, ParseError};
 use utils::prelude::*;
 
 /// Iteratively applying pixel transformations.
@@ -96,7 +96,7 @@ impl Day21 {
     }
 
     #[inline]
-    fn parse_square<const N: usize>(mut input: &[u8]) -> ParseResult<'_, usize> {
+    fn parse_square<const N: usize>(mut input: &[u8]) -> LeafResult<'_, usize> {
         let mut result = 0;
         for row in 0..N {
             for col in 0..N {

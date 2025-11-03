@@ -1,5 +1,5 @@
 use crate::input::InputError;
-use crate::parser::Parser;
+use crate::parser::{ParseState, Parser};
 use std::iter::FusedIterator;
 
 /// An iterator that lazily parses the input using the provided parser.
@@ -22,15 +22,17 @@ impl<'a, P: Parser<'a>> Iterator for ParserIterator<'a, P> {
             return None;
         }
 
-        match self.parser.parse(self.remaining) {
-            Ok((v, remaining)) => {
-                self.remaining = remaining;
-                Some(Ok(v))
-            }
-            Err((err, remaining)) => {
-                self.remaining = &[]; // Ensure future calls return None
-                Some(Err(InputError::new(self.input, remaining, err)))
-            }
+        // Don't use parse_once so errors are reported at the correct position in the overall input.
+        let mut state = ParseState::default();
+        if let Ok((v, remaining)) =
+            self.parser
+                .parse_ctx(self.remaining, &mut state, &mut false, false)
+        {
+            self.remaining = remaining;
+            Some(Ok(v))
+        } else {
+            self.remaining = &[]; // Ensure future calls return None
+            Some(Err(state.into_input_error(self.input)))
         }
     }
 }
@@ -73,7 +75,13 @@ impl<'a, P: Parser<'a>> Iterator for ParserMatchesIterator<'a, P> {
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         while !self.remaining.is_empty() {
-            if let Ok((v, remaining)) = self.parser.parse(self.remaining) {
+            // Use parse_ctx to avoid constructing full InputError instances which is expensive
+            if let Ok((v, remaining)) = self.parser.parse_ctx(
+                self.remaining,
+                &mut ParseState::default(),
+                &mut false,
+                false,
+            ) {
                 self.remaining = remaining;
                 return Some(v);
             }

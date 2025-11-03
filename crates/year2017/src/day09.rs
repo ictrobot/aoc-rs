@@ -1,4 +1,4 @@
-use utils::parser::{ParseError, ParseResult};
+use utils::parser::{LeafResult, ParseError};
 use utils::prelude::*;
 
 /// Parsing a nested structure.
@@ -15,7 +15,7 @@ impl Day09 {
     }
 
     // Parses either a (nested) group or a single piece of garbage.
-    fn parse(mut input: &[u8]) -> ParseResult<'_, (u32, u32)> {
+    fn parse(mut input: &[u8]) -> LeafResult<'_, (u32, u32)> {
         let mut group_depth = 0;
         let mut in_garbage = false;
 

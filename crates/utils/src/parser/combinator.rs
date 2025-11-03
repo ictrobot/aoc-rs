@@ -1,7 +1,29 @@
 use crate::array::ArrayVec;
-use crate::input::{InputError, MapWithInputExt};
 use crate::parser::then::Then2;
-use crate::parser::{ParseError, ParseResult, Parser};
+use crate::parser::{ParseError, ParseState, Parser, ParserResult};
+
+pub struct Commit<P> {
+    pub(super) parser: P,
+}
+impl<'i, P: Parser<'i>> Parser<'i> for Commit<P> {
+    type Output = P::Output;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
+
+    #[inline]
+    fn parse_ctx(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        commit: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output> {
+        let (v, remaining) = self.parser.parse_ctx(input, state, commit, tail)?;
+        if remaining.len() < input.len() {
+            *commit = true;
+        }
+        Ok((v, remaining))
+    }
+}
 
 #[derive(Copy, Clone)]
 pub struct Map<P, F> {
@@ -14,11 +36,15 @@ impl<'i, P: Parser<'i>, F: Fn(P::Output) -> O, O> Parser<'i> for Map<P, F> {
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-        match self.parser.parse(input) {
-            Ok((v, remaining)) => Ok(((self.map_fn)(v), remaining)),
-            Err(e) => Err(e),
-        }
+    fn parse_ctx(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        commit: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output> {
+        let (v, remaining) = self.parser.parse_ctx(input, state, commit, tail)?;
+        Ok(((self.map_fn)(v), remaining))
     }
 }
 
@@ -35,13 +61,17 @@ impl<'i, P: Parser<'i>, F: Fn(P::Output) -> Result<O, &'static str>, O> Parser<'
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-        match self.parser.parse(input) {
-            Ok((v, remaining)) => match (self.map_fn)(v) {
-                Ok(mapped) => Ok((mapped, remaining)),
-                Err(e) => Err((ParseError::Custom(e), input)),
-            },
-            Err(e) => Err(e),
+    fn parse_ctx(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        commit: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output> {
+        let (v, remaining) = self.parser.parse_ctx(input, state, commit, tail)?;
+        match (self.map_fn)(v) {
+            Ok(mapped) => Ok((mapped, remaining)),
+            Err(e) => Err(state.error(ParseError::Custom(e), remaining)),
         }
     }
 }
@@ -55,9 +85,17 @@ impl<'i, P: Parser<'i>> Parser<'i> for Optional<P> {
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-        match self.parser.parse(input) {
+    fn parse_ctx(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        _: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output> {
+        let mut commit = false;
+        match self.parser.parse_ctx(input, state, &mut commit, tail) {
             Ok((v, remaining)) => Ok((Some(v), remaining)),
+            Err(t) if commit => Err(t),
             Err(_) => Ok((None, input)),
         }
     }
@@ -75,22 +113,19 @@ impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>, S: Parser<'i>> P
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse_ctx(
+        &self,
+        mut input: &'i [u8],
+        state: &mut ParseState<'i>,
+        commit: &mut bool,
+        _: bool,
+    ) -> ParserResult<'i, Self::Output> {
         let mut output = [P::Output::default(); N];
         for (i, item) in output.iter_mut().enumerate() {
-            match self.parser.parse(input) {
-                Ok((v, remaining)) => {
-                    *item = v;
-                    input = remaining;
-                }
-                Err(e) => return Err(e),
-            }
+            (*item, input) = self.parser.parse_ctx(input, state, commit, false)?;
 
             if i < N - 1 {
-                match self.separator.parse(input) {
-                    Ok((_, remaining)) => input = remaining,
-                    Err(e) => return Err(e),
-                }
+                (_, input) = self.separator.parse_ctx(input, state, commit, false)?;
             }
         }
         Ok((output, input))
@@ -110,34 +145,48 @@ impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>, S: Parser<'i>> P
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, mut input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse_ctx(
+        &self,
+        mut input: &'i [u8],
+        state: &mut ParseState<'i>,
+        _: &mut bool,
+        _: bool,
+    ) -> ParserResult<'i, Self::Output> {
         let mut output = ArrayVec::new();
 
+        let mut commit = false;
         let mut input_before_sep = input;
-        let err = loop {
-            let (v, remaining) = match self.parser.parse(input) {
+        let token = loop {
+            let (v, remaining) = match self.parser.parse_ctx(input, state, &mut commit, false) {
                 Ok(v) => v,
-                Err(err) => break err,
+                Err(t) => break t,
             };
+
+            commit = false;
 
             let consumed = input.len() - remaining.len();
             assert!(consumed > 0, "parsing item consumed no input");
 
             if output.push(v).is_err() {
-                return Err((ParseError::ExpectedLessItems(N), input));
+                return Err(state.error(ParseError::ExpectedLessItems(N), input));
             }
             input_before_sep = remaining;
 
-            match self.separator.parse(remaining) {
+            match self
+                .separator
+                .parse_ctx(remaining, state, &mut commit, false)
+            {
                 Ok((_, remaining)) => input = remaining,
-                Err(err) => break err,
+                Err(t) => break t,
             }
         };
 
-        if output.len() >= self.min_elements {
-            Ok((output, input_before_sep))
+        if output.len() < self.min_elements || commit {
+            // Return error if not enough elements were parsed, or if the most recent separator or
+            // item parser committed but failed to parse another item.
+            Err(token)
         } else {
-            Err(err)
+            Ok((output, input_before_sep))
         }
     }
 }
@@ -148,59 +197,59 @@ pub struct RepeatVec<P, S> {
     pub(super) separator: S,
     pub(super) min_elements: usize,
 }
-impl<'i, P: Parser<'i>, S: Parser<'i>> RepeatVec<P, S> {
+impl<'i, P: Parser<'i>, S: Parser<'i>> Parser<'i> for RepeatVec<P, S> {
+    type Output = Vec<P::Output>;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
+
     #[inline]
-    fn helper(&self, mut input: &'i [u8], consume_all: bool) -> ParseResult<'i, Vec<P::Output>> {
+    fn parse_ctx(
+        &self,
+        mut input: &'i [u8],
+        state: &mut ParseState<'i>,
+        _: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Vec<P::Output>> {
         let mut output = Vec::new();
 
+        let mut commit = false;
         let mut input_before_sep = input;
-        let err = loop {
-            let (v, remaining) = match self.parser.parse(input) {
+        let token = loop {
+            let (v, remaining) = match self.parser.parse_ctx(input, state, &mut commit, false) {
                 Ok(v) => v,
-                Err(err) => break err,
+                Err(t) => break t,
             };
+
+            commit = false;
 
             let consumed = input.len() - remaining.len();
             assert!(consumed > 0, "parsing item consumed no input");
 
-            // When parsing the complete input, after parsing the first item use the proportion of
-            // consumed bytes for one item to reserve capacity for the output vec
-            if consume_all && output.is_empty() {
+            // When parsing the entire remaining input, after parsing the first item use the
+            // proportion of consumed bytes for one item to reserve capacity for the output vec
+            if tail && output.is_empty() {
                 output.reserve(((remaining.len() / consumed) * 7 / 5) + 2);
             }
 
             output.push(v);
             input_before_sep = remaining;
 
-            match self.separator.parse(remaining) {
+            match self
+                .separator
+                .parse_ctx(remaining, state, &mut commit, false)
+            {
                 Ok((_, remaining)) => input = remaining,
-                Err(err) => break err,
+                Err(t) => break t,
             }
         };
 
-        if (consume_all && !input_before_sep.is_empty()) || output.len() < self.min_elements {
-            // Return the last parsing error if this parser should consume the entire input and it
-            // hasn't, or if the minimum number of elements isn't met.
-            Err(err)
+        if output.len() < self.min_elements || commit || (tail && !input_before_sep.is_empty()) {
+            // Return error if:
+            // - not enough elements were parsed
+            // - the most recent separator or item parser committed but failed to parse another item
+            // - the entire input was not consumed when it should have been
+            Err(token)
         } else {
             Ok((output, input_before_sep))
-        }
-    }
-}
-impl<'i, P: Parser<'i>, S: Parser<'i>> Parser<'i> for RepeatVec<P, S> {
-    type Output = Vec<P::Output>;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
-
-    #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-        self.helper(input, false)
-    }
-
-    // Override the default implementation to set consume_all to true
-    fn parse_complete(&self, input: &'i str) -> Result<Self::Output, InputError> {
-        match self.helper(input.as_bytes(), true).map_with_input(input)? {
-            (v, []) => Ok(v),
-            (_, remaining) => Err(InputError::new(input, remaining, ParseError::ExpectedEof())),
         }
     }
 }
@@ -219,20 +268,20 @@ impl<'i, A: Parser<'i>, B: Parser<'i, Output = A::Output>> Parser<'i> for Or<A, 
         clippy::inline_always,
         reason = "required for parsing of long or chains to be inlined"
     )]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-        match self.first.parse(input) {
+    fn parse_ctx(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        _: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output> {
+        let mut commit = false;
+        match self.first.parse_ctx(input, state, &mut commit, tail) {
             Ok(v) => Ok(v),
-            Err((err1, remaining1)) => match self.second.parse(input) {
-                Ok(v) => Ok(v),
-                Err((err2, remaining2)) => {
-                    // Return error from the parser which processed further, or the first if equal
-                    Err(if remaining1.len() <= remaining2.len() {
-                        (err1, remaining1)
-                    } else {
-                        (err2, remaining2)
-                    })
-                }
-            },
+            Err(t) if commit => Err(t),
+            // The second parser's commit value is ignored as its result is always returned.
+            // The parent commit value isn't passed as .or() conceptually has its own scope.
+            Err(_) => self.second.parse_ctx(input, state, &mut false, tail),
         }
     }
 }
@@ -246,11 +295,15 @@ impl<'i, P: Parser<'i>> Parser<'i> for WithConsumed<P> {
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-        match self.parser.parse(input) {
-            Ok((v, remaining)) => Ok(((v, &input[..input.len() - remaining.len()]), remaining)),
-            Err(e) => Err(e),
-        }
+    fn parse_ctx(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        commit: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output> {
+        let (v, remaining) = self.parser.parse_ctx(input, state, commit, tail)?;
+        Ok(((v, &input[..input.len() - remaining.len()]), remaining))
     }
 }
 
@@ -264,11 +317,15 @@ impl<'i, A: Parser<'i>, B: Parser<'i>> Parser<'i> for WithPrefix<A, B> {
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-        match self.prefix.parse(input) {
-            Ok((_, remaining)) => self.parser.parse(remaining),
-            Err(e) => Err(e),
-        }
+    fn parse_ctx(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        commit: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output> {
+        let (_, input) = self.prefix.parse_ctx(input, state, commit, false)?;
+        self.parser.parse_ctx(input, state, commit, tail)
     }
 }
 
@@ -282,13 +339,15 @@ impl<'i, A: Parser<'i>, B: Parser<'i>> Parser<'i> for WithSuffix<A, B> {
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
-        match self.parser.parse(input) {
-            Ok((v, remaining1)) => match self.suffix.parse(remaining1) {
-                Ok((_, remaining2)) => Ok((v, remaining2)),
-                Err(e) => Err(e),
-            },
-            Err(e) => Err(e),
-        }
+    fn parse_ctx(
+        &self,
+        input: &'i [u8],
+        state: &mut ParseState<'i>,
+        commit: &mut bool,
+        tail: bool,
+    ) -> ParserResult<'i, Self::Output> {
+        let (v, input) = self.parser.parse_ctx(input, state, commit, false)?;
+        let (_, input) = self.suffix.parse_ctx(input, state, commit, tail)?;
+        Ok((v, input))
     }
 }

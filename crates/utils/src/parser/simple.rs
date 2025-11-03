@@ -1,15 +1,13 @@
-use crate::parser::then::{Then2, Unimplemented};
-use crate::parser::{ParseError, ParseResult, Parser};
+use crate::parser::{Leaf, LeafResult, ParseError};
 use std::ops::RangeInclusive;
 
 #[derive(Copy, Clone)]
 pub struct Byte();
-impl<'i> Parser<'i> for Byte {
+impl<'i> Leaf<'i> for Byte {
     type Output = u8;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         if let [byte, remaining @ ..] = input {
             Ok((*byte, remaining))
         } else {
@@ -18,13 +16,13 @@ impl<'i> Parser<'i> for Byte {
     }
 }
 
-/// Parser that consumes a single byte.
+/// [`Leaf`] parser that consumes a single byte.
 ///
 /// Not to be confused with [`u8`](super::u8), which parses a number in the range 0-255.
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser};
+/// # use utils::parser::{self, Leaf};
 /// assert_eq!(
 ///     parser::byte().parse(b"abcdef"),
 ///     Ok((b'a', &b"bcdef"[..]))
@@ -45,12 +43,11 @@ pub struct ByteLut<'a, O> {
     lut: &'a [Option<O>; 256],
     error: ParseError,
 }
-impl<'i, O: Copy> Parser<'i> for ByteLut<'_, O> {
+impl<'i, O: Copy> Leaf<'i> for ByteLut<'_, O> {
     type Output = O;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         if let [byte, remaining @ ..] = input
             && let Some(output) = self.lut[*byte as usize]
         {
@@ -61,7 +58,7 @@ impl<'i, O: Copy> Parser<'i> for ByteLut<'_, O> {
     }
 }
 
-/// Parser that consumes a single byte and maps it using a lookup table.
+/// [`Leaf`] parser that consumes a single byte and maps it using a lookup table.
 ///
 /// Equivalent to `parser::byte().map_res(|b| LOOKUP[b as usize].ok_or("expected ..."))`, which is
 /// usually faster than an equivalent match statement in the closure.
@@ -71,7 +68,7 @@ impl<'i, O: Copy> Parser<'i> for ByteLut<'_, O> {
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser, ParseError};
+/// # use utils::parser::{self, Leaf, ParseError};
 /// const LOOKUP: [Option<bool>; 256] = {
 ///     let mut x = [None; 256];
 ///     x['#' as usize] = Some(true);
@@ -95,12 +92,11 @@ pub struct ByteRange {
     min: u8,
     max: u8,
 }
-impl<'i> Parser<'i> for ByteRange {
+impl<'i> Leaf<'i> for ByteRange {
     type Output = u8;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         if let [byte, remaining @ ..] = input {
             if *byte >= self.min && *byte <= self.max {
                 Ok((*byte, remaining))
@@ -113,13 +109,13 @@ impl<'i> Parser<'i> for ByteRange {
     }
 }
 
-/// Parser that consumes a single byte in the supplied range.
+/// [`Leaf`] parser that consumes a single byte in the supplied range.
 ///
 /// See also [`number_range`](super::number_range) and [`byte`].
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser};
+/// # use utils::parser::{self, Leaf};
 /// assert_eq!(
 ///     parser::byte_range(b'a'..=b'z').parse(b"hello world"),
 ///     Ok((b'h', &b"ello world"[..]))
@@ -136,21 +132,20 @@ pub fn byte_range(range: RangeInclusive<u8>) -> ByteRange {
 
 #[derive(Copy, Clone)]
 pub struct Constant<V: Copy>(pub(super) V);
-impl<'i, V: Copy> Parser<'i> for Constant<V> {
+impl<'i, V: Copy> Leaf<'i> for Constant<V> {
     type Output = V;
-    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         Ok((self.0, input))
     }
 }
 
-/// Parser that consumes no input and always succeeds, returning the provided value.
+/// [`Leaf`] parser that consumes no input and always succeeds, returning the provided value.
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser};
+/// # use utils::parser::{self, Leaf};
 /// assert_eq!(
 ///     parser::constant(1).parse(b"abc"),
 ///     Ok((1, &b"abc"[..]))
@@ -162,11 +157,11 @@ pub fn constant<T: Copy>(v: T) -> Constant<T> {
     Constant(v)
 }
 
-/// Parser that consumes no input and always succeeds, returning [`()`](unit).
+/// [`Leaf`] parser that consumes no input and always succeeds, returning [`()`](unit).
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser};
+/// # use utils::parser::{self, Leaf};
 /// assert_eq!(
 ///     parser::noop().parse(b"abc"),
 ///     Ok(((), &b"abc"[..]))
@@ -183,31 +178,26 @@ pub fn noop() -> Constant<()> {
 
 #[derive(Copy, Clone)]
 pub struct Eof();
-impl<'i> Parser<'i> for Eof {
+impl<'i> Leaf<'i> for Eof {
     type Output = ();
-    type Then<T: Parser<'i>> = Unimplemented;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         match input {
             [] => Ok(((), input)),
             _ => Err((ParseError::ExpectedEof(), input)),
         }
     }
-
-    fn then<T: Parser<'i>>(self, _next: T) -> Self::Then<T> {
-        panic!("chaining after eof will never match");
-    }
 }
 
-/// Parser which matches the end of the input.
+/// [`Leaf`] parser which matches the end of the input.
 ///
 /// Useful when parsing a list and each item is separated by a separator, unless it is at the end of
 /// the input.
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser};
+/// # use utils::parser::{self, Leaf, Parser};
 /// assert_eq!(
 ///     parser::eof().parse(b""),
 ///     Ok(((), &b""[..]))
@@ -228,12 +218,11 @@ pub fn eof() -> Eof {
 
 #[derive(Copy, Clone)]
 pub struct Eol();
-impl<'i> Parser<'i> for Eol {
+impl<'i> Leaf<'i> for Eol {
     type Output = ();
-    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         match input {
             [b'\n', remaining @ ..] | [b'\r', b'\n', remaining @ ..] => Ok(((), remaining)),
             [] => Ok(((), input)),
@@ -242,13 +231,13 @@ impl<'i> Parser<'i> for Eol {
     }
 }
 
-/// Parser which matches newlines or the end of the input.
+/// [`Leaf`] parser which matches newlines or the end of the input.
 ///
 /// Matches both LF and CRLF line endings.
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser};
+/// # use utils::parser::{self, Leaf};
 /// assert_eq!(
 ///     parser::eol().parse(b"\nabc"),
 ///     Ok(((), &b"abc"[..]))
@@ -270,12 +259,11 @@ pub fn eol() -> Eol {
 
 #[derive(Copy, Clone)]
 pub struct TakeWhile<const N: usize>(fn(&u8) -> bool);
-impl<'i, const N: usize> Parser<'i> for TakeWhile<N> {
+impl<'i, const N: usize> Leaf<'i> for TakeWhile<N> {
     type Output = &'i [u8];
-    type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline]
-    fn parse(&self, input: &'i [u8]) -> ParseResult<'i, Self::Output> {
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let mut end = 0;
         while end < input.len() && self.0(&input[end]) {
             end += 1;
@@ -288,11 +276,11 @@ impl<'i, const N: usize> Parser<'i> for TakeWhile<N> {
     }
 }
 
-/// Parser for substrings consisting of bytes matching the provided function.
+/// [`Leaf`] parser for substrings matching the provided function.
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser};
+/// # use utils::parser::{self, Leaf};
 /// let parser = parser::take_while(u8::is_ascii_lowercase);
 /// assert_eq!(
 ///     parser.parse(b"abc def"),
@@ -309,11 +297,11 @@ pub fn take_while(f: fn(&u8) -> bool) -> TakeWhile<0> {
     TakeWhile(f)
 }
 
-/// Parser for non-empty substrings consisting of bytes matching the provided function.
+/// [`Leaf`] parser for non-empty substrings matching the provided function.
 ///
 /// # Examples
 /// ```
-/// # use utils::parser::{self, Parser};
+/// # use utils::parser::{self, Leaf};
 /// let parser = parser::take_while1(u8::is_ascii_lowercase);
 /// assert_eq!(
 ///     parser.parse(b"abc def"),

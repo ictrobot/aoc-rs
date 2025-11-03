@@ -1,4 +1,4 @@
-use utils::parser::ParseError;
+use utils::parser::{Leaf, LeafResult, ParseError};
 use utils::prelude::*;
 
 /// Calculating decompressed length.
@@ -11,12 +11,12 @@ pub struct Day09 {
 impl Day09 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
-            part1: Self::decompressed_length(input.as_bytes(), false).map_with_input(input)?,
-            part2: Self::decompressed_length(input.as_bytes(), true).map_with_input(input)?,
+            part1: Self::decompressed_length::<false>.parse_complete(input)?,
+            part2: Self::decompressed_length::<true>.parse_complete(input)?,
         })
     }
 
-    fn decompressed_length(mut input: &[u8], recursive: bool) -> Result<u64, (ParseError, &[u8])> {
+    fn decompressed_length<const RECURSIVE: bool>(mut input: &[u8]) -> LeafResult<'_, u64> {
         let mut len = 0;
 
         while !input.is_empty() {
@@ -34,8 +34,8 @@ impl Day09 {
                     ));
                 }
 
-                let repeated_len = if recursive {
-                    Self::decompressed_length(&input[..characters as usize], true)?
+                let repeated_len = if RECURSIVE {
+                    Self::decompressed_length::<true>(&input[..characters as usize])?.0
                 } else {
                     characters as u64
                 };
@@ -48,7 +48,7 @@ impl Day09 {
             }
         }
 
-        Ok(len)
+        Ok((len, input))
     }
 
     #[must_use]

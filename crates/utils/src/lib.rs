@@ -30,6 +30,6 @@ pub use wasm::multithreading;
 /// Standard imports for puzzle solutions.
 pub mod prelude {
     pub use crate::examples;
-    pub use crate::input::{InputError, InputType, MapWithInputExt as _};
+    pub use crate::input::{InputError, InputType};
     pub use crate::parser::{self, Parseable as _, Parser as _};
 }
