@@ -1,4 +1,4 @@
-//! 2D & 3D vector implementations.
+//! 2D, 3D and 4D vector implementations.
 
 use crate::number::{Integer, Number, Signed, UnsignedInteger};
 use std::fmt::Debug;
@@ -215,6 +215,12 @@ vec_impl! {3, (T, T, T) =>
     /// Struct representing a 3D vector or point.
     #[doc(alias("Vector3", "Point3", "Point3D"))]
     pub struct Vec3{0 => x, 1 => y, 2 => z}
+}
+
+vec_impl! {4, (T, T, T, T) =>
+    /// Struct representing a 4D vector or point.
+    #[doc(alias("Vector4", "Point4", "Point4D"))]
+    pub struct Vec4{0 => x, 1 => y, 2 => z, 3 => w}
 }
 
 /// Enum representing the four cardinal directions.
