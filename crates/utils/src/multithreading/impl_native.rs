@@ -1,8 +1,3 @@
-//! Multithreading helpers.
-//!
-//! The main purpose of this module is to allow the number of worker threads used by each puzzle
-//! solution to be controlled by a CLI argument.
-
 use std::num::NonZeroUsize;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
@@ -27,7 +22,8 @@ pub fn get_thread_count() -> NonZeroUsize {
 
 /// Set the number of worker threads to use.
 ///
-/// This will affect any future call to [`get_thread_count`].
+/// This will affect any future call to [`get_thread_count`], unless scoped tasks are enabled and
+/// the thread pool has already been created.
 pub fn set_thread_count(count: NonZeroUsize) {
     NUM_THREADS.store(count.get(), Relaxed);
 }
@@ -42,10 +38,34 @@ pub fn worker_pool(worker: impl Fn() + Copy + Send) {
     if threads == 1 {
         worker();
     } else {
-        std::thread::scope(|scope| {
-            for _ in 0..threads {
-                scope.spawn(worker);
-            }
-        });
+        #[cfg(feature = "scoped-tasks")]
+        {
+            use super::scoped_tasks;
+
+            static ONCE: std::sync::Once = std::sync::Once::new();
+            ONCE.call_once(|| {
+                for i in 0..threads {
+                    std::thread::Builder::new()
+                        .name(format!("worker-{i}"))
+                        .spawn(scoped_tasks::worker)
+                        .expect("failed to spawn worker thread");
+                }
+            });
+
+            scoped_tasks::scope(|scope| {
+                for _ in 0..threads {
+                    scope.spawn(worker);
+                }
+            });
+        }
+
+        #[cfg(not(feature = "scoped-tasks"))]
+        {
+            std::thread::scope(|scope| {
+                for _ in 0..threads {
+                    scope.spawn(worker);
+                }
+            });
+        }
     }
 }

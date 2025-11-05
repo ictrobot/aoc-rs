@@ -12,7 +12,6 @@ pub mod graph;
 pub mod grid;
 pub mod input;
 pub mod md5;
-#[cfg(not(target_family = "wasm"))]
 pub mod multithreading;
 pub mod multiversion;
 pub mod number;
@@ -20,12 +19,8 @@ pub mod parser;
 pub mod queue;
 pub mod simd;
 pub mod slice;
-#[cfg(target_family = "wasm")]
-pub mod wasm;
 
 pub use framework::{PuzzleDate, PuzzleExamples};
-#[cfg(target_family = "wasm")]
-pub use wasm::multithreading;
 
 /// Standard imports for puzzle solutions.
 pub mod prelude {

@@ -1,12 +1,11 @@
 use crate::all_puzzles;
 use utils::date::Date;
-use utils::input::strip_final_newline;
 
 // These imports are unused if none of the year features are enabled
 #[allow(clippy::allow_attributes, unused_imports)]
 use utils::{
     PuzzleDate,
-    input::{InputError, InputType},
+    input::{InputError, InputType, strip_final_newline},
 };
 
 /// Represents a wrapper function around a puzzle solution.

@@ -12,9 +12,5 @@ extern "C" fn allocate_stack(size: usize, align: usize) -> *mut u8 {
 /// Run worker thread.
 #[unsafe(no_mangle)]
 extern "C" fn worker_thread() {
-    #[cfg(target_family = "wasm")]
-    aoc::utils::wasm::scoped_tasks::worker();
-
-    #[cfg(not(target_family = "wasm"))]
-    panic!("worker_thread is not supported on this target");
+    aoc::utils::multithreading::scoped_tasks::worker();
 }

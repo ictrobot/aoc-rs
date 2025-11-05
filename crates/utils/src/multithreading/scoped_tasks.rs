@@ -1,27 +1,38 @@
-//! Experimental drop-in replacement for [`std::thread::scope`] for WebAssembly.
+//! Experimental replacement for [`std::thread::scope`] using a fixed worker pool.
 //!
-//! Uses a pool of web worker threads spawned by the host JS environment to run scoped tasks.
+//! *Scoped tasks* are similar to *scoped threads* but run on an existing thread pool instead of
+//! spawning dedicated threads.
+//!
+//! # WebAssembly support
+//!
+//! This module was originally designed for WebAssembly, where it can use a pool of
+//! [web worker](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API) threads spawned
+//! by the host JS environment to run scoped tasks.
 //!
 //! Requires the `atomics`, `bulk-memory` and `mutable-globals` target features to be enabled, and
 //! for all threads to be using web workers as `memory.atomic.wait` doesn't work on the main thread.
 //!
 //! Catching unwinding panics should be supported, but at the time of writing, the Rust standard
-//! library doesn't support panic=unwind on WebAssembly.
+//! library doesn't support `panic=unwind` on WebAssembly.
 //!
 //! # Examples
 //!
 //! ```
-//! // Setup pool of workers. In WebAssembly, this would be done by spawning more web workers which
-//! // then call the exported worker function.
+//! # use std::num::NonZero;
+//! # use std::sync::atomic::AtomicU32;
+//! # use std::sync::atomic::Ordering;
+//! # use utils::multithreading::scoped_tasks;
+//! // Setup pool of workers. In WebAssembly, where std::thread::spawn is not available, this would
+//! // be implemented by spawning more web workers which then call the exported worker function.
 //! for _ in 0..std::thread::available_parallelism().map_or(4, NonZero::get) {
-//!     std::thread::spawn(scoped::worker);
+//!     std::thread::spawn(scoped_tasks::worker);
 //! }
 //!
 //! let data = vec![1, 2, 3];
 //! let mut data2 = vec![10, 100, 1000];
 //!
 //! // Start scoped tasks which may run on other threads
-//! scoped::scope(|s| {
+//! scoped_tasks::scope(|s| {
 //!     s.spawn(|| {
 //!        println!("[task 1] data={:?}", data);
 //!     });
@@ -42,7 +53,7 @@
 //!
 //! // Start another set of scoped tasks
 //! let counter = AtomicU32::new(0);
-//! scoped::scope(|s| {
+//! scoped_tasks::scope(|s| {
 //!     let counter = &counter;
 //!     for t in 0..4 {
 //!         s.spawn(move || {
@@ -61,17 +72,14 @@ use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::sync::mpsc::{SyncSender, TrySendError};
 use std::sync::{Arc, Condvar, Mutex};
 
-#[cfg(not(all(
-    target_feature = "atomics",
-    target_feature = "bulk-memory",
-    target_feature = "mutable-globals",
-)))]
-compile_error!("Required target features not enabled");
-
 /// Create a scope for spawning scoped tasks.
 ///
 /// Scoped tasks may borrow non-`static` data, and may run in parallel depending on thread pool
 /// worker availability.
+///
+/// All scoped tasks are automatically joined before this function returns.
+///
+/// Designed to match the [`std::thread::scope`] API.
 #[inline(never)]
 pub fn scope<'env, F, T>(f: F) -> T
 where
@@ -103,6 +111,8 @@ where
 
 /// Scope to spawn tasks in.
 ///
+/// Designed to match the [`std::thread::Scope`] API.
+///
 /// # Lifetimes
 ///
 /// The `'scope` lifetime represents the lifetime of the scope itself, starting when the closure
@@ -111,6 +121,7 @@ where
 /// The `'env` lifetime represents the lifetime of the data borrowed by the scoped tasks, and must
 /// outlive `'scope`.
 #[derive(Debug)]
+#[expect(clippy::struct_field_names)]
 pub struct Scope<'scope, 'env: 'scope> {
     data: Arc<ScopeData>,
     // &'scope mut &'scope is needed to prevent lifetimes from shrinking
@@ -118,12 +129,28 @@ pub struct Scope<'scope, 'env: 'scope> {
     _env: PhantomData<&'env mut &'env ()>,
 }
 
-impl<'scope, 'env> Scope<'scope, 'env> {
+impl<'scope> Scope<'scope, '_> {
     /// Spawn a new task within the scope.
     ///
     /// If no workers within the thread pool are available, the task will be executed on the current
     /// thread.
     pub fn spawn<F, T>(&'scope self, f: F) -> ScopedJoinHandle<'scope, T>
+    where
+        F: FnOnce() -> T + Send + 'scope,
+        T: Send + 'scope,
+    {
+        let (closure, handle) = self.create_closure(f);
+        if let Err(closure) = try_queue_task(closure) {
+            // Fall back to running the closure on this thread
+            closure();
+        }
+        handle
+    }
+
+    fn create_closure<F, T>(
+        &'scope self,
+        f: F,
+    ) -> (Box<dyn FnOnce() + Send>, ScopedJoinHandle<'scope, T>)
     where
         F: FnOnce() -> T + Send + 'scope,
         T: Send + 'scope,
@@ -162,19 +189,15 @@ impl<'scope, 'env> Scope<'scope, 'env> {
         };
 
         let scope_data = self.data.clone();
-        scoped_task(Box::new(
-            #[inline(never)]
-            move || {
-                // Use a second closure to ensure that the closure which borrows from 'scope is
-                // dropped before `ScopeData::task_end` is called. This prevents `scope` from
-                // returning too soon, while the closures still exist, which causes UB as detected
-                // by Miri.
-                let panicked = closure();
-                scope_data.task_end(panicked);
-            },
-        ));
+        let task_closure = Box::new(move || {
+            // Use a second closure to ensure that the closure which borrows from 'scope is dropped
+            // before `ScopeData::task_end` is called. This prevents `scope()` from returning while
+            // the inner closure still exists, which causes UB as detected by Miri.
+            let panicked = closure();
+            scope_data.task_end(panicked);
+        });
 
-        handle
+        (task_closure, handle)
     }
 }
 
@@ -210,6 +233,10 @@ impl ScopeData {
 }
 
 /// Handle to block on a task's termination.
+///
+/// Designed to match the [`std::thread::ScopedJoinHandle`] API, except
+/// [`std::thread::ScopedJoinHandle::thread`] is not supported as tasks are not run on dedicated
+/// threads.
 #[derive(Debug)]
 pub struct ScopedJoinHandle<'scope, T> {
     data: Arc<HandleData<T>>,
@@ -222,10 +249,7 @@ struct HandleData<T> {
     condvar: Condvar,
 }
 
-impl<'scope, T> ScopedJoinHandle<'scope, T> {
-    // Unsupported
-    // pub fn thread(&self) -> &Thread {}
-
+impl<T> ScopedJoinHandle<'_, T> {
     /// Wait for the task to finish.
     pub fn join(self) -> Result<T, Box<dyn Any + Send + 'static>> {
         let HandleData { mutex, condvar } = self.data.as_ref();
@@ -246,7 +270,7 @@ impl<'scope, T> ScopedJoinHandle<'scope, T> {
 #[expect(clippy::type_complexity)]
 static WORKERS: Mutex<VecDeque<SyncSender<Box<dyn FnOnce() + Send>>>> = Mutex::new(VecDeque::new());
 
-fn scoped_task(mut closure: Box<dyn FnOnce() + Send>) {
+fn try_queue_task(mut closure: Box<dyn FnOnce() + Send>) -> Result<(), Box<dyn FnOnce() + Send>> {
     let mut guard = WORKERS.lock().unwrap();
     let queue = &mut *guard;
 
@@ -258,7 +282,7 @@ fn scoped_task(mut closure: Box<dyn FnOnce() + Send>) {
         match sender.try_send(closure) {
             Ok(()) => {
                 queue.push_back(sender);
-                return;
+                return Ok(());
             }
             Err(TrySendError::Full(v)) => {
                 closure = v;
@@ -272,11 +296,12 @@ fn scoped_task(mut closure: Box<dyn FnOnce() + Send>) {
     }
     drop(guard);
 
-    // Fall back to run the closure on this thread
-    closure();
+    Err(closure)
 }
 
 /// Use this thread as a worker in the thread pool for scoped tasks.
+///
+/// This function never returns.
 pub fn worker() {
     let (tx, rx) = std::sync::mpsc::sync_channel(0);
 
