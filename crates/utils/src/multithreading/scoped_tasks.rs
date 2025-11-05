@@ -87,7 +87,7 @@ where
 {
     let scope = Scope {
         data: Arc::new(ScopeData {
-            mutex: Mutex::new((0, false)),
+            mutex: Mutex::new(ScopeCounts::default()),
             condvar: Condvar::new(),
         }),
         _scope: PhantomData,
@@ -98,13 +98,13 @@ where
 
     // Wait for tasks to finish
     let mut guard = scope.data.mutex.lock().unwrap();
-    while guard.0 > 0 {
+    while guard.running > 0 {
         guard = scope.data.condvar.wait(guard).unwrap();
     }
 
     match result {
         Err(e) => resume_unwind(e),
-        Ok(_) if guard.1 => panic!("scoped task panicked"),
+        Ok(_) if guard.unhandled_panics > 0 => panic!("scoped task panicked"),
         Ok(x) => x,
     }
 }
@@ -162,30 +162,36 @@ impl<'scope> Scope<'scope, '_> {
                 mutex: Mutex::new(None),
                 condvar: Condvar::new(),
             }),
+            scope_data: self.data.clone(),
             _scope: PhantomData,
         };
 
         let handle_data = handle.data.clone();
-        let closure: Box<dyn FnOnce() -> bool + Send + 'scope> = Box::new(
+        let scope_data = self.data.clone();
+        let closure: Box<dyn FnOnce() + Send + 'scope> = Box::new(
             #[inline(never)]
             move || {
                 let result = catch_unwind(AssertUnwindSafe(f));
-                let panicked = result.is_err();
+
+                if result.is_err() {
+                    // Updating the panic count must happen before updating the handle data, to
+                    // avoid the handle being joined in another thread which then tries to decrement
+                    // the unhandled panic count before it is incremented
+                    scope_data.task_panicked();
+                }
 
                 // Send the result to ScopedJoinHandle and wake any blocked threads
                 let HandleData { mutex, condvar } = handle_data.as_ref();
                 let mut guard = mutex.lock().unwrap();
                 *guard = Some(result);
                 condvar.notify_all();
-
-                panicked
             },
         );
 
         // SAFETY: The `scope` function ensures all closures are finished before returning
         let closure = unsafe {
             #[expect(clippy::unnecessary_cast, reason = "casting lifetimes")]
-            Box::from_raw(Box::into_raw(closure) as *mut (dyn FnOnce() -> bool + Send + 'static))
+            Box::from_raw(Box::into_raw(closure) as *mut (dyn FnOnce() + Send + 'static))
         };
 
         let scope_data = self.data.clone();
@@ -193,41 +199,64 @@ impl<'scope> Scope<'scope, '_> {
             // Use a second closure to ensure that the closure which borrows from 'scope is dropped
             // before `ScopeData::task_end` is called. This prevents `scope()` from returning while
             // the inner closure still exists, which causes UB as detected by Miri.
-            let panicked = closure();
-            scope_data.task_end(panicked);
+            closure();
+            scope_data.task_end();
         });
 
         (task_closure, handle)
     }
 }
 
-// Stores the number of currently running tasks, and if a panic occurred.
+// Stores the number of currently running tasks and unhandled panics.
 #[derive(Debug)]
 struct ScopeData {
-    mutex: Mutex<(usize, bool)>,
+    mutex: Mutex<ScopeCounts>,
     condvar: Condvar,
+}
+
+#[derive(Debug, Default)]
+struct ScopeCounts {
+    running: usize,
+    unhandled_panics: usize,
 }
 
 impl ScopeData {
     fn task_start(&self) {
         let mut guard = self.mutex.lock().unwrap();
-        if let Some(new_running) = guard.0.checked_add(1) {
-            guard.0 = new_running;
+        if let Some(new_running) = guard.running.checked_add(1) {
+            guard.running = new_running;
         } else {
             panic!("too many running tasks in scope");
         }
     }
 
-    fn task_end(&self, panicked: bool) {
+    fn task_end(&self) {
         let mut guard = self.mutex.lock().unwrap();
-        guard.1 |= panicked;
-        if let Some(new_running) = guard.0.checked_sub(1) {
-            guard.0 = new_running;
+        if let Some(new_running) = guard.running.checked_sub(1) {
+            guard.running = new_running;
             if new_running == 0 {
                 self.condvar.notify_all();
             }
         } else {
             panic!("more tasks finished than started?")
+        }
+    }
+
+    fn task_panicked(&self) {
+        let mut guard = self.mutex.lock().unwrap();
+        if let Some(new_panicked) = guard.unhandled_panics.checked_add(1) {
+            guard.unhandled_panics = new_panicked;
+        } else {
+            panic!("too many panicking tasks in scope");
+        }
+    }
+
+    fn panic_joined(&self) {
+        let mut guard = self.mutex.lock().unwrap();
+        if let Some(new_panicked) = guard.unhandled_panics.checked_sub(1) {
+            guard.unhandled_panics = new_panicked;
+        } else {
+            panic!("more panics joined than tasks panicked?")
         }
     }
 }
@@ -240,6 +269,7 @@ impl ScopeData {
 #[derive(Debug)]
 pub struct ScopedJoinHandle<'scope, T> {
     data: Arc<HandleData<T>>,
+    scope_data: Arc<ScopeData>,
     _scope: PhantomData<&'scope mut &'scope ()>,
 }
 
@@ -251,13 +281,25 @@ struct HandleData<T> {
 
 impl<T> ScopedJoinHandle<'_, T> {
     /// Wait for the task to finish.
+    ///
+    /// The [`Err`] variant contains the panic value if the task panicked.
     pub fn join(self) -> Result<T, Box<dyn Any + Send + 'static>> {
-        let HandleData { mutex, condvar } = self.data.as_ref();
-        let mut guard = mutex.lock().unwrap();
-        while guard.is_none() {
-            guard = condvar.wait(guard).unwrap();
+        let result = {
+            let HandleData { mutex, condvar } = self.data.as_ref();
+            let mut guard = mutex.lock().unwrap();
+            loop {
+                if let Some(result) = guard.take() {
+                    break result;
+                }
+                guard = condvar.wait(guard).unwrap();
+            }
+        };
+
+        if result.is_err() {
+            self.scope_data.panic_joined();
         }
-        guard.take().unwrap()
+
+        result
     }
 
     /// Check if the task is finished.
