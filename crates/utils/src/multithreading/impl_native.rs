@@ -22,8 +22,7 @@ pub fn get_thread_count() -> NonZeroUsize {
 
 /// Set the number of worker threads to use.
 ///
-/// This will affect any future call to [`get_thread_count`], unless scoped tasks are enabled and
-/// the thread pool has already been created.
+/// This will affect any future call to [`get_thread_count`].
 pub fn set_thread_count(count: NonZeroUsize) {
     NUM_THREADS.store(count.get(), Relaxed);
 }
@@ -40,31 +39,21 @@ pub fn worker_pool(worker: impl Fn() + Copy + Send) {
     } else {
         #[cfg(feature = "scoped-tasks")]
         {
-            use super::scoped_tasks;
-
-            static ONCE: std::sync::Once = std::sync::Once::new();
-            ONCE.call_once(|| {
-                for i in 0..threads {
-                    std::thread::Builder::new()
-                        .name(format!("worker-{i}"))
-                        .spawn(scoped_tasks::worker)
-                        .expect("failed to spawn worker thread");
+            super::scoped_tasks::scope(|scope| {
+                for _ in 1..threads {
+                    scope.force_spawn(worker);
                 }
-            });
-
-            scoped_tasks::scope(|scope| {
-                for _ in 0..threads {
-                    scope.spawn(worker);
-                }
+                worker();
             });
         }
 
         #[cfg(not(feature = "scoped-tasks"))]
         {
-            std::thread::scope(|scope| {
-                for _ in 0..threads {
+            std::thread::scope(move |scope| {
+                for _ in 1..threads {
                     scope.spawn(worker);
                 }
+                worker();
             });
         }
     }

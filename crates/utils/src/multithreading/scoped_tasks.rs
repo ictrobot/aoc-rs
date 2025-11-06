@@ -69,6 +69,7 @@ use std::any::Any;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::mpsc::{SyncSender, TrySendError};
 use std::sync::{Arc, Condvar, Mutex};
 
@@ -111,7 +112,7 @@ where
 
 /// Scope to spawn tasks in.
 ///
-/// Designed to match the [`std::thread::Scope`] API.
+/// [`Scope::spawn()`] is designed to match the [`std::thread::Scope`] API.
 ///
 /// # Lifetimes
 ///
@@ -143,6 +144,55 @@ impl<'scope> Scope<'scope, '_> {
         if let Err(closure) = try_queue_task(closure) {
             // Fall back to running the closure on this thread
             closure();
+        }
+        handle
+    }
+
+    /// Spawn a new task within the scope if there is a worker available.
+    ///
+    /// If no workers within the thread pool are available, the task will not be executed and
+    /// [`None`] will be returned.
+    pub fn try_spawn<F, T>(&'scope self, f: F) -> Option<ScopedJoinHandle<'scope, T>>
+    where
+        F: FnOnce() -> T + Send + 'scope,
+        T: Send + 'scope,
+    {
+        let (closure, handle) = self.create_closure(f);
+        if let Ok(()) = try_queue_task(closure) {
+            Some(handle)
+        } else {
+            // Closure will never be run
+            self.data.task_end();
+
+            None
+        }
+    }
+
+    /// Spawn a new task within the scope, spawning a new worker if necessary.
+    ///
+    /// This function is not available on WebAssembly, as new threads have to be created from the
+    /// host JS environment.
+    #[cfg(not(target_family = "wasm"))]
+    pub fn force_spawn<F, T>(&'scope self, f: F) -> ScopedJoinHandle<'scope, T>
+    where
+        F: FnOnce() -> T + Send + 'scope,
+        T: Send + 'scope,
+    {
+        let (closure, handle) = self.create_closure(f);
+        if let Err(closure) = try_queue_task(closure) {
+            // Start a worker to process this closure and then join the pool.
+            static THREAD_NUM: AtomicU32 = AtomicU32::new(1);
+            std::thread::Builder::new()
+                .name(format!(
+                    "scoped-tasks-{}",
+                    THREAD_NUM.fetch_add(1, Ordering::Relaxed)
+                ))
+                .spawn(move || {
+                    // Pass the closure directly to the new worker to avoid race conditions where
+                    // another scope queues a closure before this one.
+                    worker_impl(closure);
+                })
+                .expect("failed to spawn worker thread");
         }
         handle
     }
@@ -345,6 +395,12 @@ fn try_queue_task(mut closure: Box<dyn FnOnce() + Send>) -> Result<(), Box<dyn F
 ///
 /// This function never returns.
 pub fn worker() {
+    worker_impl(|| {});
+}
+
+fn worker_impl(initial: impl FnOnce() + Send) {
+    initial();
+
     let (tx, rx) = std::sync::mpsc::sync_channel(0);
 
     {
