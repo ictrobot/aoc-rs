@@ -69,7 +69,7 @@ use std::any::Any;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
 use std::sync::mpsc::{SyncSender, TrySendError};
 use std::sync::{Arc, Condvar, Mutex};
 
@@ -87,25 +87,19 @@ where
     F: for<'scope> FnOnce(&'scope Scope<'scope, 'env>) -> T,
 {
     let scope = Scope {
-        data: Arc::new(ScopeData {
-            mutex: Mutex::new(ScopeCounts::default()),
-            condvar: Condvar::new(),
-        }),
+        running: Arc::default(),
+        panicked: Arc::default(),
         _scope: PhantomData,
         _env: PhantomData,
     };
 
     let result = catch_unwind(AssertUnwindSafe(|| f(&scope)));
 
-    // Wait for tasks to finish
-    let mut guard = scope.data.mutex.lock().unwrap();
-    while guard.running > 0 {
-        guard = scope.data.condvar.wait(guard).unwrap();
-    }
+    scope.running.wait_for_tasks();
 
     match result {
         Err(e) => resume_unwind(e),
-        Ok(_) if guard.unhandled_panics > 0 => panic!("scoped task panicked"),
+        Ok(_) if scope.panicked.did_panic() => panic!("scoped task panicked"),
         Ok(x) => x,
     }
 }
@@ -124,7 +118,8 @@ where
 #[derive(Debug)]
 #[expect(clippy::struct_field_names)]
 pub struct Scope<'scope, 'env: 'scope> {
-    data: Arc<ScopeData>,
+    running: Arc<ScopeRunning>,
+    panicked: Arc<ScopePanicked>,
     // &'scope mut &'scope is needed to prevent lifetimes from shrinking
     _scope: PhantomData<&'scope mut &'scope ()>,
     _env: PhantomData<&'env mut &'env ()>,
@@ -162,7 +157,7 @@ impl<'scope> Scope<'scope, '_> {
             Some(handle)
         } else {
             // Closure will never be run
-            self.data.task_end();
+            self.running.task_finished();
 
             None
         }
@@ -205,38 +200,29 @@ impl<'scope> Scope<'scope, '_> {
         F: FnOnce() -> T + Send + 'scope,
         T: Send + 'scope,
     {
-        self.data.task_start();
+        self.running.task_created();
 
         let handle = ScopedJoinHandle {
-            data: Arc::new(HandleData {
+            data: Arc::new(TaskResult {
                 mutex: Mutex::new(None),
                 condvar: Condvar::new(),
+                scope_panicked: self.panicked.clone(),
             }),
-            scope_data: self.data.clone(),
             _scope: PhantomData,
         };
 
-        let handle_data = handle.data.clone();
-        let scope_data = self.data.clone();
-        let closure: Box<dyn FnOnce() + Send + 'scope> = Box::new(
-            #[inline(never)]
-            move || {
-                let result = catch_unwind(AssertUnwindSafe(f));
+        let task_result = handle.data.clone();
+        let scope_running = self.running.clone();
+        let closure: Box<dyn FnOnce() + Send + 'scope> = Box::new(move || {
+            task_result.store(catch_unwind(AssertUnwindSafe(f)));
 
-                if result.is_err() {
-                    // Updating the panic count must happen before updating the handle data, to
-                    // avoid the handle being joined in another thread which then tries to decrement
-                    // the unhandled panic count before it is incremented
-                    scope_data.task_panicked();
-                }
+            // If the JoinHandle has already been dropped, this will drop the TaskResult inside the
+            // Arc, dropping the result and storing if an unhandled panic occurred.
+            drop(task_result);
 
-                // Send the result to ScopedJoinHandle and wake any blocked threads
-                let HandleData { mutex, condvar } = handle_data.as_ref();
-                let mut guard = mutex.lock().unwrap();
-                *guard = Some(result);
-                condvar.notify_all();
-            },
-        );
+            // Mark the task as finished after all the borrows from the environment are dropped.
+            scope_running.task_finished();
+        });
 
         // SAFETY: The `scope` function ensures all closures are finished before returning
         let closure = unsafe {
@@ -244,70 +230,114 @@ impl<'scope> Scope<'scope, '_> {
             Box::from_raw(Box::into_raw(closure) as *mut (dyn FnOnce() + Send + 'static))
         };
 
-        let scope_data = self.data.clone();
-        let task_closure = Box::new(move || {
-            // Use a second closure to ensure that the closure which borrows from 'scope is dropped
-            // before `ScopeData::task_end` is called. This prevents `scope()` from returning while
-            // the inner closure still exists, which causes UB as detected by Miri.
-            closure();
-            scope_data.task_end();
-        });
-
-        (task_closure, handle)
+        (closure, handle)
     }
 }
 
-// Stores the number of currently running tasks and unhandled panics.
-#[derive(Debug)]
-struct ScopeData {
-    mutex: Mutex<ScopeCounts>,
-    condvar: Condvar,
-}
-
+/// Stores the number of currently running tasks.
 #[derive(Debug, Default)]
-struct ScopeCounts {
-    running: usize,
-    unhandled_panics: usize,
+struct ScopeRunning {
+    counter: AtomicUsize,
+    wait_mutex: Mutex<()>,
+    wait_condvar: Condvar,
 }
 
-impl ScopeData {
-    fn task_start(&self) {
-        let mut guard = self.mutex.lock().unwrap();
-        if let Some(new_running) = guard.running.checked_add(1) {
-            guard.running = new_running;
-        } else {
-            panic!("too many running tasks in scope");
-        }
+impl ScopeRunning {
+    fn task_created(&self) {
+        self.counter.fetch_add(1, Ordering::AcqRel);
     }
 
-    fn task_end(&self) {
-        let mut guard = self.mutex.lock().unwrap();
-        if let Some(new_running) = guard.running.checked_sub(1) {
-            guard.running = new_running;
-            if new_running == 0 {
-                self.condvar.notify_all();
-            }
-        } else {
+    fn task_finished(&self) {
+        let prev = self.counter.fetch_sub(1, Ordering::AcqRel);
+        if prev == 1 {
+            self.wait_condvar.notify_all();
+        } else if prev == 0 {
             panic!("more tasks finished than started?")
         }
     }
 
-    fn task_panicked(&self) {
+    fn wait_for_tasks(&self) {
+        let mut guard = self.wait_mutex.lock().unwrap();
+        while self.counter.load(Ordering::Acquire) > 0 {
+            guard = self.wait_condvar.wait(guard).unwrap();
+        }
+    }
+}
+
+/// Stores whether any of the tasks panicked.
+#[derive(Debug, Default)]
+struct ScopePanicked {
+    value: AtomicBool,
+}
+
+impl ScopePanicked {
+    fn store_panic(&self) {
+        self.value.store(true, Ordering::Release);
+    }
+
+    fn did_panic(&self) -> bool {
+        self.value.load(Ordering::Acquire)
+    }
+}
+
+/// Stores the result of a task, ensuring the result is dropped safely and [`ScopePanicked`] is
+/// updated.
+#[derive(Debug)]
+struct TaskResult<T> {
+    mutex: Mutex<Option<Result<T, Box<dyn Any + Send + 'static>>>>,
+    condvar: Condvar,
+    scope_panicked: Arc<ScopePanicked>,
+}
+
+impl<T> TaskResult<T> {
+    fn store(&self, result: Result<T, Box<dyn Any + Send + 'static>>) {
         let mut guard = self.mutex.lock().unwrap();
-        if let Some(new_panicked) = guard.unhandled_panics.checked_add(1) {
-            guard.unhandled_panics = new_panicked;
-        } else {
-            panic!("too many panicking tasks in scope");
+        *guard = Some(result);
+        self.condvar.notify_all();
+    }
+
+    fn wait_and_take(&self) -> Result<T, Box<dyn Any + Send + 'static>> {
+        let mut guard = self.mutex.lock().unwrap();
+        loop {
+            if let Some(result) = guard.take() {
+                return result;
+            }
+            guard = self.condvar.wait(guard).unwrap();
         }
     }
 
-    fn panic_joined(&self) {
-        let mut guard = self.mutex.lock().unwrap();
-        if let Some(new_panicked) = guard.unhandled_panics.checked_sub(1) {
-            guard.unhandled_panics = new_panicked;
-        } else {
-            panic!("more panics joined than tasks panicked?")
+    fn is_finished(&self) -> bool {
+        self.mutex.lock().unwrap().is_some()
+    }
+}
+
+impl<T> Drop for TaskResult<T> {
+    #[expect(clippy::print_stderr)]
+    fn drop(&mut self) {
+        let Some(result) = self
+            .mutex
+            .get_mut()
+            .expect("worker panicked while storing result")
+            .take()
+        else {
+            return; // Result was already taken and handled
+        };
+
+        let panic;
+        match result {
+            Ok(v) => match catch_unwind(AssertUnwindSafe(|| drop(v))) {
+                Ok(()) => return,
+                Err(e) => panic = e,
+            },
+            Err(e) => panic = e,
         }
+
+        if let Err(_panic) = catch_unwind(AssertUnwindSafe(|| drop(panic))) {
+            eprintln!("panic while dropping scoped task panic");
+            std::process::abort();
+        }
+
+        self.scope_panicked.store_panic();
     }
 }
 
@@ -318,15 +348,8 @@ impl ScopeData {
 /// threads.
 #[derive(Debug)]
 pub struct ScopedJoinHandle<'scope, T> {
-    data: Arc<HandleData<T>>,
-    scope_data: Arc<ScopeData>,
+    data: Arc<TaskResult<T>>,
     _scope: PhantomData<&'scope mut &'scope ()>,
-}
-
-#[derive(Debug)]
-struct HandleData<T> {
-    mutex: Mutex<Option<Result<T, Box<dyn Any + Send + 'static>>>>,
-    condvar: Condvar,
 }
 
 impl<T> ScopedJoinHandle<'_, T> {
@@ -334,28 +357,13 @@ impl<T> ScopedJoinHandle<'_, T> {
     ///
     /// The [`Err`] variant contains the panic value if the task panicked.
     pub fn join(self) -> Result<T, Box<dyn Any + Send + 'static>> {
-        let result = {
-            let HandleData { mutex, condvar } = self.data.as_ref();
-            let mut guard = mutex.lock().unwrap();
-            loop {
-                if let Some(result) = guard.take() {
-                    break result;
-                }
-                guard = condvar.wait(guard).unwrap();
-            }
-        };
-
-        if result.is_err() {
-            self.scope_data.panic_joined();
-        }
-
-        result
+        self.data.wait_and_take()
     }
 
     /// Check if the task is finished.
     #[must_use]
     pub fn is_finished(&self) -> bool {
-        self.data.mutex.lock().unwrap().is_some()
+        self.data.is_finished()
     }
 }
 
@@ -386,7 +394,6 @@ fn try_queue_task(mut closure: Box<dyn FnOnce() + Send>) -> Result<(), Box<dyn F
             }
         }
     }
-    drop(guard);
 
     Err(closure)
 }
