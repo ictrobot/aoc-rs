@@ -30,12 +30,7 @@ extern "C" fn run_puzzle(
 ) -> bool {
     ONCE_PANIC_HANDLER.call_once(|| {
         std::panic::set_hook(Box::new(|info| {
-            let payload = info.payload();
-            let error: &str = if let Some(s) = payload.downcast_ref::<&str>() {
-                s
-            } else if let Some(s) = payload.downcast_ref::<String>() {
-                s
-            } else {
+            let Some(error) = info.payload_as_str() else {
                 return;
             };
 
