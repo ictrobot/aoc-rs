@@ -16,6 +16,7 @@ year2017 = { path = "../year2017", optional = true }
 year2018 = { path = "../year2018", optional = true }
 year2019 = { path = "../year2019", optional = true }
 year2024 = { path = "../year2024", optional = true }
+year2025 = { path = "../year2025", optional = true }
 
 [features]
 default = ["all-years", "all-simd", "unsafe", "test-runner"]
@@ -23,8 +24,8 @@ const_lut = ["year2024?/const_lut"]
 all-simd = ["utils/all-simd"]
 test-runner = []
 # xtask update features
-all-years = ["year2015", "year2016", "year2017", "year2018", "year2019", "year2024"]
-unsafe = ["year2015?/unsafe", "year2016?/unsafe", "year2017?/unsafe", "year2018?/unsafe", "year2019?/unsafe", "year2024?/unsafe", "utils/unsafe"]
+all-years = ["year2015", "year2016", "year2017", "year2018", "year2019", "year2024", "year2025"]
+unsafe = ["year2015?/unsafe", "year2016?/unsafe", "year2017?/unsafe", "year2018?/unsafe", "year2019?/unsafe", "year2024?/unsafe", "year2025?/unsafe", "utils/unsafe"]
 
 [lints]
 workspace = true

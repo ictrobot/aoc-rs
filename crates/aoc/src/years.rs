@@ -35,6 +35,10 @@ pub mod year2019 {
 pub mod year2024 {
     pub use ::utils::puzzles_noop as puzzles;
 }
+#[cfg(not(feature = "year2025"))]
+pub mod year2025 {
+    pub use ::utils::puzzles_noop as puzzles;
+}
 #[cfg(feature = "year2015")]
 pub use ::year2015;
 #[cfg(feature = "year2016")]
@@ -47,6 +51,8 @@ pub use ::year2018;
 pub use ::year2019;
 #[cfg(feature = "year2024")]
 pub use ::year2024;
+#[cfg(feature = "year2025")]
+pub use ::year2025;
 
 /// Macro which invokes a callback macro with a list of all implemented puzzle solutions.
 ///
@@ -119,6 +125,7 @@ macro_rules! all_puzzles {
                 $crate::year2018::puzzles,
                 $crate::year2019::puzzles,
                 $crate::year2024::puzzles,
+                $crate::year2025::puzzles,
 
                 $callback
             ]

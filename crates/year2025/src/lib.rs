@@ -1,0 +1,6 @@
+#![doc = include_str!("../README.md")]
+#![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
+
+utils::year!(2025 => year2025, ${
+    1 => day01::Day01,
+});
