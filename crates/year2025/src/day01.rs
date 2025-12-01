@@ -3,7 +3,8 @@ use utils::prelude::*;
 /// Counting how many times a dial passes zero.
 #[derive(Clone, Debug)]
 pub struct Day01 {
-    turns: Vec<(Direction, i32)>,
+    part1: u32,
+    part2: u32,
 }
 
 parser::parsable_enum! {
@@ -16,36 +17,35 @@ parser::parsable_enum! {
 
 impl Day01 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        Ok(Self {
-            turns: Direction::PARSER
-                .then(parser::number_range(1i32..=999))
-                .parse_lines(input)?,
-        })
+        let mut pos = 50i32;
+        let (mut part1, mut part2) = (0, 0);
+        for line in Direction::PARSER
+            .then(parser::number_range(1i32..=999))
+            .with_eol()
+            .parse_iterator(input)
+        {
+            let (dir, steps) = line?;
+
+            part2 += match dir {
+                Direction::Left => ((100 - pos + steps) / 100) as u32 - u32::from(pos == 0),
+                Direction::Right => ((pos + steps) / 100) as u32,
+            };
+
+            pos = (pos + (steps * dir as i32)).rem_euclid(100);
+            part1 += u32::from(pos == 0);
+        }
+
+        Ok(Self { part1, part2 })
     }
 
     #[must_use]
     pub fn part1(&self) -> u32 {
-        let mut zero_count = 0;
-        let mut pos = 50;
-        for &(dir, steps) in &self.turns {
-            pos = (pos + (steps * dir as i32)).rem_euclid(100);
-            zero_count += u32::from(pos == 0);
-        }
-        zero_count
+        self.part1
     }
 
     #[must_use]
     pub fn part2(&self) -> u32 {
-        let mut zero_count = 0;
-        let mut pos = 50;
-        for &(dir, steps) in &self.turns {
-            zero_count += match dir {
-                Direction::Left => ((100 - pos + steps) / 100) as u32 - u32::from(pos == 0),
-                Direction::Right => ((pos + steps) / 100) as u32,
-            };
-            pos = (pos + (steps * dir as i32)).rem_euclid(100);
-        }
-        zero_count
+        self.part2
     }
 }
 
