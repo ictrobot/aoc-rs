@@ -28,103 +28,72 @@ impl Day02 {
 
     fn invalid_id_sum(&self, repeat_filter: impl Fn(u32) -> bool) -> u64 {
         let mut total = 0;
-        let mut streams = Vec::new();
+        let mut patterns = Vec::new();
 
         for &[start, end] in &self.input {
-            let min_digits = start.ilog10() + 1;
-            let max_digits = end.ilog10() + 1;
-            for pattern_digits in 1..=max_digits / 2 {
-                for digits in (min_digits.next_multiple_of(pattern_digits)..=max_digits)
-                    .step_by(pattern_digits as usize)
+            let min_digits = start.checked_ilog10().unwrap_or(0) + 1;
+            let max_digits = end.checked_ilog10().unwrap_or(0) + 1;
+            for repeat_digits in 1..=max_digits / 2 {
+                for digits in (min_digits.next_multiple_of(repeat_digits)..=max_digits)
+                    .step_by(repeat_digits as usize)
                 {
-                    let repeats = digits / pattern_digits;
+                    let repeats = digits / repeat_digits;
                     if !repeat_filter(repeats) {
                         continue;
                     }
 
-                    let pow10 = 10u64.pow(pattern_digits);
-                    let block = if digits == min_digits {
-                        start / 10u64.pow(min_digits - pattern_digits)
+                    let pow10 = 10u64.pow(repeat_digits);
+
+                    // Mask that repeats the pattern (e.g. 1,001,001 for 3x 3 digits)
+                    let repeat_mask = (0..repeats).fold(0, |acc, _| acc * pow10 + 1);
+
+                    // Smallest number matching the repeated pattern that is >= start
+                    let range_start = if digits == min_digits {
+                        // Repeat the highest N digits of start, + repeat_mask if smaller than the start
+                        let x = (start / 10u64.pow(min_digits - repeat_digits)) * repeat_mask;
+                        if x < start { x + repeat_mask } else { x }
                     } else {
-                        pow10 / 10
+                        (pow10 / 10) * repeat_mask
                     };
 
-                    streams.push(
-                        RepeatingIdStream {
-                            block,
-                            pow10,
-                            repeats,
-                            range_start: start,
-                            range_end: end,
-                        }
-                        .peekable(),
-                    )
+                    // Largest number matching the repeated pattern that is <= end
+                    let range_end = if digits == max_digits {
+                        let x = (end / 10u64.pow(max_digits - repeat_digits)) * repeat_mask;
+                        x.min(end)
+                    } else {
+                        (pow10 - 1) * repeat_mask
+                    };
+
+                    if range_start > range_end || range_end > end {
+                        continue;
+                    }
+
+                    patterns.push((range_start, range_end, repeat_mask));
                 }
             }
 
-            let mut previous_min = None;
-            loop {
-                let mut min = None;
-
-                // Advance past previous_min (if any), find the next min, and remove any empy streams
-                streams.retain_mut(|s| {
-                    if s.peek().copied() == previous_min {
-                        let _ = s.next();
-                    }
-
-                    if let Some(&next) = s.peek() {
-                        if min.is_none_or(|n| n > next) {
-                            min = Some(next);
-                        }
-                        true
-                    } else {
-                        false
-                    }
-                });
-
-                let Some(min) = min else {
-                    break;
-                };
-
+            // Merge and deduplicate multiple sequences
+            while patterns.len() > 1 {
+                let min = patterns.iter().map(|&(n, _, _)| n).min().unwrap();
                 total += min;
-                previous_min = Some(min);
+
+                patterns.retain_mut(|(n, end, offset)| {
+                    if *n == min {
+                        *n += *offset;
+                    }
+                    *n <= *end
+                });
+            }
+
+            // Use the formula for the sum of the arithmetic sequence to compute the final sequence
+            if let Some((start, end, step)) = patterns.pop() {
+                let n = ((end - start) / step) + 1;
+                let last = start + (n - 1) * step;
+                total += n * (start + last) / 2;
             }
         }
 
         total
-    }
-}
-
-#[derive(Clone, Debug)]
-struct RepeatingIdStream {
-    block: u64,
-    pow10: u64,
-    repeats: u32,
-    range_start: u64,
-    range_end: u64,
-}
-
-impl Iterator for RepeatingIdStream {
-    type Item = u64;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while self.block < self.pow10 {
-            let mut n = 0;
-            for _ in 0..self.repeats {
-                n = n * self.pow10 + self.block;
-            }
-            self.block += 1;
-
-            if n > self.range_end {
-                // No more solutions in this stream
-                self.block = self.pow10;
-                return None;
-            }
-            if n >= self.range_start {
-                return Some(n);
-            }
-        }
-        None
     }
 }
 
