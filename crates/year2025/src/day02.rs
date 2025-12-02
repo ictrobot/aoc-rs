@@ -18,63 +18,113 @@ impl Day02 {
 
     #[must_use]
     pub fn part1(&self) -> u64 {
-        let mut total = 0;
-        for &[start, end] in &self.input {
-            'num_loop: for i in start..=end {
-                let num_digits = i.ilog10() + 1;
-
-                if num_digits % 2 != 0 {
-                    continue;
-                }
-
-                let pattern_digits = num_digits / 2;
-                let divisor = 10u64.pow(pattern_digits);
-                let pattern = i % divisor;
-
-                let mut remaining = i;
-                while remaining > 0 {
-                    let chunk = remaining % divisor;
-                    if chunk != pattern {
-                        continue 'num_loop;
-                    }
-                    remaining /= divisor;
-                }
-
-                total += i;
-            }
-        }
-        total
+        self.invalid_id_sum(|repeats| repeats == 2)
     }
 
     #[must_use]
     pub fn part2(&self) -> u64 {
-        let mut total = 0;
-        for &[start, end] in &self.input {
-            for i in start..=end {
-                let num_digits = i.ilog10() + 1;
+        self.invalid_id_sum(|repeats| repeats > 1)
+    }
 
-                'pattern_loop: for pattern_digits in 1..=num_digits / 2 {
-                    if num_digits % pattern_digits != 0 {
+    fn invalid_id_sum(&self, repeat_filter: impl Fn(u32) -> bool) -> u64 {
+        let mut total = 0;
+        let mut streams = Vec::new();
+
+        for &[start, end] in &self.input {
+            let min_digits = start.ilog10() + 1;
+            let max_digits = end.ilog10() + 1;
+            for pattern_digits in 1..=max_digits / 2 {
+                for digits in (min_digits.next_multiple_of(pattern_digits)..=max_digits)
+                    .step_by(pattern_digits as usize)
+                {
+                    let repeats = digits / pattern_digits;
+                    if !repeat_filter(repeats) {
                         continue;
                     }
-                    let divisor = 10u64.pow(pattern_digits);
-                    let pattern = i % divisor;
 
-                    let mut remaining = i;
-                    while remaining > 0 {
-                        let chunk = remaining % divisor;
-                        if chunk != pattern {
-                            continue 'pattern_loop;
+                    let pow10 = 10u64.pow(pattern_digits);
+                    let block = if digits == min_digits {
+                        start / 10u64.pow(min_digits - pattern_digits)
+                    } else {
+                        pow10 / 10
+                    };
+
+                    streams.push(
+                        RepeatingIdStream {
+                            block,
+                            pow10,
+                            repeats,
+                            range_start: start,
+                            range_end: end,
                         }
-                        remaining /= divisor;
-                    }
-
-                    total += i;
-                    break;
+                        .peekable(),
+                    )
                 }
             }
+
+            let mut previous_min = None;
+            loop {
+                let mut min = None;
+
+                // Advance past previous_min (if any), find the next min, and remove any empy streams
+                streams.retain_mut(|s| {
+                    if s.peek().copied() == previous_min {
+                        let _ = s.next();
+                    }
+
+                    if let Some(&next) = s.peek() {
+                        if min.is_none_or(|n| n > next) {
+                            min = Some(next);
+                        }
+                        true
+                    } else {
+                        false
+                    }
+                });
+
+                let Some(min) = min else {
+                    break;
+                };
+
+                total += min;
+                previous_min = Some(min);
+            }
         }
+
         total
+    }
+}
+
+#[derive(Clone, Debug)]
+struct RepeatingIdStream {
+    block: u64,
+    pow10: u64,
+    repeats: u32,
+    range_start: u64,
+    range_end: u64,
+}
+
+impl Iterator for RepeatingIdStream {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.block < self.pow10 {
+            let mut n = 0;
+            for _ in 0..self.repeats {
+                n = n * self.pow10 + self.block;
+            }
+            self.block += 1;
+
+            if n > self.range_end {
+                // No more solutions in this stream
+                self.block = self.pow10;
+                return None;
+            }
+            if n >= self.range_start {
+                return Some(n);
+            }
+        }
+        None
     }
 }
 
