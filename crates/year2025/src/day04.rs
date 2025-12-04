@@ -51,28 +51,34 @@ impl Day04 {
     #[must_use]
     pub fn part2(&self) -> u32 {
         let mut total = 0;
-        let mut prev_total = 0;
-
         let mut grid = self.grid.clone();
-        let mut new_grid = self.grid.clone();
 
-        // Store which rows need to be recomputed, reducing the number of row updates by 50%
+        // Store which rows need to be recomputed, reducing the number of row updates by >50%
         let mut rows_to_update = vec![true; self.rows];
-        let mut new_rows_to_update = vec![false; self.rows];
+
+        // Each cell can be updated in-place as the update rule only ever removes rolls and the
+        // order they are removed does not matter.
+        // However, doing this prevents vectorization, as each inner loop iteration now depends on
+        // the previous iteration.
+        // Instead, write the new row to a separate buffer to allow vectorization, then copy it back
+        // before processing the following row.
+        // This still allows more removals to be done per grid iteration compared to writing to a
+        // second grid.
+        let mut new_row = vec![false; self.cols];
 
         loop {
-            for (above_index, (((above, row), below), out)) in grid
-                .chunks_exact(self.cols)
-                .zip(grid.chunks_exact(self.cols).skip(1))
-                .zip(grid.chunks_exact(self.cols).skip(2))
-                .zip(new_grid.chunks_exact_mut(self.cols).skip(1))
-                .enumerate()
-            {
-                if !rows_to_update[above_index + 1] {
+            let prev_total = total;
+
+            for r in 1..self.rows - 1 {
+                if !rows_to_update[r] {
                     continue;
                 }
-                let before_row_total = total;
 
+                let above = &grid[(r - 1) * self.cols..r * self.cols];
+                let row = &grid[r * self.cols..(r + 1) * self.cols];
+                let below = &grid[(r + 1) * self.cols..(r + 2) * self.cols];
+
+                let before_row_total = total;
                 for i in 1..self.cols - 1 {
                     let neighbours = u8::from(above[i - 1])
                         + u8::from(above[i])
@@ -84,24 +90,23 @@ impl Day04 {
                         + u8::from(below[i + 1]);
                     let remove = row[i] & (neighbours < 4);
                     total += u32::from(remove);
-                    out[i] = row[i] & !remove;
+                    new_row[i] = row[i] & !remove;
                 }
 
+                grid[r * self.cols..(r + 1) * self.cols].copy_from_slice(&new_row);
+
                 if before_row_total != total {
-                    new_rows_to_update[above_index] = true;
-                    new_rows_to_update[above_index + 1] = true;
-                    new_rows_to_update[above_index + 2] = true;
+                    // Row has been updated, need to update it again as well as its neighbours
+                    rows_to_update[r - 1] = true;
+                    rows_to_update[r + 1] = true;
+                } else {
+                    rows_to_update[r] = false;
                 }
             }
 
             if total == prev_total {
                 return total;
             }
-
-            grid.clone_from(&new_grid);
-            rows_to_update.clone_from(&new_rows_to_update);
-            new_rows_to_update.fill(false);
-            prev_total = total;
         }
     }
 }
