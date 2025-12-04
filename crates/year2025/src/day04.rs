@@ -4,13 +4,14 @@ use utils::prelude::*;
 /// Iteratively removing cells with less than 4 neighbours.
 #[derive(Clone, Debug)]
 pub struct Day04 {
+    rows: usize,
     cols: usize,
     grid: Vec<bool>,
 }
 
 impl Day04 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let (_rows, cols, grid) = grid::parse(
+        let (rows, cols, grid) = grid::parse(
             input,
             1,
             false,
@@ -19,7 +20,7 @@ impl Day04 {
             |_, _| Err("expected '.' or '@'"),
         )?;
 
-        Ok(Self { cols, grid })
+        Ok(Self { rows, cols, grid })
     }
 
     #[must_use]
@@ -55,13 +56,23 @@ impl Day04 {
         let mut grid = self.grid.clone();
         let mut new_grid = self.grid.clone();
 
+        // Store which rows need to be recomputed, reducing the number of row updates by 50%
+        let mut rows_to_update = vec![true; self.rows];
+        let mut new_rows_to_update = vec![false; self.rows];
+
         loop {
-            for (((above, row), below), out) in grid
+            for (above_index, (((above, row), below), out)) in grid
                 .chunks_exact(self.cols)
                 .zip(grid.chunks_exact(self.cols).skip(1))
                 .zip(grid.chunks_exact(self.cols).skip(2))
                 .zip(new_grid.chunks_exact_mut(self.cols).skip(1))
+                .enumerate()
             {
+                if !rows_to_update[above_index + 1] {
+                    continue;
+                }
+                let before_row_total = total;
+
                 for i in 1..self.cols - 1 {
                     let neighbours = u8::from(above[i - 1])
                         + u8::from(above[i])
@@ -75,6 +86,12 @@ impl Day04 {
                     total += u32::from(remove);
                     out[i] = row[i] & !remove;
                 }
+
+                if before_row_total != total {
+                    new_rows_to_update[above_index] = true;
+                    new_rows_to_update[above_index + 1] = true;
+                    new_rows_to_update[above_index + 2] = true;
+                }
             }
 
             if total == prev_total {
@@ -82,6 +99,8 @@ impl Day04 {
             }
 
             grid.clone_from(&new_grid);
+            rows_to_update.clone_from(&new_rows_to_update);
+            new_rows_to_update.fill(false);
             prev_total = total;
         }
     }
