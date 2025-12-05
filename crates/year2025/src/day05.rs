@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use utils::prelude::*;
 
 /// Merging integer ranges.
@@ -17,7 +18,10 @@ impl Day05 {
             .then(parser::u64().repeat(parser::eol(), 1))
             .parse_complete(input)?;
 
-        Ok(Self { ranges, ids })
+        Ok(Self {
+            ranges: Self::merge_ranges(ranges),
+            ids,
+        })
     }
 
     #[must_use]
@@ -26,31 +30,49 @@ impl Day05 {
             .iter()
             .filter(|&&id| {
                 self.ranges
-                    .iter()
-                    .any(|range| range[0] <= id && id <= range[1])
+                    .binary_search_by(|&[s, e]| {
+                        if e < id {
+                            Ordering::Less
+                        } else if s > id {
+                            Ordering::Greater
+                        } else {
+                            Ordering::Equal
+                        }
+                    })
+                    .is_ok()
             })
             .count()
     }
 
     #[must_use]
     pub fn part2(&self) -> u64 {
-        let mut ranges = self.ranges.clone();
-        ranges.sort_unstable();
+        self.ranges.iter().map(|[s, e]| e - s + 1).sum()
+    }
 
-        let mut total = 0u64;
-        let [mut start, mut end] = ranges[0];
-        for &[s, e] in ranges.iter().skip(1) {
-            if s > end + 1 {
-                total += end - start + 1;
-                start = s;
-                end = e;
-            } else if e > end {
-                end = e;
-            }
+    fn merge_ranges(mut ranges: Vec<[u64; 2]>) -> Vec<[u64; 2]> {
+        if ranges.is_empty() {
+            return ranges;
         }
-        total += end - start + 1;
 
-        total
+        ranges.sort_unstable_by_key(|&[s, _]| s);
+
+        let [mut start, mut end] = ranges[0];
+        ranges = ranges
+            .into_iter()
+            .flat_map(|[s, e]| {
+                if s > end.saturating_add(1) {
+                    let result = [start, end];
+                    [start, end] = [s, e];
+                    Some(result)
+                } else {
+                    end = end.max(e);
+                    None
+                }
+            })
+            .collect();
+        ranges.push([start, end]);
+
+        ranges
     }
 }
 
