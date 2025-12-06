@@ -7,4 +7,5 @@ utils::year!(2025 => year2025, ${
     3 => day03::Day03<'_>,
     4 => day04::Day04,
     5 => day05::Day05,
+    6 => day06::Day06,
 });
