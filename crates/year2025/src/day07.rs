@@ -4,9 +4,8 @@ use utils::prelude::*;
 /// Counting splitting paths in a grid.
 #[derive(Clone, Debug)]
 pub struct Day07 {
-    cols: usize,
-    grid: Vec<u8>,
-    start: usize,
+    part1: u64,
+    part2: u64,
 }
 
 impl Day07 {
@@ -30,69 +29,37 @@ impl Day07 {
         let Some(start) = start else {
             return Err(InputError::new(input, 0, "expected one 'S'"));
         };
-        Ok(Self { cols, grid, start })
+
+        let mut timeline_counts = vec![0u64; cols];
+        timeline_counts[start % cols] = 1;
+
+        let mut split_count = 0;
+
+        for row in grid.chunks_exact(cols).skip(start.div_ceil(cols)) {
+            for c in 1..cols - 1 {
+                if timeline_counts[c] > 0 && row[c] == b'^' {
+                    timeline_counts[c - 1] += timeline_counts[c];
+                    timeline_counts[c + 1] += timeline_counts[c];
+                    timeline_counts[c] = 0;
+                    split_count += 1;
+                }
+            }
+        }
+
+        Ok(Self {
+            part1: split_count,
+            part2: timeline_counts.iter().sum(),
+        })
     }
 
     #[must_use]
     pub fn part1(&self) -> u64 {
-        let mut grid = self.grid.clone();
-        let mut split_count = 0;
-        self.split_beams(&mut grid, &mut split_count, self.start + self.cols);
-        split_count
-    }
-
-    fn split_beams(&self, grid: &mut [u8], count: &mut u64, mut pos: usize) {
-        while pos < grid.len() && grid[pos] == b'.' {
-            grid[pos] = b'|';
-            pos += self.cols;
-        }
-        if pos >= grid.len() || grid[pos] != b'^' {
-            return;
-        }
-
-        *count += 1;
-
-        let left = pos - 1;
-        if grid[left] == b'.' {
-            self.split_beams(grid, count, left);
-        }
-
-        let right = pos + 1;
-        if grid[right] == b'.' {
-            self.split_beams(grid, count, right);
-        }
+        self.part1
     }
 
     #[must_use]
     pub fn part2(&self) -> u64 {
-        let mut timeline_cache = vec![0u64; self.grid.len()];
-        self.explore_timelines(&mut timeline_cache, self.start)
-    }
-
-    fn explore_timelines(&self, timeline_cache: &mut [u64], mut pos: usize) -> u64 {
-        if timeline_cache[pos] > 0 {
-            return timeline_cache[pos];
-        }
-        let start = pos;
-
-        while pos < self.grid.len() && self.grid[pos] == b'.' {
-            pos += self.cols;
-        }
-        if pos >= self.grid.len() || self.grid[pos] != b'^' {
-            timeline_cache[start] = 1;
-            return 1;
-        }
-
-        if timeline_cache[pos] > 0 {
-            timeline_cache[start] = timeline_cache[pos];
-            return timeline_cache[pos];
-        }
-
-        let timelines = self.explore_timelines(timeline_cache, pos - 1)
-            + self.explore_timelines(timeline_cache, pos + 1);
-        timeline_cache[pos] = timelines;
-        timeline_cache[start] = timelines;
-        timelines
+        self.part2
     }
 }
 
