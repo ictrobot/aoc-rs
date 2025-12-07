@@ -1,4 +1,3 @@
-use utils::grid::parse;
 use utils::prelude::*;
 
 /// Counting splitting paths in a grid.
@@ -10,38 +9,39 @@ pub struct Day07 {
 
 impl Day07 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let mut start = None;
-        let (_rows, cols, grid) = parse(
-            input,
-            1,
-            b'.',
-            |b| b,
-            |b| matches!(b, b'.' | b'^'),
-            |i, b| {
-                match b {
-                    b'S' if start.is_none() => start = Some(i),
-                    b'S' => return Err("expected one 'S'"),
-                    _ => return Err("expected '.', '^' or 'S'"),
-                }
-                Ok(b'.')
-            },
-        )?;
-        let Some(start) = start else {
-            return Err(InputError::new(input, 0, "expected one 'S'"));
-        };
-
-        let mut timeline_counts = vec![0u64; cols];
-        timeline_counts[start % cols] = 1;
-
+        let mut seen_start = false;
+        let mut timeline_counts = Vec::new();
         let mut split_count = 0;
 
-        for row in grid.chunks_exact(cols).skip(start.div_ceil(cols)) {
-            for c in 1..cols - 1 {
-                if timeline_counts[c] > 0 && row[c] == b'^' {
-                    timeline_counts[c - 1] += timeline_counts[c];
-                    timeline_counts[c + 1] += timeline_counts[c];
-                    timeline_counts[c] = 0;
-                    split_count += 1;
+        for line in input.lines() {
+            if timeline_counts.is_empty() {
+                // Add 1 padding column on each side so c +- 1 below is always safe
+                timeline_counts.resize(line.len() + 2, 0);
+            } else if timeline_counts.len() != line.len() + 2 {
+                return Err(InputError::new(
+                    input,
+                    line,
+                    "expected consistent line lengths",
+                ));
+            }
+
+            for (i, b) in line.bytes().enumerate() {
+                let c = i + 1;
+
+                match b {
+                    b'^' if timeline_counts[c] > 0 => {
+                        timeline_counts[c - 1] += timeline_counts[c];
+                        timeline_counts[c + 1] += timeline_counts[c];
+                        timeline_counts[c] = 0;
+                        split_count += 1;
+                    }
+                    b'.' | b'^' => {}
+                    b'S' if !seen_start => {
+                        timeline_counts[c] += 1;
+                        seen_start = true;
+                    }
+                    b'S' => return Err(InputError::new(input, line, "expected one 'S'")),
+                    _ => return Err(InputError::new(input, line, "expected '.', '^' or 'S'")),
                 }
             }
         }
