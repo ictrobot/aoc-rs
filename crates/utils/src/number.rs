@@ -38,6 +38,8 @@ pub trait Number:
     fn abs(self) -> Self;
     #[must_use]
     fn rem_euclid(self, rhs: Self) -> Self;
+    #[must_use]
+    fn squared_diff(self, rhs: Self) -> Self;
 }
 
 /// Trait implemented by the primitive signed integer and floating point types.
@@ -112,6 +114,12 @@ macro_rules! number_impl {
             fn rem_euclid(self, rhs: Self) -> Self {
                 self.rem_euclid(rhs)
             }
+
+            #[inline]
+            fn squared_diff(self, rhs: Self) -> Self {
+                let diff = self.abs_diff(rhs);
+                diff * diff
+            }
         })+
 
         $(impl Integer for $u {
@@ -173,6 +181,12 @@ macro_rules! number_impl {
             #[inline]
             fn rem_euclid(self, rhs: Self) -> Self {
                 self.rem_euclid(rhs)
+            }
+
+            #[inline]
+            fn squared_diff(self, rhs: Self) -> Self {
+                let diff = self - rhs;
+                diff * diff
             }
         })+
 
@@ -240,6 +254,12 @@ macro_rules! number_impl {
             #[inline]
             fn rem_euclid(self, rhs: Self) -> Self {
                 self.rem_euclid(rhs)
+            }
+
+            #[inline]
+            fn squared_diff(self, rhs: Self) -> Self {
+                let diff = self - rhs;
+                diff * diff
             }
         }
 

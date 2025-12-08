@@ -29,6 +29,20 @@ macro_rules! vec_impl {
                 Self{$($f: v),+}
             }
 
+            /// Map each component of this vector using the provided function.
+            #[inline]
+            #[must_use]
+            pub fn map<O: Number>(self, mut f: impl FnMut(T) -> O) -> $s<O> {
+                $s{$($f: f(self.$f)),+}
+            }
+
+            /// Convert each component of this vector.
+            #[inline]
+            #[must_use]
+            pub fn cast<O: Number + From<T>>(self) -> $s<O> {
+                self.map(O::from)
+            }
+
             /// Returns the manhattan distance from the origin.
             #[inline]
             #[must_use]
@@ -60,6 +74,13 @@ macro_rules! vec_impl {
                     + min.$f.saturating_sub_0(self.$f)
                     + self.$f.saturating_sub_0(max.$f)
                 )+
+            }
+
+            /// Returns the squared euclidean distance to the specified point.
+            #[inline]
+            #[must_use]
+            pub fn squared_euclidean_distance_to(self, rhs: Self) -> T {
+                T::ZERO $(+ self.$f.squared_diff(rhs.$f))+
             }
 
             /// Add the provided signed vector, wrapping on overflow.
@@ -162,7 +183,26 @@ macro_rules! vec_impl {
                 ($(value.$f),+)
             }
         }
+
+        vec_impl!(@widen $s{$($f),+},
+            u8 => [u16, u32, u64, u128, i16, i32, i64, i128, f32, f64],
+            u16 => [u32, u64, u128, i32, i64, i128, f32, f64],
+            u32 => [u64, u128, i64, i128, f64],
+            u64 => [u128, i128],
+            i8 => [i16, i32, i64, i128, f32, f64],
+            i16 => [i32, i64, i128, f32, f64],
+            i32 => [i64, i128, f64],
+            i64 => [i128],
+        );
     };
+    (@widen $s:ident{$($f:ident),+}, $($from:ident => [$($to:ident),+],)+) => {$($(
+        impl From<$s<$from>> for $s<$to> {
+            #[inline(always)]
+            fn from(value: $s<$from>) -> Self {
+                value.cast()
+            }
+        }
+    )+)+};
 }
 
 vec_impl! {2, (T, T) =>
