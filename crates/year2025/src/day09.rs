@@ -4,7 +4,8 @@ use utils::prelude::*;
 /// Finding the largest rectangle inside a polygon.
 #[derive(Clone, Debug)]
 pub struct Day09 {
-    points: Vec<Vec2<u32>>,
+    part1: u64,
+    part2: u64,
 }
 
 impl Day09 {
@@ -18,10 +19,7 @@ impl Day09 {
             return Err(InputError::new(input, 0, "expected at least 4 points"));
         }
 
-        for (p1, p2) in points
-            .iter()
-            .zip(points.iter().skip(1).chain(points.first()))
-        {
+        for (p1, p2) in points.iter().zip(points.iter().cycle().skip(1)) {
             if p1.x != p2.x && p1.y != p2.y {
                 return Err(InputError::new(
                     input,
@@ -31,44 +29,29 @@ impl Day09 {
             }
         }
 
-        Ok(Self { points })
-    }
-
-    #[must_use]
-    pub fn part1(&self) -> u64 {
-        let mut max = 0;
-        for i in 0..self.points.len() {
-            for j in i + 1..self.points.len() {
-                let dx = self.points[i].x.abs_diff(self.points[j].x) + 1;
-                let dy = self.points[i].y.abs_diff(self.points[j].y) + 1;
-                max = max.max(dx as u64 * dy as u64)
-            }
-        }
-        max
-    }
-
-    #[must_use]
-    pub fn part2(&self) -> u64 {
         // Compress coordinates to reduce grid size
-        let mut xs: Vec<u32> = self.points.iter().map(|p| p.x).collect();
+        let mut xs: Vec<u32> = points.iter().map(|p| p.x).collect();
         xs.sort_unstable();
         xs.dedup();
-        let mut ys: Vec<u32> = self.points.iter().map(|p| p.y).collect();
+        let mut ys: Vec<u32> = points.iter().map(|p| p.y).collect();
         ys.sort_unstable();
         ys.dedup();
+        let points_compressed = points
+            .iter()
+            .map(|p| {
+                Vec2::new(
+                    xs.binary_search(&p.x).unwrap(),
+                    ys.binary_search(&p.y).unwrap(),
+                )
+            })
+            .collect::<Vec<_>>();
 
         // Compressed vertical edges, sorted by x coordinate
-        let mut vertical_edges = self
-            .points
+        let mut vertical_edges = points_compressed
             .iter()
-            .zip(self.points.iter().skip(1).chain(self.points.first()))
+            .zip(points_compressed.iter().cycle().skip(1))
             .filter(|(a, b)| a.x == b.x && a.y != b.y)
-            .map(|(a, b)| {
-                let x_compressed = xs.binary_search(&a.x).unwrap();
-                let y1_compressed = ys.binary_search(&a.y.min(b.y)).unwrap();
-                let y2_compressed = ys.binary_search(&a.y.max(b.y)).unwrap();
-                (x_compressed, y1_compressed, y2_compressed)
-            })
+            .map(|(a, b)| (a.x, a.y.min(b.y), a.y.max(b.y)))
             .collect::<Vec<_>>();
         vertical_edges.sort_unstable_by_key(|&(x, _, _)| x);
 
@@ -107,25 +90,30 @@ impl Day09 {
             }
         }
 
-        let mut max = 0;
-        for i in 0..self.points.len() {
-            for j in (i + 1)..self.points.len() {
-                let x_min = self.points[i].x.min(self.points[j].x);
-                let x_max = self.points[i].x.max(self.points[j].x);
-                let y_min = self.points[i].y.min(self.points[j].y);
-                let y_max = self.points[i].y.max(self.points[j].y);
+        let (mut part1, mut part2) = (0, 0);
+        for i in 0..points.len() {
+            let x1 = points[i].x;
+            let x1_compressed = points_compressed[i].x;
+            let y1 = points[i].y;
+            let y1_compressed = points_compressed[i].y;
 
-                let dx = (x_max - x_min) as u64 + 1;
-                let dy = (y_max - y_min) as u64 + 1;
+            for j in (i + 1)..points.len() {
+                let dx = x1.abs_diff(points[j].x) as u64 + 1;
+                let dy = y1.abs_diff(points[j].y) as u64 + 1;
                 let area = dx * dy;
-                if area <= max {
+                part1 = part1.max(area);
+
+                if area <= part2 {
                     continue;
                 }
 
-                let x_min_compressed = xs.binary_search(&x_min).unwrap();
-                let x_max_compressed = xs.binary_search(&x_max).unwrap();
-                let y_min_compressed = ys.binary_search(&y_min).unwrap();
-                let y_max_compressed = ys.binary_search(&y_max).unwrap();
+                let x2_compressed = points_compressed[j].x;
+                let y2_compressed = points_compressed[j].y;
+
+                let x_min_compressed = x1_compressed.min(x2_compressed);
+                let x_max_compressed = x1_compressed.max(x2_compressed);
+                let y_min_compressed = y1_compressed.min(y2_compressed);
+                let y_max_compressed = y1_compressed.max(y2_compressed);
 
                 let inside_cells = prefix_grid[y_max_compressed * prefix_width + x_max_compressed]
                     + prefix_grid[y_min_compressed * prefix_width + x_min_compressed]
@@ -140,10 +128,21 @@ impl Day09 {
                     continue;
                 }
 
-                max = area;
+                part2 = area;
             }
         }
-        max
+
+        Ok(Self { part1, part2 })
+    }
+
+    #[must_use]
+    pub fn part1(&self) -> u64 {
+        self.part1
+    }
+
+    #[must_use]
+    pub fn part2(&self) -> u64 {
+        self.part2
     }
 }
 
