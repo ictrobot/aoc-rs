@@ -4,9 +4,11 @@ use crate::common::{
 use std::error::Error;
 
 pub fn main(mut args: impl Iterator<Item = String>) -> Result<(), Box<dyn Error>> {
-    let year = crate::year_arg(&mut args)?;
-    let day = crate::day_arg(&mut args)?;
+    let date = crate::date_args(&mut args)?;
     crate::ensure_no_args(args)?;
+
+    let year = date.year();
+    let day = date.day();
 
     let crate_name = year_create_name(year);
     let crate_dir = crate_dir_path().join(&crate_name);
