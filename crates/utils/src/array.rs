@@ -161,6 +161,24 @@ impl<T, const N: usize> ArrayVec<T, N> {
         &mut self.data[..self.len]
     }
 
+    /// Returns a reference to the backing array.
+    ///
+    /// Any items after the current length will be set to the default value.
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::array::ArrayVec;
+    /// let mut vec: ArrayVec<i32, 8> = ArrayVec::new();
+    /// vec.push(10).unwrap();
+    /// vec.push(6).unwrap();
+    /// vec.pop().unwrap();
+    /// assert_eq!(vec.into_array(), [10, 0, 0, 0, 0, 0, 0, 0]);
+    /// ```
+    #[inline]
+    pub fn as_array(&self) -> &[T; N] {
+        &self.data
+    }
+
     /// Returns the capacity of the vector, which is always `N`.
     ///
     /// # Examples
