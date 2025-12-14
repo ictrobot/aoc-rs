@@ -1,4 +1,4 @@
-use std::collections::BinaryHeap;
+use std::ops::ControlFlow;
 use utils::disjoint_set::Dsu;
 use utils::geometry::Vec3;
 use utils::prelude::*;
@@ -6,23 +6,104 @@ use utils::prelude::*;
 /// Connecting the nearest 3D points to form a connected graph.
 #[derive(Clone, Debug)]
 pub struct Day08 {
-    boxes: Vec<Vec3<u32>>,
+    points: Vec<Vec3<u32>>,
+    subdivisions: Vec<Vec<u32>>,
     part1_limit: usize,
 }
 
+const MAX_COORD: u32 = 99999;
+const SUBDIVISIONS: usize = 6;
+const SUBDIVISION_WIDTH: usize = (MAX_COORD as usize + 1).div_ceil(SUBDIVISIONS);
+const SUBDIVISION_WIDTH2: usize = SUBDIVISION_WIDTH * SUBDIVISION_WIDTH;
+
+// [(min euclidian distance between subdivisions, slice of subdivision offsets)]
+const DISTANCE_TIER_OFFSETS: &[(usize, &[Vec3<i8>])] = {
+    const fn compute_offsets<const N: usize>(tier: u32) -> [Vec3<i8>; N] {
+        let max_abs = (tier.isqrt() + 1) as i8;
+
+        let mut result = [Vec3::ORIGIN; N];
+        let mut i = 0usize;
+
+        let mut dz = -max_abs;
+        while dz <= max_abs {
+            let mut dy = -max_abs;
+            while dy <= max_abs {
+                let mut dx = -max_abs;
+                while dx <= max_abs {
+                    let min_dist_x = dx.unsigned_abs().saturating_sub(1) as u32;
+                    let min_dist_y = dy.unsigned_abs().saturating_sub(1) as u32;
+                    let min_dist_z = dz.unsigned_abs().saturating_sub(1) as u32;
+                    let min_dist2 =
+                        min_dist_x * min_dist_x + min_dist_y * min_dist_y + min_dist_z * min_dist_z;
+
+                    if (dx != 0 || dy != 0 || dz != 0) && tier == min_dist2 {
+                        result[i] = Vec3::new(dx, dy, dz);
+                        i += 1;
+                    }
+                    dx += 1;
+                }
+                dy += 1;
+            }
+            dz += 1;
+        }
+
+        assert!(i == N);
+        result
+    }
+
+    &[
+        // 3x |d|<=1
+        (0, &compute_offsets::<26>(0)),
+        // 1x |d|=2, 2x |d|<=1
+        (SUBDIVISION_WIDTH2, &compute_offsets::<54>(1)),
+        // 2x |d|=2, 1x |d|<=1
+        (2 * SUBDIVISION_WIDTH2, &compute_offsets::<36>(2)),
+        // 3x |d|=2
+        (3 * SUBDIVISION_WIDTH2, &compute_offsets::<8>(3)),
+        // 1x |d|=3, 2x |d|<=1
+        (4 * SUBDIVISION_WIDTH2, &compute_offsets::<54>(4)),
+        // 1x |d|=3, 1x |d|=2, 1x |d|<=1
+        (5 * SUBDIVISION_WIDTH2, &compute_offsets::<72>(5)),
+        // 1x |d|=3, 2x |d|=2
+        (6 * SUBDIVISION_WIDTH2, &compute_offsets::<24>(6)),
+        // Impossible
+        (7 * SUBDIVISION_WIDTH2, &compute_offsets::<0>(7)),
+        // 2x |d|=3, 1x |d|<=1
+        (8 * SUBDIVISION_WIDTH2, &compute_offsets::<36>(8)),
+        // 2x |d|=3, 1x |d|=2 OR 1x |d|=4, 2x |d|<=1
+        (9 * SUBDIVISION_WIDTH2, &compute_offsets::<78>(9)),
+        // 1x |d|=4, 1x |d|=2, 1x |d|<=1
+        (10 * SUBDIVISION_WIDTH2, &compute_offsets::<72>(10)),
+        // 1x |d|=4, 2x |d|=2
+        (11 * SUBDIVISION_WIDTH2, &compute_offsets::<24>(11)),
+        // 3x |d|=3
+        (12 * SUBDIVISION_WIDTH2, &compute_offsets::<8>(12)),
+    ]
+};
+
+// DISTANCE_TIER_OFFSETS is truncated and doesn't include every possible distance/subdivision offset
+const MAX_DISTANCE_CHECKED: usize = (DISTANCE_TIER_OFFSETS.len() * SUBDIVISION_WIDTH2).isqrt();
+
 impl Day08 {
     pub fn new(input: &str, input_type: InputType) -> Result<Self, InputError> {
-        let boxes = parser::u32()
+        let points = parser::number_range(0..=MAX_COORD)
             .repeat_n(b',')
             .map(Vec3::from)
             .parse_lines(input)?;
 
-        if boxes.len() > u32::MAX as usize {
-            return Err(InputError::new(input, 0, "too many boxes"));
+        if points.len() > u32::MAX as usize {
+            return Err(InputError::new(input, 0, "too many points"));
+        }
+
+        let mut subdivisions = vec![Vec::new(); SUBDIVISIONS * SUBDIVISIONS * SUBDIVISIONS];
+        for (i, p) in points.iter().enumerate() {
+            let sub_coords = p.map(|x| x as usize / SUBDIVISION_WIDTH);
+            subdivisions[Self::subdivision_index(sub_coords)].push(i as u32);
         }
 
         Ok(Self {
-            boxes,
+            points,
+            subdivisions,
             part1_limit: match input_type {
                 InputType::Example => 10,
                 InputType::Real => 1000,
@@ -32,26 +113,20 @@ impl Day08 {
 
     #[must_use]
     pub fn part1(&self) -> u64 {
-        let mut heap = BinaryHeap::with_capacity(self.part1_limit);
-        for i in 0..self.boxes.len() {
-            for j in (i + 1)..self.boxes.len() {
-                let dist_squared = self.boxes[i]
-                    .cast::<i64>()
-                    .squared_euclidean_distance_to(self.boxes[j].cast());
-                if heap.len() < self.part1_limit {
-                    heap.push((dist_squared, i, j));
-                } else if dist_squared < heap.peek().unwrap().0 {
-                    heap.pop();
-                    heap.push((dist_squared, i, j));
+        let mut dsu = Dsu::new(self.points.len());
+        let mut remaining_edges = self.part1_limit;
+        self.for_each_sorted_edge(
+            |_, i, j| {
+                let _ = dsu.union(i, j);
+                remaining_edges -= 1;
+                if remaining_edges == 0 {
+                    ControlFlow::Break(())
+                } else {
+                    ControlFlow::Continue(())
                 }
-            }
-        }
-        let edges = heap.into_sorted_vec();
-
-        let mut dsu = Dsu::new(self.boxes.len());
-        for &(_, i, j) in edges.iter() {
-            let _ = dsu.union(i, j);
-        }
+            },
+            self.part1_limit,
+        );
 
         let mut component_sizes: Vec<_> = dsu.roots().map(|x| dsu.root_size(x) as u64).collect();
         component_sizes.select_nth_unstable_by(2, |a, b| b.cmp(a));
@@ -60,44 +135,130 @@ impl Day08 {
 
     #[must_use]
     pub fn part2(&self) -> u64 {
-        let mut edges = Vec::with_capacity(self.boxes.len() * (self.boxes.len() - 1) / 2);
-        for i in 0..self.boxes.len() {
-            for j in (i + 1)..self.boxes.len() {
-                edges.push((
-                    self.boxes[i]
-                        .cast::<i64>()
-                        .squared_euclidean_distance_to(self.boxes[j].cast()),
-                    // Store indices as u32s to reduce memory usage and speed up sorting
-                    i as u32,
-                    j as u32,
-                ));
-            }
-        }
+        let mut dsu = Dsu::new(self.points.len());
+        let mut remaining_merges = self.points.len() - 1;
 
-        let mut dsu = Dsu::new(self.boxes.len());
-        let mut remaining_merges = self.boxes.len() - 1;
-
-        // Process edges in chunks to avoid sorting the entire vec
-        let mut edges = edges.as_mut_slice();
-        while !edges.is_empty() {
-            let chunk_size = edges.len().min(8192);
-
-            edges.select_nth_unstable_by(chunk_size - 1, |(a, _, _), (b, _, _)| a.cmp(b));
-            edges[..chunk_size].sort_unstable_by(|(a, _, _), (b, _, _)| a.cmp(b));
-
-            for &(_, i, j) in edges[..chunk_size].iter() {
-                if dsu.union(i as usize, j as usize) {
+        self.for_each_sorted_edge(
+            |_, i, j| {
+                if dsu.union(i, j) {
                     remaining_merges -= 1;
                     if remaining_merges == 0 {
-                        return self.boxes[i as usize].x as u64 * self.boxes[j as usize].x as u64;
+                        return ControlFlow::Break(
+                            self.points[i].x as u64 * self.points[j].x as u64,
+                        );
+                    }
+                }
+                ControlFlow::Continue(())
+            },
+            usize::MAX,
+        )
+    }
+
+    #[inline]
+    fn for_each_sorted_edge<T>(
+        &self,
+        mut f: impl FnMut(i64, usize, usize) -> ControlFlow<T>,
+        mut limit: usize,
+    ) -> T {
+        let mut edges = Vec::new();
+        let mut next_edges = Vec::new();
+
+        for &(min_dist2, offsets) in DISTANCE_TIER_OFFSETS.iter() {
+            let max_dist2 = min_dist2 + SUBDIVISION_WIDTH2;
+
+            // Move edges now below max_dist2 from next_edges to edges
+            next_edges.retain(|&(dist2, i, j)| {
+                if dist2 < max_dist2 as i64 {
+                    edges.push((dist2, i, j));
+                    false
+                } else {
+                    true
+                }
+            });
+
+            // Push the pair to edges if its distance is within the current tier
+            let mut process_pair = |i: u32, j: u32| {
+                let dist2 = self.points[i as usize]
+                    .cast::<i64>()
+                    .squared_euclidean_distance_to(self.points[j as usize].cast());
+                if dist2 < max_dist2 as i64 {
+                    edges.push((dist2, i, j));
+                } else {
+                    next_edges.push((dist2, i, j));
+                }
+            };
+
+            // Check all point pairs within subdivision pairs at the current tier
+            for sub1 in 0..self.subdivisions.len() {
+                if min_dist2 == 0 {
+                    // Try pairs within the current subdivision
+                    for (n, &i) in self.subdivisions[sub1].iter().enumerate() {
+                        for &j in self.subdivisions[sub1].iter().skip(n + 1) {
+                            process_pair(i, j);
+                        }
+                    }
+                }
+
+                let sub1_coords = Self::subdivision_coords(sub1);
+                for offset in offsets.iter() {
+                    let sub2_coords = sub1_coords.wrapping_add_signed(offset.cast());
+                    if sub2_coords.x >= SUBDIVISIONS
+                        || sub2_coords.y >= SUBDIVISIONS
+                        || sub2_coords.z >= SUBDIVISIONS
+                    {
+                        continue;
+                    }
+
+                    let sub2 = Self::subdivision_index(sub2_coords);
+                    if sub2 <= sub1 {
+                        continue;
+                    }
+
+                    for &i in self.subdivisions[sub1].iter() {
+                        for &j in self.subdivisions[sub2].iter() {
+                            process_pair(i, j);
+                        }
                     }
                 }
             }
 
-            edges = &mut edges[chunk_size..];
+            let reached_limit = edges.len() > limit;
+            if reached_limit {
+                edges.select_nth_unstable_by(limit - 1, |(a, _, _), (b, _, _)| a.cmp(b));
+                edges.truncate(limit);
+            }
+
+            edges.sort_unstable_by(|(a, _, _), (b, _, _)| a.cmp(b));
+
+            for &(d, i, j) in edges.iter() {
+                if let ControlFlow::Break(result) = f(d, i as usize, j as usize) {
+                    return result;
+                }
+            }
+
+            assert!(
+                !reached_limit,
+                "f should return break at or before the provided limit"
+            );
+            limit -= edges.len();
+
+            edges.clear();
         }
 
-        panic!("no solution found");
+        panic!("no solution found after checking all pairs within {MAX_DISTANCE_CHECKED} distance");
+    }
+
+    #[inline]
+    fn subdivision_index(c: Vec3<usize>) -> usize {
+        c.x + c.y * SUBDIVISIONS + c.z * SUBDIVISIONS * SUBDIVISIONS
+    }
+
+    #[inline]
+    fn subdivision_coords(i: usize) -> Vec3<usize> {
+        let x = i % SUBDIVISIONS;
+        let y = (i / SUBDIVISIONS) % SUBDIVISIONS;
+        let z = i / SUBDIVISIONS / SUBDIVISIONS;
+        Vec3::new(x, y, z)
     }
 }
 
