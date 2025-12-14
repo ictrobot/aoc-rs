@@ -69,7 +69,7 @@ use std::any::Any;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::{SyncSender, TrySendError};
 use std::sync::{Arc, Condvar, Mutex};
 
@@ -176,7 +176,7 @@ impl<'scope> Scope<'scope, '_> {
         let (closure, handle) = self.create_closure(f);
         if let Err(closure) = try_queue_task(closure) {
             // Start a worker to process this closure and then join the pool.
-            static THREAD_NUM: AtomicU32 = AtomicU32::new(1);
+            static THREAD_NUM: AtomicUsize = AtomicUsize::new(1);
             std::thread::Builder::new()
                 .name(format!(
                     "scoped-tasks-{}",
