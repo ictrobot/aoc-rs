@@ -13,6 +13,7 @@ pub struct Day08 {
 
 const MAX_COORD: u32 = 99999;
 const SUBDIVISIONS: usize = 6;
+const TOTAL_SUBDIVISIONS: usize = SUBDIVISIONS * SUBDIVISIONS * SUBDIVISIONS;
 const SUBDIVISION_WIDTH: usize = (MAX_COORD as usize + 1).div_ceil(SUBDIVISIONS);
 const SUBDIVISION_WIDTH2: usize = SUBDIVISION_WIDTH * SUBDIVISION_WIDTH;
 
@@ -24,11 +25,13 @@ const DISTANCE_TIER_OFFSETS: &[(usize, &[Vec3<i8>])] = {
         let mut result = [Vec3::ORIGIN; N];
         let mut i = 0usize;
 
-        let mut dz = -max_abs;
+        // Only generate offsets where the second subdivision has a greater index, so that each
+        // subdivision pair is only checked once
+        let mut dz = 0;
         while dz <= max_abs {
-            let mut dy = -max_abs;
+            let mut dy = if dz == 0 { 0 } else { -max_abs };
             while dy <= max_abs {
-                let mut dx = -max_abs;
+                let mut dx = if dz == 0 && dy == 0 { 1 } else { -max_abs };
                 while dx <= max_abs {
                     let min_dist_x = dx.unsigned_abs().saturating_sub(1) as u32;
                     let min_dist_y = dy.unsigned_abs().saturating_sub(1) as u32;
@@ -36,7 +39,7 @@ const DISTANCE_TIER_OFFSETS: &[(usize, &[Vec3<i8>])] = {
                     let min_dist2 =
                         min_dist_x * min_dist_x + min_dist_y * min_dist_y + min_dist_z * min_dist_z;
 
-                    if (dx != 0 || dy != 0 || dz != 0) && tier == min_dist2 {
+                    if tier == min_dist2 {
                         result[i] = Vec3::new(dx, dy, dz);
                         i += 1;
                     }
@@ -53,31 +56,31 @@ const DISTANCE_TIER_OFFSETS: &[(usize, &[Vec3<i8>])] = {
 
     &[
         // 3x |d|<=1
-        (0, &compute_offsets::<26>(0)),
+        (0, &compute_offsets::<13>(0)),
         // 1x |d|=2, 2x |d|<=1
-        (SUBDIVISION_WIDTH2, &compute_offsets::<54>(1)),
+        (SUBDIVISION_WIDTH2, &compute_offsets::<27>(1)),
         // 2x |d|=2, 1x |d|<=1
-        (2 * SUBDIVISION_WIDTH2, &compute_offsets::<36>(2)),
+        (2 * SUBDIVISION_WIDTH2, &compute_offsets::<18>(2)),
         // 3x |d|=2
-        (3 * SUBDIVISION_WIDTH2, &compute_offsets::<8>(3)),
+        (3 * SUBDIVISION_WIDTH2, &compute_offsets::<4>(3)),
         // 1x |d|=3, 2x |d|<=1
-        (4 * SUBDIVISION_WIDTH2, &compute_offsets::<54>(4)),
+        (4 * SUBDIVISION_WIDTH2, &compute_offsets::<27>(4)),
         // 1x |d|=3, 1x |d|=2, 1x |d|<=1
-        (5 * SUBDIVISION_WIDTH2, &compute_offsets::<72>(5)),
+        (5 * SUBDIVISION_WIDTH2, &compute_offsets::<36>(5)),
         // 1x |d|=3, 2x |d|=2
-        (6 * SUBDIVISION_WIDTH2, &compute_offsets::<24>(6)),
+        (6 * SUBDIVISION_WIDTH2, &compute_offsets::<12>(6)),
         // Impossible
         (7 * SUBDIVISION_WIDTH2, &compute_offsets::<0>(7)),
         // 2x |d|=3, 1x |d|<=1
-        (8 * SUBDIVISION_WIDTH2, &compute_offsets::<36>(8)),
+        (8 * SUBDIVISION_WIDTH2, &compute_offsets::<18>(8)),
         // 2x |d|=3, 1x |d|=2 OR 1x |d|=4, 2x |d|<=1
-        (9 * SUBDIVISION_WIDTH2, &compute_offsets::<78>(9)),
+        (9 * SUBDIVISION_WIDTH2, &compute_offsets::<39>(9)),
         // 1x |d|=4, 1x |d|=2, 1x |d|<=1
-        (10 * SUBDIVISION_WIDTH2, &compute_offsets::<72>(10)),
+        (10 * SUBDIVISION_WIDTH2, &compute_offsets::<36>(10)),
         // 1x |d|=4, 2x |d|=2
-        (11 * SUBDIVISION_WIDTH2, &compute_offsets::<24>(11)),
+        (11 * SUBDIVISION_WIDTH2, &compute_offsets::<12>(11)),
         // 3x |d|=3
-        (12 * SUBDIVISION_WIDTH2, &compute_offsets::<8>(12)),
+        (12 * SUBDIVISION_WIDTH2, &compute_offsets::<4>(12)),
     ]
 };
 
@@ -95,7 +98,7 @@ impl Day08 {
             return Err(InputError::new(input, 0, "too many points"));
         }
 
-        let mut subdivisions = vec![Vec::new(); SUBDIVISIONS * SUBDIVISIONS * SUBDIVISIONS];
+        let mut subdivisions = vec![Vec::new(); TOTAL_SUBDIVISIONS];
         for (i, p) in points.iter().enumerate() {
             let sub_coords = p.map(|x| x as usize / SUBDIVISION_WIDTH);
             subdivisions[Self::subdivision_index(sub_coords)].push(i as u32);
@@ -181,9 +184,12 @@ impl Day08 {
                 let dist2 = self.points[i as usize]
                     .cast::<i64>()
                     .squared_euclidean_distance_to(self.points[j as usize].cast());
+
                 if dist2 < max_dist2 as i64 {
                     edges.push((dist2, i, j));
-                } else {
+                } else if edges.len() < limit {
+                    // Only store pairs for the next tier if the current tier hasn't already reached
+                    // the provided limit
                     next_edges.push((dist2, i, j));
                 }
             };
@@ -210,9 +216,6 @@ impl Day08 {
                     }
 
                     let sub2 = Self::subdivision_index(sub2_coords);
-                    if sub2 <= sub1 {
-                        continue;
-                    }
 
                     for &i in self.subdivisions[sub1].iter() {
                         for &j in self.subdivisions[sub2].iter() {
@@ -222,13 +225,13 @@ impl Day08 {
                 }
             }
 
-            let reached_limit = edges.len() > limit;
-            if reached_limit {
+            if edges.len() > limit {
                 edges.select_nth_unstable_by(limit - 1, |(a, _, _), (b, _, _)| a.cmp(b));
                 edges.truncate(limit);
             }
 
             edges.sort_unstable_by(|(a, _, _), (b, _, _)| a.cmp(b));
+            limit -= edges.len();
 
             for &(d, i, j) in edges.iter() {
                 if let ControlFlow::Break(result) = f(d, i as usize, j as usize) {
@@ -237,11 +240,9 @@ impl Day08 {
             }
 
             assert!(
-                !reached_limit,
+                limit > 0,
                 "f should return break at or before the provided limit"
             );
-            limit -= edges.len();
-
             edges.clear();
         }
 
