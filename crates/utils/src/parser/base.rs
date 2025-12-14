@@ -1,7 +1,7 @@
 use crate::input::InputError;
 use crate::parser::combinator::{
-    Commit, Map, MapResult, Optional, Or, RepeatArrayVec, RepeatN, RepeatVec, WithConsumed,
-    WithPrefix, WithSuffix,
+    Commit, Map, MapResult, Optional, Or, RepeatArrayVec, RepeatFold, RepeatN, RepeatVec,
+    WithConsumed, WithPrefix, WithSuffix,
 };
 use crate::parser::error::{ParseError, WithErrorMsg};
 use crate::parser::iterator::{ParserIterator, ParserMatchesIterator};
@@ -254,7 +254,7 @@ pub trait Parser<'i>: Sized {
     /// # Examples
     /// ```
     /// # use utils::array::ArrayVec;
-    /// use utils::parser::{self, Parser};
+    /// # use utils::parser::{self, Parser};
     /// let parser = parser::u32()
     ///     .repeat_arrayvec::<5, _>(",", 3);
     /// assert_eq!(
@@ -280,6 +280,41 @@ pub trait Parser<'i>: Sized {
             parser: self,
             separator,
             min_elements,
+        }
+    }
+
+    /// Repeat this parser while it matches, folding every element into an accumulator.
+    ///
+    /// This is modeled after [`Iterator::fold`]. See also [`repeat`](Self::repeat).
+    ///
+    /// # Examples
+    /// ```
+    /// # use utils::parser::{self, Parser};
+    /// let parser = parser::u32().repeat_fold(",", 3, 0, |acc, x| acc + x);
+    /// assert_eq!(
+    ///     parser.parse_first("12,34,56,78").unwrap(),
+    ///     (12 + 34 + 56 + 78, &b""[..])
+    /// );
+    /// assert_eq!(
+    ///     parser.parse_first("12,34,56,abc").unwrap(),
+    ///     (12 + 34 + 56, &b",abc"[..])
+    /// );
+    /// assert!(parser.parse_first("12,34").is_err());
+    /// ```
+    #[inline]
+    fn repeat_fold<S: Parser<'i>, A: Clone, F: Fn(A, Self::Output) -> A>(
+        self,
+        separator: S,
+        min_elements: usize,
+        init: A,
+        f: F,
+    ) -> RepeatFold<Self, S, A, F> {
+        RepeatFold {
+            parser: self,
+            separator,
+            min_elements,
+            init,
+            f,
         }
     }
 

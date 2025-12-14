@@ -192,6 +192,64 @@ impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>, S: Parser<'i>> P
 }
 
 #[derive(Copy, Clone)]
+pub struct RepeatFold<P, S, A, F> {
+    pub(super) parser: P,
+    pub(super) separator: S,
+    pub(super) min_elements: usize,
+    pub(super) init: A,
+    pub(super) f: F,
+}
+impl<'i, P: Parser<'i>, S: Parser<'i>, A: Clone, F: Fn(A, P::Output) -> A> Parser<'i>
+    for RepeatFold<P, S, A, F>
+{
+    type Output = A;
+    type Then<T: Parser<'i>> = Then2<Self, T>;
+
+    #[inline]
+    fn parse_ctx(
+        &self,
+        mut input: &'i [u8],
+        state: &mut ParseState<'i>,
+        _: &mut bool,
+        _: bool,
+    ) -> ParserResult<'i, A> {
+        let mut acc = self.init.clone();
+        let mut elements = 0usize;
+
+        let mut commit = false;
+        let mut input_before_sep = input;
+        let token = loop {
+            let (v, remaining) = match self.parser.parse_ctx(input, state, &mut commit, false) {
+                Ok(v) => v,
+                Err(t) => break t,
+            };
+
+            acc = (self.f)(acc, v);
+            elements += 1;
+
+            commit = false;
+            input_before_sep = remaining;
+
+            match self
+                .separator
+                .parse_ctx(remaining, state, &mut commit, false)
+            {
+                Ok((_, remaining)) => input = remaining,
+                Err(t) => break t,
+            }
+        };
+
+        if elements < self.min_elements || commit {
+            // Return error if not enough elements were parsed, or if the most recent separator or
+            // item parser committed but failed to parse another item.
+            Err(token)
+        } else {
+            Ok((acc, input_before_sep))
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
 pub struct RepeatVec<P, S> {
     pub(super) parser: P,
     pub(super) separator: S,

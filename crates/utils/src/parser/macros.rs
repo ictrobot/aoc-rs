@@ -30,7 +30,7 @@ macro_rules! parser_byte_map {
                 lut[$l as usize] = Some($e);
             )+)+
             lut
-        }, {
+        }, const {
             let mut set = 0u128;
             $($(
                 let v: u8 = $l;
