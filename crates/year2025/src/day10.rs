@@ -96,36 +96,37 @@ impl Day10 {
         buttons: ArrayVec<u32, MAX_BUTTONS>,
         targets: ArrayVec<u16, MAX_TARGETS>,
     ) -> (u32, u32) {
-        // Convert the button mask into an array for fast sums below
-        let mut single_button_results = [[0u16; MAX_TARGETS]; MAX_BUTTONS];
-        for (i, &b) in buttons.iter().enumerate() {
-            for (bit_pos, _) in BitIterator::ones(b) {
-                single_button_results[i][bit_pos as usize] = 1;
-            }
-        }
-
-        // Precalculate the results of pressing every button combination, grouped by the parity of
-        // the results
+        // Precalculate the results and parity of every button press combination
         let combination_count = 1usize << buttons.len();
         let mut combination_results = vec![[0u16; MAX_TARGETS]; combination_count];
+        let mut combination_parity_masks = vec![0u16; combination_count];
+        for i in 0..buttons.len() {
+            let button = buttons[i] as u16;
+            let half = 1usize << i;
 
-        let parity_states = 1usize << targets.len();
-        let mut parity_combinations = vec![ArrayVec::new(); parity_states];
+            let mut button_result = [0u16; MAX_TARGETS];
+            for (bit_pos, _) in BitIterator::ones(button) {
+                button_result[bit_pos as usize] = 1;
+            }
 
-        #[expect(clippy::needless_range_loop, reason = "range loop is ~50% faster")]
-        for combination in 0..combination_count {
-            let result = &mut combination_results[combination];
-            for (button_idx, _) in BitIterator::ones(combination) {
+            let (results_without, results_with) = combination_results.split_at_mut(half);
+            for (without, with) in results_without.iter().zip(results_with) {
                 for i in 0..MAX_TARGETS {
-                    result[i] += single_button_results[button_idx as usize][i];
+                    with[i] = without[i] + button_result[i];
                 }
             }
 
-            let parity_mask = result
-                .iter()
-                .enumerate()
-                .fold(0, |acc, (i, &v)| acc | ((v & 1) as usize) << i);
-            parity_combinations[parity_mask]
+            let (parity_without, parity_with) = combination_parity_masks.split_at_mut(half);
+            for (&without, with) in parity_without.iter().zip(parity_with) {
+                *with = without ^ button;
+            }
+        }
+
+        // Group combinations by the parity of their results
+        let parity_states = 1usize << targets.len();
+        let mut parity_combinations = vec![ArrayVec::new(); parity_states];
+        for (combination, parity_mask) in combination_parity_masks.into_iter().enumerate() {
+            parity_combinations[parity_mask as usize]
                 .push(combination as u16)
                 .expect("expected less than MAX_PARITY_OPTIONS options per parity mask");
         }
