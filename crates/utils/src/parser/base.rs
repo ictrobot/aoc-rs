@@ -233,7 +233,7 @@ pub trait Parser<'i>: Sized {
     #[inline]
     fn repeat_n<const N: usize, S: Parser<'i>>(self, separator: S) -> RepeatN<N, Self, S>
     where
-        Self::Output: Copy + Default,
+        Self::Output: Default,
     {
         RepeatN {
             parser: self,

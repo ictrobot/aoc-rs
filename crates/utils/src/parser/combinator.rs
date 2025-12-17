@@ -106,7 +106,7 @@ pub struct RepeatN<const N: usize, P, S> {
     pub(super) parser: P,
     pub(super) separator: S,
 }
-impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>, S: Parser<'i>> Parser<'i>
+impl<'i, const N: usize, P: Parser<'i, Output: Default>, S: Parser<'i>> Parser<'i>
     for RepeatN<N, P, S>
 {
     type Output = [P::Output; N];
@@ -120,7 +120,7 @@ impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>, S: Parser<'i>> P
         commit: &mut bool,
         _: bool,
     ) -> ParserResult<'i, Self::Output> {
-        let mut output = [P::Output::default(); N];
+        let mut output = std::array::from_fn(|_| P::Output::default());
         for (i, item) in output.iter_mut().enumerate() {
             (*item, input) = self.parser.parse_ctx(input, state, commit, false)?;
 
