@@ -96,6 +96,31 @@ macro_rules! vec_impl {
                     $($f: self.$f.wrapping_add_signed(rhs.$f),)+
                 }
             }
+
+            /// Returns the per-component minimum.
+            #[inline]
+            #[must_use]
+            pub fn component_min(self, rhs: Self) -> Self
+            where
+                T: Ord,
+            {
+                Self{
+                    $($f: self.$f.min(rhs.$f),)+
+                }
+            }
+
+
+            /// Returns the per-component maximum.
+            #[inline]
+            #[must_use]
+            pub fn component_max(self, rhs: Self) -> Self
+            where
+                T: Ord,
+            {
+                Self{
+                    $($f: self.$f.max(rhs.$f),)+
+                }
+            }
         }
 
         impl<T: Number> Add for $s<T> {
