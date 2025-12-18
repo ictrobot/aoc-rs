@@ -72,6 +72,12 @@ impl Day04 {
             }
             let current = password;
 
+            if password & 0xF != 9 {
+                // The final digit isn't a nine, the next password is simply current + 1
+                password += 1;
+                return Some(current);
+            }
+
             // Advance the packed password to the next non-decreasing password
             // e.g. password              = 0x0000_0102_0303_0909
 
