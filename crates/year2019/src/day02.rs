@@ -1,4 +1,5 @@
 use crate::intcode::Interpreter;
+use crate::intcode::features::Day02Features;
 use utils::prelude::*;
 
 /// Interpreting assembly with add and multiply instructions.
@@ -15,7 +16,7 @@ const PART2_TARGET: i64 = 19_690_720;
 impl Day02 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
-            interpreter: Interpreter::new(input, 3)?,
+            interpreter: Interpreter::parse(input, 3)?,
         })
     }
 
@@ -62,7 +63,7 @@ impl Day02 {
         interpreter.mem[1] = noun;
         interpreter.mem[2] = verb;
 
-        interpreter.run();
+        let _ = interpreter.run::<Day02Features>();
 
         interpreter.mem[0]
     }
