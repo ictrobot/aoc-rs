@@ -40,6 +40,6 @@ pub(crate) fn knot_hash_hex(lengths: impl Iterator<Item = u8> + Clone) -> [u8; 3
     let hash = knot_hash(lengths);
 
     md5::to_hex(array::from_fn(|i| {
-        u32::from_be_bytes(hash[4 * i..4 * (i + 1)].try_into().unwrap())
+        u32::from_be_bytes(*hash[4 * i..4 * (i + 1)].as_array().unwrap())
     }))
 }

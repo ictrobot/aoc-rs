@@ -13,7 +13,7 @@ impl Day11 {
             return Err(InputError::new(input, 0, "expected 8 lowercase letters"));
         }
 
-        let input: [u8; 8] = input.as_bytes().try_into().unwrap();
+        let input = input.as_bytes().as_array().copied().unwrap();
         let part1 = Self::next_password(input);
         let part2 = Self::next_password(part1);
         Ok(Self { part1, part2 })

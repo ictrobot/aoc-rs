@@ -83,7 +83,7 @@ multiversion! {
 
             let remaining = (buf.len() / FOUR_BYTES).min(16);
             for (w, chunk) in words.iter_mut().zip(buf.chunks_exact(FOUR_BYTES)) {
-                *w = gather(chunk.try_into().unwrap());
+                *w = gather(chunk.as_array().unwrap());
             }
             buf = &buf[remaining * FOUR_BYTES..];
 

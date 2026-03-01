@@ -217,7 +217,7 @@ impl Searcher {
         for (digits, carry) in digits.chunks_exact(8).zip(carry.chunks_exact(8)) {
             let slice = &mut self.recipes[self.recipes_len..self.recipes_len + 256];
 
-            let mut indexes = u64::from_le_bytes(carry.try_into().unwrap());
+            let mut indexes = u64::from_le_bytes(*carry.as_array().unwrap());
             // Each recipe after the first is offset by 1
             indexes += 0x0101_0101_0101_0100;
             // Bytewise prefix sum

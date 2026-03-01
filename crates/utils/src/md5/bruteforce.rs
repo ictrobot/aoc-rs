@@ -130,7 +130,9 @@ multiversion! {
         let mut values: [u32; U32Vector::LANES] = array::from_fn(|i| base + i as u32);
         for d in (0..length).rev() {
             let digits: &mut [u8; U32Vector::LANES] =
-                (&mut buf[d * U32Vector::LANES..(d + 1) * U32Vector::LANES]).try_into().unwrap();
+                buf[d * U32Vector::LANES..(d + 1) * U32Vector::LANES]
+                    .as_mut_array()
+                    .unwrap();
             for i in 0..U32Vector::LANES {
                 digits[i] = (values[i] % 10) as u8 + b'0';
                 values[i] /= 10;

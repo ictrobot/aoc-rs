@@ -42,7 +42,7 @@ impl Day05 {
         // between 2 and 3. Once this happens, represent the jump as a single bit in a compressed
         // bit mask, which allows processing multiple jumps at once without each one requiring a
         // random memory read.
-        let mut threes: Vec<Compressed> = vec![0; jumps.len().next_multiple_of(BITS) / BITS];
+        let mut threes: Vec<Compressed> = vec![0; jumps.len().div_ceil(BITS)];
         // boundary represents the point where all prior jumps have stabilized on oscillating
         // between 2 and 3
         let mut boundary = 0;
