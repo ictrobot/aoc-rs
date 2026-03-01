@@ -230,7 +230,7 @@ impl Day08 {
                 edges.truncate(limit);
             }
 
-            edges.sort_unstable_by(|(a, _, _), (b, _, _)| a.cmp(b));
+            edges.sort_unstable_by_key(|(a, _, _)| *a);
             limit -= edges.len();
 
             for &(d, i, j) in edges.iter() {

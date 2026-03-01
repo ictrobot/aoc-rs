@@ -225,9 +225,15 @@ impl<'scope> Scope<'scope, '_> {
         });
 
         // SAFETY: The `scope` function ensures all closures are finished before returning
+        //
+        // This transmute changes the lifetime bound from `'scope` to `'static` which should have
+        // a compatible vtable, as the principal trait (`FnOnce()`) and auto traits (`Send`) are
+        // unchanged and `FnOnce()` has no methods gated on object lifetime.
         let closure = unsafe {
-            #[expect(clippy::unnecessary_cast, reason = "casting lifetimes")]
-            Box::from_raw(Box::into_raw(closure) as *mut (dyn FnOnce() + Send + 'static))
+            std::mem::transmute::<
+                Box<dyn FnOnce() + Send + 'scope>,
+                Box<dyn FnOnce() + Send + 'static>,
+            >(closure)
         };
 
         (closure, handle)
