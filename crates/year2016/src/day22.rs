@@ -79,7 +79,7 @@ impl Day22 {
         let wall_x = if !non_empty.is_empty() && non_empty[0].y < empty.y {
             // Immovable nodes above empty node (real input), check they form a single wall
             if non_empty.iter().any(|n| n.y != non_empty[0].y)
-                || non_empty.windows(2).any(|w| w[0].x + 1 != w[1].x)
+                || non_empty.array_windows().any(|&[a, b]| a.x + 1 != b.x)
                 || non_empty[0].x == 0
                 || non_empty[0].y < 2
                 || non_empty.last().unwrap().x != max_x

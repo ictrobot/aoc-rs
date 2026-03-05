@@ -60,16 +60,16 @@ impl Day06 {
         y_values.sort_unstable();
         y_values.dedup();
 
-        let row_widths: Vec<u16> = x_values.windows(2).map(|w| w[1] - w[0]).collect();
-        let col_heights: Vec<u16> = y_values.windows(2).map(|w| w[1] - w[0]).collect();
+        let row_widths: Vec<u16> = x_values.array_windows().map(|&[a, b]| b - a).collect();
+        let col_heights: Vec<u16> = y_values.array_windows().map(|&[a, b]| b - a).collect();
 
         let mut x_map = [0; 1000];
-        for (i, w) in x_values.windows(2).enumerate() {
-            x_map[w[0] as usize..w[1] as usize].fill(i as u16)
+        for (i, &[a, b]) in x_values.array_windows().enumerate() {
+            x_map[a as usize..b as usize].fill(i as u16)
         }
         let mut y_map = [0; 1000];
-        for (i, w) in y_values.windows(2).enumerate() {
-            y_map[w[0] as usize..w[1] as usize].fill(i as u16)
+        for (i, &[a, b]) in y_values.array_windows().enumerate() {
+            y_map[a as usize..b as usize].fill(i as u16)
         }
 
         instructions.iter_mut().for_each(|(_, (x1, y1, x2, y2))| {

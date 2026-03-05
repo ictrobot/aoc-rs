@@ -45,18 +45,18 @@ impl<'a> Day14<'a> {
             nibble_bytes[24..32].copy_from_slice(&spread_nibbles(d).to_be_bytes());
 
             let Some(triplet) = nibble_bytes
-                .windows(3)
-                .find(|&w| w[0] == w[1] && w[0] == w[2])
-                .map(|w| 1u16 << w[0])
+                .array_windows()
+                .find(|&&[a, b, c]| a == b && a == c)
+                .map(|&[a, ..]| 1u16 << a)
             else {
                 // No triplet means there is also no quintuplet
                 return false;
             };
 
             let quintuplet = nibble_bytes
-                .windows(5)
-                .filter(|&w| w[0] == w[1] && w[0] == w[2] && w[0] == w[3] && w[0] == w[4])
-                .fold(0, |acc, w| acc | (1u16 << w[0]));
+                .array_windows()
+                .filter(|&&[a, b, c, d, e]| a == b && a == c && a == d && a == e)
+                .fold(0, |acc, &[a, ..]| acc | (1u16 << a));
 
             let mut guard = mutex.lock().unwrap();
             let (keys, triplets, quintuplets) = guard.deref_mut();

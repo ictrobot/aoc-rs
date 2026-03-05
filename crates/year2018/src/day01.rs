@@ -36,10 +36,8 @@ impl Day01 {
             frequencies.sort_unstable_by_key(|&(idx, freq)| (freq, idx));
 
             frequencies
-                .windows(2)
-                .filter_map(|w| {
-                    let (_, freq1) = w[0];
-                    let (idx2, freq2) = w[1];
+                .array_windows()
+                .filter_map(|&[(_, freq1), (idx2, freq2)]| {
                     if freq1 == freq2 {
                         Some((idx2, freq1))
                     } else {

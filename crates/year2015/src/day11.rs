@@ -103,7 +103,7 @@ impl Day11 {
     }
 
     fn has_three_run(x: &[u8; 8]) -> bool {
-        x.windows(3).any(|x| x[0] + 1 == x[1] && x[0] + 2 == x[2])
+        x.array_windows().any(|&[a, b, c]| a + 1 == b && a + 2 == c)
     }
 
     fn has_no_confusing_letters(x: &[u8; 8]) -> bool {

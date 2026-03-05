@@ -56,7 +56,7 @@ impl Day04 {
 
     fn packed_passwords(mut start: [u8; 6], end: [u8; 6]) -> impl Iterator<Item = u64> {
         // Ensure the start is non-decreasing
-        if let Some(i) = start.windows(2).position(|w| w[0] > w[1]) {
+        if let Some(i) = start.array_windows().position(|&[a, b]| a > b) {
             let digit = start[i];
             start[i + 1..].fill(digit);
         }

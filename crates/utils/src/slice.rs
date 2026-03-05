@@ -57,8 +57,8 @@ use std::cmp::Ordering;
 /// ```
 #[inline]
 pub fn merge_sorted_deduped_in_place<T: Copy + Ord + Default>(a: &mut Vec<T>, b: &[T]) {
-    debug_assert!(a.windows(2).all(|w| w[0] < w[1]));
-    debug_assert!(b.windows(2).all(|w| w[0] < w[1]));
+    debug_assert!(a.array_windows().all(|[x, y]| x < y));
+    debug_assert!(b.array_windows().all(|[x, y]| x < y));
 
     let mut new = 0;
     let (mut i, mut j) = (0, 0);

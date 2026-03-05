@@ -27,7 +27,7 @@ impl<'a> Day05<'a> {
         self.lines
             .iter()
             // At least one letter that appears twice in a row
-            .filter(|&&l| l.windows(2).any(|w| w[0] == w[1]))
+            .filter(|&&l| l.array_windows().any(|&[a, b]| a == b))
             // At least 3 vowels
             .filter(|&&l| {
                 l.iter()
@@ -37,10 +37,10 @@ impl<'a> Day05<'a> {
                     >= 3
             })
             // Not any of these strings
-            .filter(|&&l| l.windows(2).all(|w| w != b"ab"))
-            .filter(|&&l| l.windows(2).all(|w| w != b"cd"))
-            .filter(|&&l| l.windows(2).all(|w| w != b"pq"))
-            .filter(|&&l| l.windows(2).all(|w| w != b"xy"))
+            .filter(|&&l| l.array_windows().all(|w| w != b"ab"))
+            .filter(|&&l| l.array_windows().all(|w| w != b"cd"))
+            .filter(|&&l| l.array_windows().all(|w| w != b"pq"))
+            .filter(|&&l| l.array_windows().all(|w| w != b"xy"))
             .count()
     }
 
@@ -53,12 +53,12 @@ impl<'a> Day05<'a> {
         self.lines
             .iter()
             // Contains a letter that repeats 2 characters later
-            .filter(|&&l| l.windows(3).any(|w| w[0] == w[2]))
+            .filter(|&&l| l.array_windows().any(|&[a, _, c]| a == c))
             // Contains a repeated pair of letters (without overlapping)
             .filter(|&&l| {
                 let string_start = pos;
-                l.windows(2).any(|w| {
-                    let pair = 26 * (w[0] - b'a') as usize + (w[1] - b'a') as usize;
+                l.array_windows().any(|&[a, b]| {
+                    let pair = 26 * (a - b'a') as usize + (b - b'a') as usize;
                     if pair_positions[pair] > string_start {
                         // Already seen the pair earlier in this string
                         if pair_positions[pair] < pos {
