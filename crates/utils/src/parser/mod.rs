@@ -11,7 +11,7 @@ mod one_of;
 mod simple;
 mod then;
 
-pub use base::*;
+pub use base::{ErrToken, ParseState, Parser, ParserResult, from_parser_fn};
 pub use error::ParseError;
 pub use iterator::{ParserIterator, ParserMatchesIterator};
 pub use leaf::*;

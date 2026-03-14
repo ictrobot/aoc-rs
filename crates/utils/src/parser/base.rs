@@ -641,7 +641,8 @@ impl<'i, P: Parser<'i>> Parser<'i> for ParserRef<'_, P> {
     }
 }
 
-struct FromFn<F>(F);
+#[derive(Copy, Clone)]
+pub struct FromFn<F>(F);
 impl<'i, F: Fn(&'i [u8], &mut ParseState<'i>, &mut bool, bool) -> ParserResult<'i, O>, O> Parser<'i>
     for FromFn<F>
 {
@@ -665,9 +666,10 @@ impl<'i, F: Fn(&'i [u8], &mut ParseState<'i>, &mut bool, bool) -> ParserResult<'
 /// This wrapper exists to avoid conflicting implementations of the [`Parser`] trait, which would
 /// occur if both [`Leaf`](super::Leaf) and [`Parser`] were implemented for the [`Fn`] trait family.
 #[inline]
-pub fn from_parser_fn<'i, O>(
-    f: impl Fn(&'i [u8], &mut ParseState<'i>, &mut bool, bool) -> ParserResult<'i, O>,
-) -> impl Parser<'i, Output = O> {
+pub fn from_parser_fn<'i, O, F>(f: F) -> FromFn<F>
+where
+    F: Fn(&'i [u8], &mut ParseState<'i>, &mut bool, bool) -> ParserResult<'i, O>,
+{
     FromFn(f)
 }
 
