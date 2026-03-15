@@ -5,7 +5,7 @@
 use std::collections::VecDeque;
 use utils::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct Interpreter {
     pub mem: Vec<i64>,
     pub ip: usize,
@@ -153,6 +153,22 @@ impl Interpreter {
     #[inline(always)]
     fn operand_mode(&self, offset: usize) -> u32 {
         (self.mem[self.ip] as u32 / 10u32.pow(1 + offset as u32)) % 10
+    }
+}
+
+impl Clone for Interpreter {
+    fn clone(&self) -> Self {
+        Self {
+            mem: self.mem.clone(),
+            ip: self.ip,
+            input: self.input.clone(),
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.mem.clone_from(&source.mem);
+        self.ip = source.ip;
+        self.input.clone_from(&source.input);
     }
 }
 
