@@ -1,6 +1,7 @@
 //! Intcode interpreter.
 //!
-//! See [`Day02`](crate::Day02), [`Day05`](crate::Day05).
+//! See [`Day02`](crate::Day02), [`Day05`](crate::Day05), [`Day07`](crate::Day07) and
+//! [`Day09`](crate::Day09).
 
 use std::collections::VecDeque;
 use utils::prelude::*;
@@ -10,6 +11,7 @@ pub(crate) struct Interpreter {
     pub mem: Vec<i64>,
     pub ip: usize,
     pub input: VecDeque<i64>,
+    pub relative_base: i64,
 }
 
 const OPCODE_ADD: i64 = 1;
@@ -20,10 +22,12 @@ const OPCODE_JMP_NON_ZERO: i64 = 5;
 const OPCODE_JMP_ZERO: i64 = 6;
 const OPCODE_LESS_THAN: i64 = 7;
 const OPCODE_EQUALS: i64 = 8;
+const OPCODE_ADJUST_RELATIVE_BASE: i64 = 9;
 const OPCODE_HALT: i64 = 99;
 
 const POSITION_MODE: u32 = 0;
 const IMMEDIATE_MODE: u32 = 1;
+const RELATIVE_MODE: u32 = 2;
 
 impl Interpreter {
     pub fn new(mem: Vec<i64>) -> Self {
@@ -31,6 +35,7 @@ impl Interpreter {
             mem,
             ip: 0,
             input: VecDeque::new(),
+            relative_base: 0,
         }
     }
 
@@ -111,6 +116,18 @@ impl Interpreter {
                     *self.write_operand::<F>(3) = i64::from(result);
                     self.ip += 4;
                 }
+                OPCODE_ADJUST_RELATIVE_BASE if F::RELATIVE_BASE => {
+                    self.relative_base = self
+                        .relative_base
+                        .checked_add(self.read_operand::<F>(1))
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "invalid relative base adjustment at address {}",
+                                self.ip + 1
+                            )
+                        });
+                    self.ip += 2;
+                }
                 OPCODE_HALT => break Event::Halt,
                 _ => panic!("invalid opcode {opcode} at address {}", self.ip),
             }
@@ -122,16 +139,17 @@ impl Interpreter {
         let operand_address = self.ip + offset;
         let operand = self.mem.get(operand_address).copied().unwrap_or(0);
 
-        match self.operand_mode(offset) {
-            POSITION_MODE => usize::try_from(operand)
-                .ok()
-                .and_then(|address| self.mem.get(address).copied())
-                .unwrap_or_else(|| {
-                    panic!("invalid memory address {operand} at address {operand_address}")
-                }),
-            IMMEDIATE_MODE if F::IMMEDIATE_OPERANDS => operand,
-            mode => panic!("invalid operand mode {mode} at address {operand_address}"),
-        }
+        let address = match self.operand_mode(offset) {
+            POSITION_MODE => Some(operand),
+            IMMEDIATE_MODE if F::IMMEDIATE_OPERANDS => return operand,
+            RELATIVE_MODE if F::RELATIVE_BASE => self.relative_base.checked_add(operand),
+            mode => panic!("invalid read operand mode {mode} at address {operand_address}"),
+        };
+        let Some(address) = address.and_then(|address| usize::try_from(address).ok()) else {
+            panic!("invalid memory address {operand} at address {operand_address}")
+        };
+
+        self.mem.get(address).copied().unwrap_or(0)
     }
 
     #[inline(always)]
@@ -139,15 +157,20 @@ impl Interpreter {
         let operand_address = self.ip + offset;
         let operand = self.mem.get(operand_address).copied().unwrap_or(0);
 
-        match self.operand_mode(offset) {
-            POSITION_MODE => usize::try_from(operand)
-                .ok()
-                .and_then(|address| self.mem.get_mut(address))
-                .unwrap_or_else(|| {
-                    panic!("invalid memory address {operand} at address {operand_address}")
-                }),
+        let address = match self.operand_mode(offset) {
+            POSITION_MODE => Some(operand),
+            RELATIVE_MODE if F::RELATIVE_BASE => self.relative_base.checked_add(operand),
             mode => panic!("invalid write operand mode {mode} at address {operand_address}"),
+        };
+        let Some(address) = address.and_then(|address| usize::try_from(address).ok()) else {
+            panic!("invalid memory address {operand} at address {operand_address}")
+        };
+
+        if address >= self.mem.len() {
+            self.mem.resize((address + 1).next_power_of_two(), 0);
         }
+
+        &mut self.mem[address]
     }
 
     #[inline(always)]
@@ -162,6 +185,7 @@ impl Clone for Interpreter {
             mem: self.mem.clone(),
             ip: self.ip,
             input: self.input.clone(),
+            relative_base: self.relative_base,
         }
     }
 
@@ -169,6 +193,7 @@ impl Clone for Interpreter {
         self.mem.clone_from(&source.mem);
         self.ip = source.ip;
         self.input.clone_from(&source.input);
+        self.relative_base = source.relative_base;
     }
 }
 
@@ -187,6 +212,8 @@ pub(crate) trait Features {
     const CONDITIONAL_OPCODES: bool = false;
     /// Introduced in Day 5 Part 1
     const IMMEDIATE_OPERANDS: bool = false;
+    /// Introduced in Day 9 Part 1
+    const RELATIVE_BASE: bool = false;
 }
 
 pub mod features {
@@ -206,6 +233,14 @@ pub mod features {
         const IO_OPCODES: bool = true;
         const CONDITIONAL_OPCODES: bool = true;
         const IMMEDIATE_OPERANDS: bool = true;
+    }
+
+    pub struct Day09Features;
+    impl Features for Day09Features {
+        const IO_OPCODES: bool = true;
+        const CONDITIONAL_OPCODES: bool = true;
+        const IMMEDIATE_OPERANDS: bool = true;
+        const RELATIVE_BASE: bool = true;
     }
 }
 
@@ -359,5 +394,54 @@ mod tests {
                 ],
             )
         }
+    }
+
+    #[test]
+    fn day09_examples() {
+        interpreter_test::<Day09Features>(
+            vec![
+                109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
+            ],
+            vec![],
+            vec![
+                TestEvent::Output(109),
+                TestEvent::Output(1),
+                TestEvent::Output(204),
+                TestEvent::Output(-1),
+                TestEvent::Output(1001),
+                TestEvent::Output(100),
+                TestEvent::Output(1),
+                TestEvent::Output(100),
+                TestEvent::Output(1008),
+                TestEvent::Output(100),
+                TestEvent::Output(16),
+                TestEvent::Output(101),
+                TestEvent::Output(1006),
+                TestEvent::Output(101),
+                TestEvent::Output(0),
+                TestEvent::Output(99),
+            ],
+        );
+
+        interpreter_test::<Day09Features>(
+            vec![1102, 34_915_192, 34_915_192, 7, 4, 7, 99, 0],
+            vec![
+                1102,
+                34_915_192,
+                34_915_192,
+                7,
+                4,
+                7,
+                99,
+                1_219_070_632_396_864,
+            ],
+            vec![TestEvent::Output(1_219_070_632_396_864)],
+        );
+
+        interpreter_test::<Day09Features>(
+            vec![104, 1_125_899_906_842_624, 99],
+            vec![104, 1_125_899_906_842_624, 99],
+            vec![TestEvent::Output(1_125_899_906_842_624)],
+        );
     }
 }
