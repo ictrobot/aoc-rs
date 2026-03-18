@@ -361,12 +361,26 @@ pub fn sum_of_divisors<T: UnsignedInteger>(n: T) -> Option<T> {
     Some(sum)
 }
 
-/// Computes the greatest common divisor (GCD) using the extended Euclidean algorithm.
+/// Computes the greatest common divisor (GCD) using the Euclidean algorithm.
 ///
-/// Returns a tuple `(gcd, x, y)` where `x`, `y` are the coefficients of Bézout's identity:
-/// ```text
-/// ax + by = gcd(a, b)
+/// # Examples
 /// ```
+/// # use utils::number::gcd;
+/// assert_eq!(gcd(252, 105), 21);
+/// assert_eq!(gcd(-12, 8), -4);
+/// ```
+#[inline]
+#[must_use]
+pub fn gcd<T: SignedInteger>(mut a: T, mut b: T) -> T {
+    while b != T::ZERO {
+        (a, b) = (b, a % b);
+    }
+    a
+}
+
+/// Computes the extended greatest common divisor.
+///
+/// Returns `(gcd, s, t)` such that `gcd = s * a + t * b`.
 ///
 /// # Examples
 /// ```
@@ -404,8 +418,7 @@ pub fn lcm<T: SignedInteger>(a: T, b: T) -> T {
         return T::ZERO;
     }
 
-    let (gcd, ..) = egcd(a, b);
-    (a / gcd).abs() * b.abs()
+    (a / gcd(a, b)).abs() * b.abs()
 }
 
 /// Computes the modular inverse of `a` modulo `b` if it exists.

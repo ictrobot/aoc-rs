@@ -2,7 +2,7 @@
 
 use crate::number::{Integer, Number, Signed, UnsignedInteger};
 use std::fmt::Debug;
-use std::ops::{Add, AddAssign, Mul, MulAssign, Not, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Not, Sub, SubAssign};
 
 macro_rules! vec_impl {
     ($n:literal, $tuple:tt =>
@@ -138,6 +138,24 @@ macro_rules! vec_impl {
             #[inline]
             fn add_assign(&mut self, rhs: Self) {
                 $(self.$f += rhs.$f;)+
+            }
+        }
+
+        impl<T: Number> Div<T> for $s<T> {
+            type Output = Self;
+
+            #[inline]
+            fn div(self, rhs: T) -> Self {
+                Self{
+                    $($f: self.$f / rhs,)+
+                }
+            }
+        }
+
+        impl<T: Number> DivAssign<T> for $s<T> {
+            #[inline]
+            fn div_assign(&mut self, rhs: T) {
+                $(self.$f /= rhs;)+
             }
         }
 
