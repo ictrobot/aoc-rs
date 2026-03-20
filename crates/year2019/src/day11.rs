@@ -1,5 +1,5 @@
+use crate::intcode::Interpreter;
 use crate::intcode::features::Day09Features;
-use crate::intcode::{Event, Interpreter};
 use utils::geometry::{Direction, Vec2};
 use utils::prelude::*;
 
@@ -71,11 +71,10 @@ impl Day11 {
             let index = pos.y as usize * WIDTH + pos.x as usize;
             interpreter.push_input(i64::from(grid[index] == Panel::White));
 
-            let mut next_output = || match interpreter.run::<Day09Features>() {
-                Event::Halt => None,
-                Event::Input => panic!("no solution found: program required more input"),
-                Event::Output(x @ 0..=1) => Some(x as u8),
-                Event::Output(_) => panic!("no solution found: program returned invalid output"),
+            let mut next_output = || match interpreter.next_output::<Day09Features>() {
+                Some(x @ 0..=1) => Some(x as u8),
+                Some(_) => panic!("no solution found: program returned invalid output"),
+                None => None,
             };
             let (Some(color), Some(turn)) = (next_output(), next_output()) else {
                 return painted;

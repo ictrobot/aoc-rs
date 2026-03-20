@@ -134,6 +134,43 @@ impl Interpreter {
         }
     }
 
+    #[inline]
+    pub fn expect_halt<F: Features>(&mut self) {
+        match self.run::<F>() {
+            Event::Halt => {}
+            Event::Input => {
+                panic!("no solution found: expected program to halt, but it requested input")
+            }
+            Event::Output(x) => {
+                panic!("no solution found: expected program to halt, but it output {x}")
+            }
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn expect_output<F: Features>(&mut self) -> i64 {
+        match self.run::<F>() {
+            Event::Halt => panic!("no solution found: expected program to output, but it halted"),
+            Event::Input => {
+                panic!("no solution found: expected program to output, but it requested input")
+            }
+            Event::Output(value) => value,
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn next_output<F: Features>(&mut self) -> Option<i64> {
+        match self.run::<F>() {
+            Event::Halt => None,
+            Event::Input => panic!(
+                "no solution found: expected program to output or halt, but it requested input"
+            ),
+            Event::Output(value) => Some(value),
+        }
+    }
+
     #[inline(always)]
     fn read_operand<F: Features>(&self, offset: usize) -> i64 {
         let operand_address = self.ip + offset;

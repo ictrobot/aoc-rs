@@ -1,7 +1,7 @@
 use utils::prelude::*;
 
+use crate::intcode::Interpreter;
 use crate::intcode::features::Day09Features;
-use crate::intcode::{Event, Interpreter};
 
 /// Interpreting assembly with base-relative addressing.
 #[derive(Clone, Debug)]
@@ -30,19 +30,9 @@ impl Day09 {
         let mut interpreter = self.interpreter.clone();
         interpreter.push_input(input);
 
-        let mut output = None;
-        loop {
-            match interpreter.run::<Day09Features>() {
-                Event::Halt => {
-                    return output.expect("no solution found: program produced no output");
-                }
-                Event::Input => panic!("no solution found: program required more input"),
-                Event::Output(_) if output.is_some() => {
-                    panic!("no solution found: program output multiple values")
-                }
-                Event::Output(x) => output = Some(x),
-            }
-        }
+        let output = interpreter.expect_output::<Day09Features>();
+        interpreter.expect_halt::<Day09Features>();
+        output
     }
 }
 

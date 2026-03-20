@@ -1,5 +1,5 @@
 use crate::intcode::features::{Day05Part1Features, Day05Part2Features};
-use crate::intcode::{Event, Features, Interpreter};
+use crate::intcode::{Features, Interpreter};
 use utils::prelude::*;
 
 /// Interpreting assembly with IO, conditionals and immediate operands.
@@ -29,16 +29,12 @@ impl Day05 {
         let mut interpreter = self.interpreter.clone();
         interpreter.push_input(input);
 
-        let mut last_output = 0;
         loop {
-            match interpreter.run::<F>() {
-                Event::Halt if last_output != 0 => return last_output,
-                Event::Halt => panic!("no solution found: no non-zero output"),
-                Event::Input => panic!("no solution found: program requires more input"),
-                Event::Output(_) if last_output != 0 => {
-                    panic!("no solution found: output after non-zero output")
-                }
-                Event::Output(x) => last_output = x,
+            let output = interpreter.expect_output::<F>();
+
+            if output != 0 {
+                interpreter.expect_halt::<F>();
+                return output;
             }
         }
     }

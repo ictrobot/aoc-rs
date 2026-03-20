@@ -1,5 +1,5 @@
 use crate::intcode::features::Day05Part2Features;
-use crate::intcode::{Event, Interpreter};
+use crate::intcode::Interpreter;
 use std::ops::Range;
 use utils::prelude::*;
 
@@ -25,12 +25,7 @@ impl Day07 {
                 amplifier.clone_from(&self.interpreter);
                 amplifier.push_input(phase);
                 amplifier.push_input(signal);
-
-                match amplifier.run::<Day05Part2Features>() {
-                    Event::Halt => panic!("expected amplifier to output signal"),
-                    Event::Input => panic!("expected amplifier to only consume two inputs"),
-                    Event::Output(x) => signal = x,
-                }
+                signal = amplifier.expect_output::<Day05Part2Features>();
             }
             signal
         })
@@ -49,14 +44,10 @@ impl Day07 {
             loop {
                 for amplifier in &mut amplifiers {
                     amplifier.push_input(signal);
-
-                    match amplifier.run::<Day05Part2Features>() {
-                        Event::Halt => return signal,
-                        Event::Input => {
-                            panic!("expected amplifier to only consume one input per cycle")
-                        }
-                        Event::Output(x) => signal = x,
-                    }
+                    let Some(output) = amplifier.next_output::<Day05Part2Features>() else {
+                        return signal;
+                    };
+                    signal = output;
                 }
             }
         })

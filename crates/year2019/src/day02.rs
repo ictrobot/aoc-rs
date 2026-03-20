@@ -63,7 +63,7 @@ impl Day02 {
         interpreter.mem[1] = noun;
         interpreter.mem[2] = verb;
 
-        let _ = interpreter.run::<Day02Features>();
+        interpreter.expect_halt::<Day02Features>();
 
         interpreter.mem[0]
     }
