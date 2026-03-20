@@ -256,6 +256,7 @@ impl ScopeRunning {
     fn task_finished(&self) {
         let prev = self.counter.fetch_sub(1, Ordering::AcqRel);
         if prev == 1 {
+            let _guard = self.wait_mutex.lock().unwrap();
             self.wait_condvar.notify_all();
         } else if prev == 0 {
             panic!("more tasks finished than started?")
