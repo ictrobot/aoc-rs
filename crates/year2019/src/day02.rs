@@ -2,7 +2,7 @@ use crate::intcode::Interpreter;
 use crate::intcode::features::Day02Features;
 use utils::prelude::*;
 
-/// Interpreting assembly with add and multiply instructions.
+/// Interpreting machine code with add and multiply instructions.
 ///
 /// Part 2 assumes the output grows monotonically with both inputs and that the first input
 /// is more significant than the second input.

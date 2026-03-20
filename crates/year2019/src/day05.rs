@@ -2,7 +2,7 @@ use crate::intcode::features::{Day05Part1Features, Day05Part2Features};
 use crate::intcode::{Features, Interpreter};
 use utils::prelude::*;
 
-/// Interpreting assembly with IO, conditionals and immediate operands.
+/// Interpreting machine code with IO, conditionals and immediate operands.
 #[derive(Clone, Debug)]
 pub struct Day05 {
     interpreter: Interpreter,

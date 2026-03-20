@@ -3,7 +3,7 @@ use crate::intcode::features::Day09Features;
 use utils::geometry::{Direction, Vec2};
 use utils::prelude::*;
 
-/// Recognizing text painted by interpreting assembly.
+/// Recognizing text painted by interpreting machine code.
 #[derive(Clone, Debug)]
 pub struct Day11 {
     base: Interpreter,

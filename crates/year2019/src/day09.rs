@@ -3,7 +3,7 @@ use utils::prelude::*;
 use crate::intcode::Interpreter;
 use crate::intcode::features::Day09Features;
 
-/// Interpreting assembly with base-relative addressing.
+/// Interpreting machine code with base-relative addressing.
 #[derive(Clone, Debug)]
 pub struct Day09 {
     interpreter: Interpreter,
