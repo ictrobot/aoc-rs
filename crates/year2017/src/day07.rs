@@ -1,25 +1,25 @@
 use std::collections::HashMap;
-use std::str;
 use utils::prelude::*;
+use utils::str::TinyStr8;
 
 /// Finding the unbalanced subtree.
 #[derive(Clone, Debug)]
-pub struct Day07<'a> {
-    programs: Vec<Program<'a>>,
+pub struct Day07 {
+    programs: Vec<Program>,
     bottom: usize,
 }
 
 #[derive(Clone, Debug)]
-struct Program<'a> {
-    name: &'a [u8],
+struct Program {
+    name: TinyStr8,
     weight: u32,
     parent: Option<usize>,
     children: Vec<usize>,
 }
 
-impl<'a> Day07<'a> {
-    pub fn new(input: &'a str, _: InputType) -> Result<Self, InputError> {
-        let name = parser::take_while1(u8::is_ascii_lowercase);
+impl Day07 {
+    pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
+        let name = parser::tinystr8(u8::is_ascii_lowercase);
         let lines = name
             .with_suffix(" (")
             .then(parser::u32().with_suffix(")"))
@@ -43,19 +43,17 @@ impl<'a> Day07<'a> {
             .collect::<HashMap<_, _>>();
 
         for (parent, (_, _, children)) in lines.into_iter().enumerate() {
-            // Use into_iter so that the children Vec<&[u8]> can be reused as the children
-            // Vec<usize>, avoiding an extra allocation and free per input line.
             let children = children
                 .into_iter()
                 .map(|name| {
-                    if let Some(&child) = name_map.get(name) {
+                    if let Some(&child) = name_map.get(&name) {
                         programs[child].parent = Some(parent);
                         Ok(child)
                     } else {
                         Err(InputError::new(
                             input,
                             0,
-                            format!("program {:?} missing on LHS", str::from_utf8(name).unwrap()),
+                            format!("program {name} missing on LHS"),
                         ))
                     }
                 })
@@ -75,8 +73,8 @@ impl<'a> Day07<'a> {
     }
 
     #[must_use]
-    pub fn part1(&self) -> &str {
-        str::from_utf8(self.programs[self.bottom].name).unwrap()
+    pub fn part1(&self) -> String {
+        self.programs[self.bottom].name.to_string()
     }
 
     #[must_use]
@@ -108,8 +106,8 @@ impl<'a> Day07<'a> {
                     second_weight = Some((weight, child));
                 } else if second_weight.unwrap().0 != weight {
                     panic!(
-                        "program {:?} has children with 3 different weights",
-                        str::from_utf8(program.name).unwrap()
+                        "program {} has children with 3 different weights",
+                        program.name
                     );
                 }
             }
@@ -134,6 +132,6 @@ impl<'a> Day07<'a> {
     }
 }
 
-examples!(Day07<'_> -> (&'static str, u32) [
+examples!(Day07 -> (&'static str, u32) [
     {file: "day07_example0.txt", part1: "tknk", part2: 60},
 ]);

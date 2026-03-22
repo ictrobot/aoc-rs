@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use utils::prelude::*;
+use utils::str::TinyStr4;
 
 /// Logic gates.
 ///
@@ -32,15 +33,18 @@ impl Day07 {
             let Some((_, name)) = l.rsplit_once(" -> ") else {
                 return Err(InputError::new(input, l, "line missing \" -> \""));
             };
-            indexes.insert(name.as_bytes(), i);
+            let Some(name) = TinyStr4::new(name.as_bytes()) else {
+                return Err(InputError::new(input, l, "wire name too long"));
+            };
+            indexes.insert(name, i);
         }
         if indexes.len() >= Self::U16_CONST_MASK {
             return Err(InputError::new(input, 0, "too many wires"));
         }
 
         let parse_wire = parser::one_of((
-            parser::take_while(u8::is_ascii_lowercase)
-                .map_res(|v| indexes.get(v).copied().ok_or("wire not found")),
+            parser::tinystr4(u8::is_ascii_lowercase)
+                .map_res(|v| indexes.get(&v).copied().ok_or("wire not found")),
             parser::u16().map(|v| Self::U16_CONST_MASK | v as usize),
         ));
 
@@ -65,13 +69,13 @@ impl Day07 {
             parse_wire.map(Signal::Wire),
         ))
         .with_suffix(" -> ")
-        .with_suffix(parser::take_while(u8::is_ascii_lowercase))
+        .with_suffix(parser::tinystr4(u8::is_ascii_lowercase))
         .parse_lines(input)?;
 
-        let Some(&a_idx) = indexes.get(&b"a"[..]) else {
+        let Some(&a_idx) = indexes.get(&TinyStr4::from_const(b"a")) else {
             return Err(InputError::new(input, 0, "missing 'a' wire"));
         };
-        let Some(&b_idx) = indexes.get(&b"b"[..]) else {
+        let Some(&b_idx) = indexes.get(&TinyStr4::from_const(b"b")) else {
             return Err(InputError::new(input, 0, "missing 'b' wire"));
         };
 

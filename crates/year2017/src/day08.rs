@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use utils::prelude::*;
+use utils::str::TinyStr4;
 
 /// Evaluating conditional add instructions.
 #[derive(Clone, Debug)]
@@ -10,8 +11,9 @@ pub struct Day08 {
 
 impl Day08 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let parse_iterator = parser::take_while1(u8::is_ascii_lowercase)
-            .with_suffix(" ")
+        let register = parser::tinystr4(u8::is_ascii_lowercase);
+        let parse_iterator = register
+            .with_suffix(b' ')
             .then(
                 parser::one_of((
                     parser::i32().with_prefix("inc "),
@@ -19,7 +21,7 @@ impl Day08 {
                 ))
                 .with_suffix(" if "),
             )
-            .then(parser::take_while1(u8::is_ascii_lowercase).with_suffix(" "))
+            .then(register.with_suffix(b' '))
             .then(
                 parser::literal_map!(
                     "==" => i32::eq as fn(&i32, &i32) -> bool,
@@ -29,13 +31,13 @@ impl Day08 {
                     "<" => i32::lt as fn(&i32, &i32) -> bool,
                     ">" => i32::gt as fn(&i32, &i32) -> bool,
                 )
-                .with_suffix(" "),
+                .with_suffix(b' '),
             )
             .then(parser::i32())
             .with_eol()
             .parse_iterator(input);
 
-        let mut registers = HashMap::new();
+        let mut registers = HashMap::<TinyStr4, i32>::new();
         let mut max = 0;
         for item in parse_iterator {
             let (reg, value, cond_reg, comparison, cond_value) = item?;

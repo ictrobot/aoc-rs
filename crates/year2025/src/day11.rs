@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use utils::array::ArrayVec;
 use utils::prelude::*;
+use utils::str::TinyStr4;
 
 /// Counting paths through a directed acyclic graph.
 #[derive(Clone, Debug)]
@@ -20,10 +21,15 @@ enum State {
 }
 
 const MAX_CONNECTIONS: usize = 32;
+const OUT: TinyStr4 = TinyStr4::from_const(b"out");
+const YOU: TinyStr4 = TinyStr4::from_const(b"you");
+const SVR: TinyStr4 = TinyStr4::from_const(b"svr");
+const DAC: TinyStr4 = TinyStr4::from_const(b"dac");
+const FFT: TinyStr4 = TinyStr4::from_const(b"fft");
 
 impl Day11 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let label = parser::byte_range(b'a'..=b'z').repeat_n::<3, _>(parser::noop());
+        let label = parser::tinystr::<3>(u8::is_ascii_lowercase);
 
         let mut indexes = HashMap::new();
         for line in label
@@ -33,7 +39,7 @@ impl Day11 {
             .parse_iterator(input)
         {
             let (lhs, line) = line?;
-            if lhs == *b"out" {
+            if lhs == OUT {
                 return Err(InputError::new(
                     input,
                     line,
@@ -48,7 +54,7 @@ impl Day11 {
         }
 
         let out = indexes.len() as u16;
-        indexes.insert(*b"out", out);
+        indexes.insert(OUT, out);
 
         let mapped_label = label.map_res(|b| {
             if let Some(&num) = indexes.get(&b) {
@@ -64,10 +70,10 @@ impl Day11 {
                 .with_prefix(label.with_suffix(": "))
                 .parse_lines(input)?,
             out,
-            part1: indexes.get(b"you").copied(),
-            part2: if let Some(&svr) = indexes.get(b"svr")
-                && let Some(&dac) = indexes.get(b"dac")
-                && let Some(&fft) = indexes.get(b"fft")
+            part1: indexes.get(&YOU).copied(),
+            part2: if let Some(&svr) = indexes.get(&SVR)
+                && let Some(&dac) = indexes.get(&DAC)
+                && let Some(&fft) = indexes.get(&FFT)
             {
                 Some((svr, dac, fft))
             } else {

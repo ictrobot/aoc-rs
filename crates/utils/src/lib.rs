@@ -20,6 +20,7 @@ pub mod parser;
 pub mod queue;
 pub mod simd;
 pub mod slice;
+pub mod str;
 
 pub use framework::{PuzzleDate, PuzzleExamples};
 

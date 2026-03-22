@@ -8,7 +8,7 @@ use std::fmt::{Display, Formatter};
 ///
 /// Returned by both [`Parser::parse_ctx`] and [`Leaf::parse`](super::Leaf::parse).
 #[non_exhaustive]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone)]
 pub enum ParseError {
     /// Expected $type.
     Expected(&'static str),
@@ -20,8 +20,12 @@ pub enum ParseError {
     ExpectedByteRange(u8, u8),
     /// Expected one of $set.
     ExpectedOneOf(AsciiSet),
-    /// Expected at least $n matches.
-    ExpectedMatches(usize),
+    /// Expected at least $n characters matching $set.
+    ExpectedAtLeastMatches(usize, fn(&u8) -> bool),
+    /// Expected at most $n characters matching $set.
+    ExpectedAtMostMatches(usize, fn(&u8) -> bool),
+    /// Expected exactly $n characters matching $set.
+    ExpectedExactlyMatches(usize, fn(&u8) -> bool),
     /// Expected $n items or less.
     ExpectedLessItems(usize),
     /// Expected end of input.
@@ -68,9 +72,24 @@ impl Display for ParseError {
             ParseError::ExpectedByteRange(min, max) => {
                 write!(f, "expected {:?}-{:?}", min as char, max as char)
             }
+            ParseError::ExpectedAtLeastMatches(n, set_fn) => {
+                let set = AsciiSet::from(|b| set_fn(&b));
+                if n == 1 {
+                    write!(f, "expected at least 1 character matching {set}")
+                } else {
+                    write!(f, "expected at least {n} characters matching {set}")
+                }
+            }
+            ParseError::ExpectedAtMostMatches(n, set_fn) => {
+                let set = AsciiSet::from(|b| set_fn(&b));
+                write!(f, "expected at most {n} characters matching {set}")
+            }
+            ParseError::ExpectedExactlyMatches(n, set_fn) => {
+                let set = AsciiSet::from(|b| set_fn(&b));
+                write!(f, "expected exactly {n} characters matching {set}")
+            }
             ParseError::ExpectedOneOf(set) => write!(f, "expected one of {set}"),
             ParseError::ExpectedEof() => write!(f, "expected end of input"),
-            ParseError::ExpectedMatches(x) => write!(f, "expected at least {x} match"),
             ParseError::ExpectedLessItems(x) => write!(f, "expected {x} items or less"),
             ParseError::NumberTooLarge(x) => write!(f, "expected number <= {x}"),
             ParseError::NumberTooSmall(x) => write!(f, "expected number >= {x}"),
@@ -81,6 +100,59 @@ impl Display for ParseError {
 }
 
 impl Error for ParseError {}
+
+impl PartialEq for ParseError {
+    fn eq(&self, other: &Self) -> bool {
+        match (*self, *other) {
+            // Equality based on the produced sets. This avoids the following warning:
+            //     warning: function pointer comparisons do not produce meaningful results since
+            //     their addresses are not guaranteed to be unique
+            // Alternatively, the AsciiSet itself could be stored in the ParseError, but that would
+            // make constructing the error more expensive, slowing down backtracking.
+            (Self::ExpectedAtLeastMatches(a1, a2), Self::ExpectedAtLeastMatches(b1, b2))
+            | (Self::ExpectedAtMostMatches(a1, a2), Self::ExpectedAtMostMatches(b1, b2))
+            | (Self::ExpectedExactlyMatches(a1, a2), Self::ExpectedExactlyMatches(b1, b2)) => {
+                a1 == b1 && AsciiSet::from(|b| a2(&b)) == AsciiSet::from(|b| b2(&b))
+            }
+
+            // Simple equality
+            (Self::Expected(a), Self::Expected(b))
+            | (Self::ExpectedLiteral(a), Self::ExpectedLiteral(b))
+            | (Self::Custom(a), Self::Custom(b)) => a == b,
+            (Self::ExpectedByte(a), Self::ExpectedByte(b)) => a == b,
+            (Self::ExpectedByteRange(a1, a2), Self::ExpectedByteRange(b1, b2)) => {
+                a1 == b1 && a2 == b2
+            }
+            (Self::ExpectedOneOf(a), Self::ExpectedOneOf(b)) => a == b,
+            (Self::ExpectedLessItems(a), Self::ExpectedLessItems(b)) => a == b,
+            (Self::ExpectedEof(), Self::ExpectedEof())
+            | (Self::NumberOutOfRange(), Self::NumberOutOfRange()) => true,
+            (Self::NumberTooLarge(a), Self::NumberTooLarge(b))
+            | (Self::NumberTooSmall(a), Self::NumberTooSmall(b)) => a == b,
+
+            // Ensure new variants are explicitly handled
+            (
+                Self::Expected(_)
+                | Self::ExpectedLiteral(_)
+                | Self::ExpectedByte(_)
+                | Self::ExpectedByteRange(_, _)
+                | Self::ExpectedOneOf(_)
+                | Self::ExpectedAtLeastMatches(_, _)
+                | Self::ExpectedAtMostMatches(_, _)
+                | Self::ExpectedExactlyMatches(_, _)
+                | Self::ExpectedLessItems(_)
+                | Self::ExpectedEof()
+                | Self::NumberTooLarge(_)
+                | Self::NumberTooSmall(_)
+                | Self::NumberOutOfRange()
+                | Self::Custom(_),
+                _,
+            ) => false,
+        }
+    }
+}
+
+impl Eq for ParseError {}
 
 impl PartialEq<ParseError> for Box<dyn Error> {
     fn eq(&self, other: &ParseError) -> bool {

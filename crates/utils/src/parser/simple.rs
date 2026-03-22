@@ -271,7 +271,7 @@ impl<'i, const N: usize> Leaf<'i> for TakeWhile<N> {
         if end >= N {
             Ok(input.split_at(end))
         } else {
-            Err((ParseError::ExpectedMatches(N), &input[end..]))
+            Err((ParseError::ExpectedAtLeastMatches(N, self.0), &input[end..]))
         }
     }
 }

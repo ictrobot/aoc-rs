@@ -266,6 +266,7 @@ pub trait Parser<'i>: Sized {
     ///     (ArrayVec::from_slice(&[12, 34, 56]).unwrap(), &b",abc"[..])
     /// );
     /// assert!(parser.parse_first("12,34").is_err());
+    /// assert!(parser.parse_first("12,34,56,78,90,0").is_err());
     /// ```
     #[inline]
     fn repeat_arrayvec<const N: usize, S: Parser<'i>>(
