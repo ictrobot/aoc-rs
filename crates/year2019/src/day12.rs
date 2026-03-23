@@ -62,7 +62,7 @@ impl Day12 {
         let x = Self::axis_period(self.pos[0]);
         let y = Self::axis_period(self.pos[1]);
         let z = Self::axis_period(self.pos[2]);
-        lcm(lcm(x as i64, y as i64), z as i64) as u64
+        lcm(lcm(x, y), z)
     }
 
     #[inline]

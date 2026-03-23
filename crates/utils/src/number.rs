@@ -371,7 +371,7 @@ pub fn sum_of_divisors<T: UnsignedInteger>(n: T) -> Option<T> {
 /// ```
 #[inline]
 #[must_use]
-pub fn gcd<T: SignedInteger>(mut a: T, mut b: T) -> T {
+pub fn gcd<T: Integer>(mut a: T, mut b: T) -> T {
     while b != T::ZERO {
         (a, b) = (b, a % b);
     }
@@ -381,6 +381,9 @@ pub fn gcd<T: SignedInteger>(mut a: T, mut b: T) -> T {
 /// Computes the extended greatest common divisor.
 ///
 /// Returns `(gcd, s, t)` such that `gcd = s * a + t * b`.
+///
+/// Unlike [`gcd`], this function is only defined for signed integers as the `s` and `t`
+/// coefficients may be negative.
 ///
 /// # Examples
 /// ```
@@ -413,7 +416,7 @@ pub fn egcd<T: SignedInteger>(mut a: T, mut b: T) -> (T, T, T) {
 /// ```
 #[inline]
 #[must_use]
-pub fn lcm<T: SignedInteger>(a: T, b: T) -> T {
+pub fn lcm<T: Integer>(a: T, b: T) -> T {
     if a == T::ZERO || b == T::ZERO {
         return T::ZERO;
     }
