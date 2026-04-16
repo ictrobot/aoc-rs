@@ -34,14 +34,14 @@ impl Day17 {
                         "expected camera program to halt without requesting input",
                     ));
                 }
-                Event::Output(value) => {
+                Event::Output(value)
                     if let Ok(byte) = u8::try_from(value)
-                        && matches!(byte, b'\n' | b'.' | b'#' | b'^' | b'>' | b'v' | b'<')
-                    {
-                        output.push(byte);
-                    } else {
-                        return Err(InputError::new(input, 0, "expected valid camera output"));
-                    }
+                        && matches!(byte, b'\n' | b'.' | b'#' | b'^' | b'>' | b'v' | b'<') =>
+                {
+                    output.push(byte);
+                }
+                Event::Output(_) => {
+                    return Err(InputError::new(input, 0, "expected valid camera output"));
                 }
             }
         }

@@ -189,13 +189,10 @@ impl<'a> Program<'a> {
                 Instruction::ModN(r, v) => {
                     self.reg[r as usize] = self.reg[r as usize].rem_euclid(v as i64)
                 }
-                Instruction::Rcv(r) => {
-                    if let Some(value) = rcv(self.reg[r as usize]) {
-                        self.reg[r as usize] = value;
-                    } else {
-                        break;
-                    }
+                Instruction::Rcv(r) if let Some(value) = rcv(self.reg[r as usize]) => {
+                    self.reg[r as usize] = value;
                 }
+                Instruction::Rcv(_) => break,
                 Instruction::Jgz(r, ro) => {
                     if self.reg[r as usize] > 0 {
                         self.pc = self.pc.wrapping_add_signed(self.reg[ro as usize] as isize) - 1;
