@@ -26,7 +26,9 @@
 ///
 /// Variant helpers:
 /// ```
+/// # use core::assert_matches;
 /// utils::enumerable_enum! {
+///     #[derive(Debug)]
 ///     enum Direction {
 ///         North,
 ///         East,
@@ -36,19 +38,18 @@
 /// }
 ///
 /// assert_eq!(Direction::COUNT, 4);
-/// # // Use matches! as PartialEq is not derived or implemented in this example
-/// assert!(matches!(Direction::ALL, &[
+/// assert_matches!(Direction::ALL, &[
 ///     Direction::North,
 ///     Direction::East,
 ///     Direction::South,
 ///     Direction::West,
-/// ]));
-/// assert!(matches!(Direction::iter().collect::<Vec<_>>().as_slice(), &[
+/// ]);
+/// assert_matches!(Direction::iter().collect::<Vec<_>>().as_slice(), &[
 ///     Direction::North,
 ///     Direction::East,
 ///     Direction::South,
 ///     Direction::West,
-/// ]));
+/// ]);
 /// ```
 ///
 /// Discriminant helpers:

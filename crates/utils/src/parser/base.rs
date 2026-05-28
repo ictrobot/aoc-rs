@@ -47,13 +47,14 @@ pub trait Parser<'i>: Sized {
     ///
     /// # Examples
     /// ```
+    /// # use core::assert_matches;
     /// # use utils::parser::{self, ParseState, Parser};
-    /// assert!(matches!(
+    /// assert_matches!(
     ///     parser::i32()
     ///         .then(parser::i32())
     ///         .parse_complete("123-123"),
     ///     Ok((123, -123)),
-    /// ));
+    /// );
     /// ```
     #[inline]
     fn then<T: Parser<'i>>(self, next: T) -> Self::Then<T> {
@@ -68,18 +69,19 @@ pub trait Parser<'i>: Sized {
     ///
     /// # Examples
     /// ```
+    /// # use core::assert_matches;
     /// # use utils::parser::{self, ParseError, Parser};
     /// let parser = parser::u8()
     ///     .map(|x| u32::from(x) * 1001001)
     ///     .or(parser::u32());
-    /// assert!(matches!(
+    /// assert_matches!(
     ///     parser.parse_complete("123"),
     ///     Ok(123123123)
-    /// ));
-    /// assert!(matches!(
+    /// );
+    /// assert_matches!(
     ///     parser.parse_complete("1000"),
     ///     Ok(1000)
-    /// ));
+    /// );
     /// ```
     #[inline]
     fn or<T: Parser<'i, Output = Self::Output>>(self, alternative: T) -> Or<Self, T> {
@@ -116,26 +118,28 @@ pub trait Parser<'i>: Sized {
     ///
     /// # Examples
     /// ```
+    /// # use core::assert_matches;
     /// # use utils::parser::{self, Parser};
-    /// assert!(matches!(
+    /// assert_matches!(
     ///     parser::u32()
     ///         .map(|x| x * 2)
     ///         .parse_complete("123"),
     ///     Ok(246)
-    /// ));
+    /// );
     /// ```
     ///
     /// Closure that returns a value borrowing from both its input and an outer variable:
     /// ```
+    /// # use core::assert_matches;
     /// # use utils::parser::{self, Parser};
     /// let my_string = String::from("123");
     /// let my_vec = vec![4, 5, 6];
-    /// assert!(matches!(
+    /// assert_matches!(
     ///     parser::take_while(u8::is_ascii_digit)
     ///         .map(|x| (x, my_vec.as_slice()))
     ///         .parse_complete(&my_string),
     ///     Ok((&[b'1', b'2', b'3'], &[4, 5, 6]))
-    /// ));
+    /// );
     /// ```
     #[inline]
     fn map<O, F: Fn(Self::Output) -> O>(self, f: F) -> Map<Self, F> {
@@ -151,13 +155,14 @@ pub trait Parser<'i>: Sized {
     ///
     /// # Examples
     /// ```
+    /// # use core::assert_matches;
     /// # use utils::parser::{self, ParseError, Parser};
     /// let parser = parser::u8()
     ///     .map_res(|x| x.checked_mul(2).ok_or("input too large"));
-    /// assert!(matches!(
+    /// assert_matches!(
     ///     parser.parse_complete("123"),
     ///     Ok(246)
-    /// ));
+    /// );
     /// assert_eq!(
     ///     parser.parse_complete("200").unwrap_err().into_source(),
     ///     ParseError::Custom("input too large"),
@@ -166,10 +171,11 @@ pub trait Parser<'i>: Sized {
     ///
     /// Closure that returns a value borrowing from both its input and an outer variable:
     /// ```
+    /// # use core::assert_matches;
     /// # use utils::parser::{self, Parser};
     /// let my_string = String::from("123");
     /// let my_vec = vec![4, 5, 6];
-    /// assert!(matches!(
+    /// assert_matches!(
     ///     parser::take_while(u8::is_ascii_digit)
     ///         .map_res(|x| {
     ///             if x.len() < 10 {
@@ -180,7 +186,7 @@ pub trait Parser<'i>: Sized {
     ///         })
     ///         .parse_complete(&my_string),
     ///     Ok((&[b'1', b'2', b'3'], &[4, 5, 6]))
-    /// ));
+    /// );
     /// ```
     #[inline]
     fn map_res<O, F: Fn(Self::Output) -> Result<O, &'static str>>(
@@ -198,17 +204,18 @@ pub trait Parser<'i>: Sized {
     ///
     /// # Examples
     /// ```
+    /// # use core::assert_matches;
     /// # use utils::parser::{self, ParseError, Parser};
     /// let parser = parser::u32()
     ///     .optional();
-    /// assert!(matches!(
+    /// assert_matches!(
     ///     parser.parse_first("123"),
     ///     Ok((Some(123), &[]))
-    /// ));
-    /// assert!(matches!(
+    /// );
+    /// assert_matches!(
     ///     parser.parse_first("abc"),
     ///     Ok((None, &[b'a', b'b', b'c']))
-    /// ));
+    /// );
     /// ```
     #[inline]
     fn optional(self) -> Optional<Self> {
@@ -222,13 +229,14 @@ pub trait Parser<'i>: Sized {
     ///
     /// # Examples
     /// ```
+    /// # use core::assert_matches;
     /// # use utils::parser::{self, Parser};
-    /// assert!(matches!(
+    /// assert_matches!(
     ///     parser::u32()
     ///         .repeat_n(",") // N = 3 is inferred
     ///         .parse_complete("12,34,56"),
     ///     Ok([12, 34, 56])
-    /// ));
+    /// );
     /// ```
     #[inline]
     fn repeat_n<const N: usize, S: Parser<'i>>(self, separator: S) -> RepeatN<N, Self, S>
