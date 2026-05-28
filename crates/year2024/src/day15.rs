@@ -97,9 +97,9 @@ impl<'a> Day15<'a> {
             .grid
             .iter()
             .flat_map(|&b| match b {
-                b'#' => [b'#', b'#'],
-                b'.' => [b'.', b'.'],
-                b'O' => [b'[', b']'],
+                b'#' => *b"##",
+                b'.' => *b"..",
+                b'O' => *b"[]",
                 _ => unreachable!(),
             })
             .collect::<Vec<_>>();

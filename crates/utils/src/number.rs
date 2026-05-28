@@ -339,19 +339,11 @@ pub fn sum_of_divisors<T: UnsignedInteger>(n: T) -> Option<T> {
         && square <= n
     {
         if n % d == T::ZERO {
-            if let Some(s) = sum.checked_add(d) {
-                sum = s;
-            } else {
-                return None;
-            }
+            sum = sum.checked_add(d)?;
 
             let q = n / d;
             if q != d {
-                if let Some(s) = sum.checked_add(q) {
-                    sum = s;
-                } else {
-                    return None;
-                }
+                sum = sum.checked_add(q)?;
             }
         }
 
