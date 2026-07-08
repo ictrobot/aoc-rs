@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use utils::hash::FastSet;
 use utils::prelude::*;
 
 /// Checking passphrase validity.
@@ -18,7 +18,7 @@ impl<'a> Day04<'a> {
 
     #[must_use]
     pub fn part1(&self) -> usize {
-        let mut seen = HashSet::new();
+        let mut seen = FastSet::new();
         self.input
             .lines()
             .filter(|line| {
@@ -30,7 +30,7 @@ impl<'a> Day04<'a> {
 
     #[must_use]
     pub fn part2(&self) -> usize {
-        let mut seen = HashSet::new();
+        let mut seen = FastSet::new();
         self.input
             .lines()
             .filter(|line| {

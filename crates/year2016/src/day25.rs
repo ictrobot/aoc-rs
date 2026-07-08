@@ -1,6 +1,6 @@
 use crate::assembunny::Interpreter;
-use std::collections::HashSet;
 use std::ops::ControlFlow;
+use utils::hash::FastSet;
 use utils::prelude::*;
 
 /// Finding patterns in interpreted assembunny assembly output.
@@ -34,7 +34,7 @@ impl Day25 {
 
     #[must_use]
     pub fn part1(&self) -> i32 {
-        let mut seen = HashSet::new();
+        let mut seen = FastSet::new();
         for i in 1..=i32::MAX {
             let mut last = 1;
             let mut found_solution = false;

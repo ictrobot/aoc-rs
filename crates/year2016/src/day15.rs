@@ -1,6 +1,6 @@
 use std::cell::RefCell;
-use std::collections::HashSet;
 use std::iter;
+use utils::hash::FastSet;
 use utils::number::{chinese_remainder, is_prime};
 use utils::prelude::*;
 
@@ -21,7 +21,7 @@ struct Disc {
 
 impl Day15 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let seen_positions: RefCell<HashSet<u32>> = Default::default();
+        let seen_positions: RefCell<FastSet<u32>> = Default::default();
         Ok(Self {
             discs: parser::u32()
                 .with_prefix(" has ".with_prefix(parser::u32()).with_prefix("Disc #"))

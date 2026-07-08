@@ -1,0 +1,4 @@
+disallowed-types = [
+    { path = "std::collections::HashMap", reason = "use utils::hash::FastMap instead" },
+    { path = "std::collections::HashSet", reason = "use utils::hash::FastSet instead" },
+]

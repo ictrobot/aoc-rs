@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use utils::graph::explore_hamiltonian_paths;
+use utils::hash::FastMap;
 use utils::prelude::*;
 
 /// Seating plan.
@@ -28,7 +28,7 @@ impl Day13 {
             .then(parser::take_while1(u8::is_ascii_alphabetic).with_suffix(b'.'))
             .parse_lines(input)?;
 
-        let mut indexes = HashMap::new();
+        let mut indexes = FastMap::new();
         parsed.iter().for_each(|&(person, ..)| {
             let len = indexes.len();
             indexes.entry(person).or_insert(len);

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use utils::array::ArrayVec;
 use utils::bit::BitIterator;
+use utils::hash::FastMap;
 use utils::prelude::*;
 
 /// Finding the minimum number of operations that sum to a target.
@@ -139,7 +139,7 @@ impl Day10 {
             .expect("no solution found");
 
         // Minimum presses for each counter to match its target
-        let mut cache = HashMap::with_capacity(1024);
+        let mut cache = FastMap::with_capacity(1024);
         cache.insert([0; MAX_TARGETS], Some(0));
         let part2 = Self::target_min_presses(
             targets.as_array(),
@@ -156,7 +156,7 @@ impl Day10 {
         targets: &[u16; MAX_TARGETS],
         parity_combinations: &[ArrayVec<u16, MAX_PARITY_OPTIONS>],
         combination_results: &[[u16; MAX_TARGETS]],
-        cache: &mut HashMap<[u16; MAX_TARGETS], Option<u32>>,
+        cache: &mut FastMap<[u16; MAX_TARGETS], Option<u32>>,
     ) -> Option<u32> {
         if let Some(cached_solution) = cache.get(targets) {
             return *cached_solution;

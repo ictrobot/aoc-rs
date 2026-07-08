@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use utils::hash::FastMap;
 use utils::prelude::*;
 use utils::str::TinyStr4;
 
@@ -28,7 +28,7 @@ impl Day07 {
     const U16_CONST_MASK: usize = usize::MAX & !(u16::MAX as usize);
 
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let mut indexes = HashMap::new();
+        let mut indexes = FastMap::new();
         for (i, l) in input.lines().enumerate() {
             let Some((_, name)) = l.rsplit_once(" -> ") else {
                 return Err(InputError::new(input, l, "line missing \" -> \""));

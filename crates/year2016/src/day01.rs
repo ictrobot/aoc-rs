@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use utils::geometry::Vec2;
+use utils::hash::FastSet;
 use utils::prelude::*;
 
 /// Calculating Manhattan distance.
@@ -42,9 +42,14 @@ impl Day01 {
 
     #[must_use]
     pub fn part2(&self) -> u32 {
+        let total = self
+            .instructions
+            .iter()
+            .map(|&(_, steps)| usize::from(steps))
+            .sum();
+        let mut visited = FastSet::with_capacity(total);
         let mut pos: Vec2<i32> = Vec2::ORIGIN;
         let mut dir = Vec2::UP;
-        let mut visited = HashSet::new();
 
         for &(turn, steps) in &self.instructions {
             dir = match turn {

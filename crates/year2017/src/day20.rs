@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use utils::geometry::Vec3;
+use utils::hash::FastMap;
 use utils::prelude::*;
 
 /// Simulating colliding particles.
@@ -48,7 +48,7 @@ impl Day20 {
         let mut particles = self.particles.clone();
         let mut destroyed = vec![false; particles.len()];
 
-        let mut positions = HashMap::new();
+        let mut positions = FastMap::with_capacity(self.particles.len());
         let mut last_destroyed = 0;
         for t in 0.. {
             positions.clear();

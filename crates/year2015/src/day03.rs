@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use utils::geometry::Vec2;
+use utils::hash::FastSet;
 use utils::prelude::*;
 
 /// Counting unique points.
@@ -46,7 +46,7 @@ impl Day03 {
     }
 
     fn count_positions(&self, mut f: impl FnMut(Vec2<i32>) -> Vec2<i32>) -> usize {
-        let mut set = HashSet::with_capacity(self.directions.len());
+        let mut set = FastSet::with_capacity(self.directions.len());
         set.insert(Vec2::default());
 
         for &dir in &self.directions {

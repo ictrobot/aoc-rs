@@ -1,4 +1,5 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
+use utils::hash::FastMap;
 use utils::prelude::*;
 
 /// Counting dividing stones.
@@ -70,7 +71,7 @@ impl Day11 {
 }
 
 struct Builder {
-    num_map: HashMap<u64, usize>,
+    num_map: FastMap<u64, usize>,
     next: Vec<(usize, usize)>,
     max_idx: Vec<usize>,
     todo: VecDeque<(u64, usize, u32)>,
@@ -78,7 +79,7 @@ struct Builder {
 
 impl Builder {
     fn new(blinks: u32) -> Self {
-        let mut num_map = HashMap::with_capacity(5000);
+        let mut num_map = FastMap::with_capacity(5000);
         let mut next = Vec::with_capacity(5000);
 
         // Always insert placeholder stone as index 0

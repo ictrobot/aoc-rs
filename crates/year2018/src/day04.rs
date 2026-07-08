@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use utils::hash::FastMap;
 use utils::prelude::*;
 
 /// Analysing guard sleep schedules.
@@ -28,7 +28,7 @@ impl Day04 {
         lines.sort_unstable();
 
         let mut current_guard_idx = None;
-        let mut guard_indexes = HashMap::new();
+        let mut guard_indexes = FastMap::new();
         let mut guards = Vec::new();
         for line in lines {
             let (_, _, _, min, event) = parser::number_range(1u32..=12)

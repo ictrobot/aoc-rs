@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use utils::graph::explore_hamiltonian_paths;
+use utils::hash::FastMap;
 use utils::prelude::*;
 
 /// Finding the shortest and longest path.
@@ -23,7 +23,7 @@ impl Day09 {
             .then(parser::u32())
             .parse_lines(input)?;
 
-        let mut indexes = HashMap::new();
+        let mut indexes = FastMap::new();
         parsed.iter().for_each(|&(start, end, _)| {
             let len = indexes.len();
             indexes.entry(start).or_insert(len);

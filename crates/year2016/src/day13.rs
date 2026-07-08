@@ -1,5 +1,6 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 use utils::geometry::Vec2;
+use utils::hash::FastSet;
 use utils::prelude::*;
 
 /// Finding the shortest path.
@@ -20,7 +21,7 @@ impl Day13 {
 
         // Use a hashset to store visited nodes to avoid having a fixed grid size, as theoretically
         // the shortest route to the target may first go a long way down/right.
-        let mut visited = HashSet::new();
+        let mut visited = FastSet::with_capacity(512);
         visited.insert(Vec2::new(1, 1));
         let mut queue = VecDeque::new();
         queue.push_back((Vec2::new(1, 1), 0));

@@ -11,6 +11,7 @@ mod framework;
 pub mod geometry;
 pub mod graph;
 pub mod grid;
+pub mod hash;
 pub mod input;
 pub mod md5;
 pub mod multithreading;
@@ -27,6 +28,7 @@ pub use framework::{PuzzleDate, PuzzleExamples};
 /// Standard imports for puzzle solutions.
 pub mod prelude {
     pub use crate::examples;
+    pub use crate::hash::FastCollectionBuilder as _;
     pub use crate::input::{InputError, InputType};
     pub use crate::parser::{self, Parseable as _, Parser as _};
 }

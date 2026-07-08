@@ -1,5 +1,6 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::VecDeque;
 use utils::bit::BitIterator;
+use utils::hash::{FastMap, FastSet};
 use utils::prelude::*;
 
 /// Minimizing steps to safely rearrange generators and microchips.
@@ -34,7 +35,7 @@ impl Day11 {
         }
 
         let mut floors = [Floor::default(); 4];
-        let mut types = HashMap::new();
+        let mut types = FastMap::new();
         for (
             line,
             Floor {
@@ -96,7 +97,7 @@ impl Day11 {
         }
 
         let mut queue = VecDeque::with_capacity(1024);
-        let mut visited = HashSet::with_capacity(10240);
+        let mut visited = FastSet::with_capacity(10240);
 
         let start = State {
             floors,

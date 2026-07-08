@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use utils::hash::FastMap;
 use utils::prelude::*;
 use utils::str::TinyStr4;
 
@@ -37,7 +37,7 @@ impl Day08 {
             .with_eol()
             .parse_iterator(input);
 
-        let mut registers = HashMap::<TinyStr4, i32>::new();
+        let mut registers = FastMap::<TinyStr4, i32>::new();
         let mut max = 0;
         for item in parse_iterator {
             let (reg, value, cond_reg, comparison, cond_value) = item?;

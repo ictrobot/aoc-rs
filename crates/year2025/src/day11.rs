@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use utils::array::ArrayVec;
+use utils::hash::FastMap;
 use utils::prelude::*;
 use utils::str::TinyStr4;
 
@@ -31,7 +31,7 @@ impl Day11 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let label = parser::tinystr::<3>(u8::is_ascii_lowercase);
 
-        let mut indexes = HashMap::new();
+        let mut indexes = FastMap::new();
         for line in label
             .with_suffix(": ".then(parser::take_while1(|b| matches!(b, b' ' | b'a'..=b'z'))))
             .with_consumed()

@@ -1,5 +1,5 @@
 use crate::elfcode::{HookControlFlow, Instruction, Interpreter, Register};
-use std::collections::HashSet;
+use utils::hash::FastSet;
 use utils::prelude::*;
 
 /// Interpreting assembly to find the longest running input.
@@ -68,7 +68,7 @@ impl Day21 {
         // Using a HashSet is faster than using Brent's algorithm as it minimizes the number of next
         // calls, which are slow.
         let mut reg = [0; 6];
-        let mut seen = HashSet::with_capacity(20000);
+        let mut seen = FastSet::with_capacity(20000);
         let mut last_first_seen = 0;
         loop {
             let target = self.next(&mut reg);

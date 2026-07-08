@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use std::ops::ControlFlow;
+use utils::hash::FastMap;
 use utils::prelude::*;
 
 /// Finding swapped logic gates in an adder circuit.
@@ -32,7 +32,7 @@ impl Day24 {
 
         let mut wires = Vec::new();
         let mut wire_names = Vec::new();
-        let mut indexes = HashMap::new();
+        let mut indexes = FastMap::new();
         let mut x_initial = 0;
         let mut y_initial = 0;
         let mut input_bits = 64;

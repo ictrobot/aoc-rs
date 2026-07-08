@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use utils::hash::FastMap;
 use utils::prelude::*;
 use utils::str::TinyStr8;
 
@@ -40,7 +40,7 @@ impl Day07 {
             .iter()
             .enumerate()
             .map(|(index, &(name, _, _))| (name, index))
-            .collect::<HashMap<_, _>>();
+            .collect::<FastMap<_, _>>();
 
         for (parent, (_, _, children)) in lines.into_iter().enumerate() {
             let children = children
