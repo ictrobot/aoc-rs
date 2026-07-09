@@ -26,8 +26,11 @@ impl Day03 {
 
     #[must_use]
     pub fn part2(&self) -> usize {
-        self.input
-            .chunks_exact(3)
+        let (groups, []) = self.input.as_chunks::<3>() else {
+            panic!("expected number of rows to be a multiple of 3");
+        };
+        groups
+            .iter()
             .flat_map(|w| {
                 (0..3).map(|i| usize::from(Self::valid_triangle(w[0][i], w[1][i], w[2][i])))
             })

@@ -214,10 +214,16 @@ impl Searcher {
         // Process the carry and digits sequentially in chunks of 8. This allows calculating the
         // indexes for all 8 items in a few u64 operations, avoiding dependencies between each
         // recipe.
-        for (digits, carry) in digits.chunks_exact(8).zip(carry.chunks_exact(8)) {
+        let (digits, []) = digits.as_chunks::<8>() else {
+            unreachable!("N is a multiple of 8");
+        };
+        let (carry, []) = carry.as_chunks::<8>() else {
+            unreachable!("N is a multiple of 8");
+        };
+        for (digits, carry) in digits.iter().zip(carry) {
             let slice = &mut self.recipes[self.recipes_len..self.recipes_len + 256];
 
-            let mut indexes = u64::from_le_bytes(*carry.as_array().unwrap());
+            let mut indexes = u64::from_le_bytes(*carry);
             // Each recipe after the first is offset by 1
             indexes += 0x0101_0101_0101_0100;
             // Bytewise prefix sum

@@ -39,7 +39,10 @@ impl Day11 {
         self.paint(&mut grid);
 
         let (mut min_x, mut min_y) = (WIDTH, WIDTH);
-        for (y, row) in grid.chunks_exact(WIDTH).enumerate() {
+        let (rows, []) = grid.as_chunks::<WIDTH>() else {
+            unreachable!("SIZE is a multiple of WIDTH");
+        };
+        for (y, row) in rows.iter().enumerate() {
             for (x, &panel) in row.iter().enumerate() {
                 if panel == Panel::White {
                     min_x = min_x.min(x);

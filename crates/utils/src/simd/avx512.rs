@@ -35,7 +35,10 @@ impl<const V: usize, const L: usize> From<U32Vector<V, L>> for [u32; L] {
     #[inline]
     fn from(value: U32Vector<V, L>) -> Self {
         let mut result = [0; L];
-        for (&v, r) in value.0.iter().zip(result.chunks_exact_mut(16)) {
+        let (chunks, []) = result.as_chunks_mut::<16>() else {
+            unreachable!("L is a multiple of 16");
+        };
+        for (&v, r) in value.0.iter().zip(chunks) {
             unsafe {
                 #[expect(
                     clippy::cast_ptr_alignment,

@@ -63,10 +63,13 @@ impl Day08 {
     #[must_use]
     pub fn part2(&self) -> String {
         let mut output = String::with_capacity(WIDTH / 5);
+        let (rows, []) = self.image.as_chunks::<WIDTH>() else {
+            unreachable!("LAYER_LEN is a multiple of WIDTH");
+        };
 
         for x in (0..WIDTH).step_by(5) {
             let mut letter = 0;
-            for row in self.image.chunks_exact(WIDTH) {
+            for row in rows {
                 for &pixel in &row[x..x + 5] {
                     letter = (letter << 1) | u32::from(pixel == b'1');
                 }

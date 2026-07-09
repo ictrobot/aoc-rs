@@ -82,8 +82,8 @@ multiversion! {
             let mut words = [U32Vector::splat(0); 16];
 
             let remaining = (buf.len() / FOUR_BYTES).min(16);
-            for (w, chunk) in words.iter_mut().zip(buf.chunks_exact(FOUR_BYTES)) {
-                *w = gather(chunk.as_array().unwrap());
+            for (w, chunk) in words.iter_mut().zip(buf.as_chunks::<FOUR_BYTES>().0) {
+                *w = gather(chunk);
             }
             buf = &buf[remaining * FOUR_BYTES..];
 
