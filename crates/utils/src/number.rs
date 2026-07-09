@@ -79,6 +79,10 @@ pub trait Integer:
     #[must_use]
     fn checked_mul(self, rhs: Self) -> Option<Self>;
     #[must_use]
+    fn isolate_lowest_one(self) -> Self;
+    #[must_use]
+    fn lowest_one(self) -> Option<u32>;
+    #[must_use]
     fn trailing_ones(self) -> u32;
     #[must_use]
     fn trailing_zeros(self) -> u32;
@@ -141,6 +145,14 @@ macro_rules! number_impl {
             #[inline]
             fn checked_mul(self, rhs: Self) -> Option<Self> {
                 self.checked_mul(rhs)
+            }
+            #[inline]
+            fn isolate_lowest_one(self) -> Self {
+                self.isolate_lowest_one()
+            }
+            #[inline]
+            fn lowest_one(self) -> Option<u32> {
+                self.lowest_one()
             }
             #[inline]
             fn trailing_ones(self) -> u32 {
@@ -213,6 +225,14 @@ macro_rules! number_impl {
             #[inline]
             fn checked_mul(self, rhs: Self) -> Option<Self> {
                 self.checked_mul(rhs)
+            }
+            #[inline]
+            fn isolate_lowest_one(self) -> Self {
+                self.isolate_lowest_one()
+            }
+            #[inline]
+            fn lowest_one(self) -> Option<u32> {
+                self.lowest_one()
             }
             #[inline]
             fn trailing_ones(self) -> u32 {

@@ -58,7 +58,7 @@ impl Day10 {
         .map_res(|((lights, light_count), buttons, targets)| {
             let all_buttons = buttons.iter().copied().fold(0, |acc, b| acc | b);
             if all_buttons.trailing_ones() as usize != light_count
-                || all_buttons.leading_zeros() as usize != 32 - light_count
+                || all_buttons.bit_width() as usize != light_count
             {
                 return Err("wiring schematics do not match light count");
             }

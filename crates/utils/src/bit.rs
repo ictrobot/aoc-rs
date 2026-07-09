@@ -54,14 +54,10 @@ impl<T: UnsignedInteger> Iterator for BitIterator<T> {
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
-        if self.n == T::ZERO {
-            None
-        } else {
-            let position = self.n.trailing_zeros();
-            let value = T::ONE << position;
-            self.n &= !value;
-            Some((position, value))
-        }
+        let position = self.n.lowest_one()?;
+        let value = self.n.isolate_lowest_one();
+        self.n ^= value;
+        Some((position, value))
     }
 }
 

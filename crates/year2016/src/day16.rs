@@ -48,7 +48,7 @@ impl<'a> Day16<'a> {
     }
 
     fn checksum(&self, length: u32) -> String {
-        let chunk_length = 1 << length.trailing_zeros();
+        let chunk_length = length.isolate_lowest_one();
         let input_length = self.input.len() as u32;
 
         // Expanded data repeats the following pattern:

@@ -16,7 +16,7 @@ impl Day19 {
     /// See <https://en.wikipedia.org/wiki/Josephus_problem#k_=_2>.
     #[must_use]
     pub fn part1(&self) -> u32 {
-        2 * (self.elves - (1 << self.elves.ilog2())) + 1
+        2 * (self.elves - self.elves.isolate_highest_one()) + 1
     }
 
     /// See <https://www.reddit.com/r/adventofcode/comments/5j4lp1/2016_day_19_solutions/>.

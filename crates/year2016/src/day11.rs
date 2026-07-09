@@ -175,7 +175,7 @@ impl Day11 {
 
                 // Try moving a pair
                 if src_pairs != 0 && dst_unpaired_microchips == 0 {
-                    let pair = 1 << src_pairs.trailing_zeros();
+                    let pair = src_pairs.isolate_lowest_one();
                     try_move(pair, pair);
                 }
 
