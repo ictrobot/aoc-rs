@@ -152,12 +152,14 @@ impl Hasher for FastHasher {
 
     #[inline(always)]
     #[cfg(target_pointer_width = "16")]
+    #[expect(clippy::cast_possible_truncation)]
     fn write_usize(&mut self, n: usize) {
         self.write_u16(n as u16);
     }
 
     #[inline(always)]
     #[cfg(target_pointer_width = "32")]
+    #[expect(clippy::cast_possible_truncation)]
     fn write_usize(&mut self, n: usize) {
         self.write_u32(n as u32);
     }
