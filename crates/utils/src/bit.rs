@@ -61,6 +61,36 @@ impl<T: UnsignedInteger> Iterator for BitIterator<T> {
     }
 }
 
+/// Computes the population count for each bit position across 4 input masks.
+///
+/// Returns three masks `[bit0, bit1, bit2]` that encode, per bit position, the 3-bit count
+/// of how many of the 4 inputs have that bit set.
+///
+/// For example, if a given bit is set in 3 inputs, then that bit would be set in `bit0` and `bit1`.
+/// If a given bit is set in all 4 inputs, then that bit would only be set in `bit2`.
+///
+/// # Examples
+/// ```
+/// # use utils::bit::bitwise_count4;
+/// let [bit0, bit1, bit2] = bitwise_count4::<u8>(&[
+///     0b10000,
+///     0b11000,
+///     0b11100,
+///     0b11110,
+/// ]);
+/// assert_eq!(bit0, 0b01010);
+/// assert_eq!(bit1, 0b01100);
+/// assert_eq!(bit2, 0b10000);
+/// ```
+#[inline]
+#[must_use]
+pub fn bitwise_count4<T: UnsignedInteger>(m: &[T; 4]) -> [T; 3] {
+    let (sum, carry1) = carry_save_adder(m[0], m[1], m[2]);
+    let (bit0, carry2) = carry_save_adder(sum, m[3], T::ZERO);
+    let (bit1, bit2) = carry_save_adder(carry1, carry2, T::ZERO);
+    [bit0, bit1, bit2]
+}
+
 /// Computes the population count for each bit position across 8 input masks.
 ///
 /// Returns four masks `[bit0, bit1, bit2, bit3]` that encode, per bit position, the 4-bit count
