@@ -845,11 +845,11 @@ impl Version {
 
         if OVERRIDE.set(Some(version)).is_err() {
             // Value returned in Err() is the value passed to set, not the existing value
-            if Self::get_override().is_none() {
-                panic!("Version::set_override must be called before get_override");
-            } else {
-                panic!("Version::set_override called more than once");
-            }
+            assert!(
+                Self::get_override().is_some(),
+                "Version::set_override must be called before get_override"
+            );
+            panic!("Version::set_override called more than once");
         }
     }
 }
