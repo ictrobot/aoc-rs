@@ -72,8 +72,23 @@ impl<'i, S: SignedInteger> Leaf<'i> for SignedParser<S> {
     }
 }
 
+#[derive(Copy, Clone)]
+pub struct NonZeroParser<I: Integer + Parseable>(PhantomData<I>);
+impl<'i, I: Integer + Parseable> Leaf<'i> for NonZeroParser<I> {
+    type Output = I::NonZero;
+
+    #[inline]
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
+        let (value, remaining) = I::PARSER.parse(input)?;
+        match I::NonZero::try_from(value) {
+            Ok(value) => Ok((value, remaining)),
+            Err(_) => Err((ParseError::Expected("non-zero integer"), input)),
+        }
+    }
+}
+
 macro_rules! parser_for {
-    ($p:ident => $($n:ident),+) => {$(
+    ($p:ident => $($n:ident: $nonzero:ident),+ $(,)?) => {$(
         impl Parseable for std::primitive::$n {
             type Parser = $p<std::primitive::$n>;
             const PARSER: Self::Parser = $p(PhantomData);
@@ -85,10 +100,43 @@ macro_rules! parser_for {
         pub fn $n() -> $p<std::primitive::$n> {
             $p(PhantomData)
         }
+
+        impl Parseable for std::num::NonZero<$n> {
+            type Parser = NonZeroParser<$n>;
+            const PARSER: Self::Parser = NonZeroParser(PhantomData);
+        }
+
+        #[doc = concat!(
+            "[`Leaf`] parser for [`NonZero<", stringify!($n), ">`](std::num::NonZero) values.",
+            "\n\n# Examples\n```\n",
+            "# use utils::parser::{self, Parser};\n",
+            "assert!(parser::", stringify!($nonzero), "().parse_complete(\"0\").is_err());\n",
+            "assert!(parser::", stringify!($nonzero), "().parse_complete(\"1\").is_ok_and(|n| n.get() == 1));\n",
+            "```"
+        )]
+        #[inline]
+        #[must_use]
+        pub fn $nonzero() -> NonZeroParser<std::primitive::$n> {
+            NonZeroParser(PhantomData)
+        }
     )+};
 }
-parser_for! { UnsignedParser => u8, u16, u32, u64, u128 }
-parser_for! { SignedParser => i8, i16, i32, i64, i128 }
+parser_for! {
+    UnsignedParser =>
+    u8: nonzero_u8,
+    u16: nonzero_u16,
+    u32: nonzero_u32,
+    u64: nonzero_u64,
+    u128: nonzero_u128,
+}
+parser_for! {
+    SignedParser =>
+    i8: nonzero_i8,
+    i16: nonzero_i16,
+    i32: nonzero_i32,
+    i64: nonzero_i64,
+    i128: nonzero_i128,
+}
 
 /// Parsing as [`usize`] should be discouraged as it leads to parsers which behave differently at
 /// runtime on 32-bit and 64-bit platforms, so no `parser::usize()` function is provided.

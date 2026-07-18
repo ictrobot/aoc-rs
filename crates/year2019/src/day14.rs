@@ -1,3 +1,4 @@
+use std::num::NonZeroU32;
 use utils::prelude::*;
 use utils::str::TinyStr8;
 
@@ -10,14 +11,14 @@ pub struct Day14 {
 
 #[derive(Clone, Debug)]
 struct Reaction {
-    output_amount: u32,
+    output_amount: NonZeroU32,
     inputs: Vec<Input>,
 }
 
 #[derive(Clone, Copy, Debug)]
 struct Input {
     index: usize,
-    amount: u32,
+    amount: NonZeroU32,
 }
 
 const ORE: usize = 0;
@@ -26,8 +27,8 @@ const PART2_LIMIT: u64 = 1_000_000_000_000;
 
 impl Day14 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let component = parser::number_range(1..=u32::MAX)
-            .then(parser::tinystr8(u8::is_ascii_uppercase).with_prefix(b' '));
+        let component =
+            parser::nonzero_u32().then(parser::tinystr8(u8::is_ascii_uppercase).with_prefix(b' '));
         let reaction = component
             .repeat(", ", 1)
             .then(component.with_prefix(" => "))
@@ -40,7 +41,7 @@ impl Day14 {
         ];
         let mut reactions = vec![
             Some(Reaction {
-                output_amount: 1,
+                output_amount: NonZeroU32::MIN,
                 inputs: Vec::new(),
             }),
             None,
@@ -187,9 +188,9 @@ impl Day14 {
         for &chemical in self.order.iter().rev() {
             let needed = demand[chemical];
             let reaction = &self.reactions[chemical];
-            let batches = needed.div_ceil(u64::from(reaction.output_amount));
+            let batches = needed.div_ceil(u64::from(reaction.output_amount.get()));
             for input in &reaction.inputs {
-                demand[input.index] += u64::from(input.amount) * batches;
+                demand[input.index] += u64::from(input.amount.get()) * batches;
             }
         }
 

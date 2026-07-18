@@ -16,7 +16,11 @@ pub use base::{ErrToken, ParseState, Parser, ParserResult, from_parser_fn};
 pub use error::ParseError;
 pub use iterator::{ParserIterator, ParserMatchesIterator};
 pub use leaf::*;
-pub use number::{digit, i8, i16, i32, i64, i128, number_range, u8, u16, u32, u64, u128};
+pub use number::{
+    digit, i8, i16, i32, i64, i128, nonzero_i8, nonzero_i16, nonzero_i32, nonzero_i64,
+    nonzero_i128, nonzero_u8, nonzero_u16, nonzero_u32, nonzero_u64, nonzero_u128, number_range,
+    u8, u16, u32, u64, u128,
+};
 pub use one_of::one_of;
 pub use simple::{byte, byte_lut, byte_range, constant, eof, eol, noop, take_while, take_while1};
 pub use tinystr::{tinystr, tinystr2, tinystr4, tinystr8};

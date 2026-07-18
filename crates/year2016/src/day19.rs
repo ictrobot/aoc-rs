@@ -1,22 +1,24 @@
+use std::num::NonZeroU32;
 use utils::prelude::*;
 
 /// Finding the winners of counting-out games.
 #[derive(Clone, Debug)]
 pub struct Day19 {
-    elves: u32,
+    elves: NonZeroU32,
 }
 
 impl Day19 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
-            elves: parser::u32().parse_complete(input)?,
+            elves: parser::nonzero_u32().parse_complete(input)?,
         })
     }
 
     /// See <https://en.wikipedia.org/wiki/Josephus_problem#k_=_2>.
     #[must_use]
     pub fn part1(&self) -> u32 {
-        2 * (self.elves - self.elves.isolate_highest_one()) + 1
+        let elves = self.elves.get();
+        2 * (elves - elves.isolate_highest_one()) + 1
     }
 
     /// See <https://www.reddit.com/r/adventofcode/comments/5j4lp1/2016_day_19_solutions/>.
@@ -26,11 +28,12 @@ impl Day19 {
     /// the winner is `elves - pow3`, and after that it `2 * (elves - pow3) + pow3`.
     #[must_use]
     pub fn part2(&self) -> u32 {
-        let pow3 = 3u32.pow(self.elves.ilog(3));
-        if pow3 == self.elves {
+        let elves = self.elves.get();
+        let pow3 = 3u32.pow(elves.ilog(3));
+        if pow3 == elves {
             pow3
         } else {
-            let remainder = self.elves - pow3;
+            let remainder = elves - pow3;
             if remainder <= pow3 {
                 remainder
             } else {

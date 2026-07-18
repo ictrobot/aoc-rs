@@ -1,21 +1,23 @@
+use std::num::NonZeroU32;
 use utils::prelude::*;
 
 /// Calculating spiral patterns.
 #[derive(Clone, Debug)]
 pub struct Day03 {
-    input: u32,
+    input: NonZeroU32,
 }
 
 impl Day03 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
-            input: parser::u32().parse_complete(input)?,
+            input: parser::nonzero_u32().parse_complete(input)?,
         })
     }
 
     #[must_use]
     pub fn part1(&self) -> u32 {
-        let ring = (self.input as f64).sqrt().ceil() as u32 / 2;
+        let input = self.input.get();
+        let ring = (input as f64).sqrt().ceil() as u32 / 2;
         let side_length = ring * 2 + 1;
         let bottom_right = side_length * side_length;
         let middles = [
@@ -26,7 +28,7 @@ impl Day03 {
         ];
         let offset = middles
             .iter()
-            .map(|m| m.abs_diff(self.input))
+            .map(|m| m.abs_diff(input))
             .min()
             .unwrap();
         ring + offset
@@ -56,7 +58,7 @@ impl Day03 {
         let mut turns = 0;
         let mut steps = 1;
 
-        while grid[x][y] < self.input as u64 {
+        while grid[x][y] < u64::from(self.input.get()) {
             if steps == 0 {
                 turns += 1;
                 steps = (turns / 2) + 1;

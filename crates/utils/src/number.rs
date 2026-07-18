@@ -67,6 +67,7 @@ pub trait Integer:
     + ShrAssign<u32>
     + TryInto<i128>
 {
+    type NonZero: Copy + TryFrom<Self> + Into<Self>;
     type Unsigned: UnsignedInteger;
     type Signed: SignedInteger;
 
@@ -127,6 +128,7 @@ macro_rules! number_impl {
         })+
 
         $(impl Integer for $u {
+            type NonZero = std::num::NonZero<$u>;
             type Unsigned = $u;
             type Signed = $s;
 
@@ -207,6 +209,7 @@ macro_rules! number_impl {
         })+
 
         $(impl Integer for $s {
+            type NonZero = std::num::NonZero<$s>;
             type Unsigned = $u;
             type Signed = $s;
 
