@@ -33,9 +33,10 @@ impl Day22 {
             return Err(InputError::new(input, 0, "expected at least one technique"));
         }
 
-        // Both deck sizes are prime. The part 2 deck is larger than u32::MAX, so a nonzero u32 only
-        // needs checking against the part 1 deck size.
-        let increment = parser::number_range(1..=u32::MAX).map_res(|n| {
+        // The increment must be coprime with the deck size to reverse the shuffle for part 2.
+        // Both deck sizes are prime, and the part 2 size is larger than u32::MAX, so a u32 value
+        // only needs checking against the part 1 deck size.
+        let increment = parser::u32().map_res(|n| {
             (!n.is_multiple_of(PART1_DECK_SIZE as u32))
                 .then_some(n)
                 .ok_or("expected increment to be coprime with the deck sizes")
