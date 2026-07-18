@@ -2,6 +2,51 @@ output:
   - summary
   - failure
 
+commit-msg:
+  commands:
+    day_convention:
+      # regexes avoid {n} quantifiers as lefthook substitutes {N} placeholders like {1}
+      run: |
+        set -eu
+        first_line=$(head -n 1 "{1}")
+
+        # A commit adding a day's solution must be titled exactly "$year day $day"
+        added=$(git diff --cached --name-only --diff-filter=A | grep -xE 'crates/year20[0-9][0-9]/src/day[0-9][0-9]\.rs' || true)
+        for f in $added; do
+          y=${f#crates/year}; y=${y%%/*}
+          d=${f##*/day}; d=${d%.rs}; d=${d#0}
+          if [ "$first_line" != "$y day $d" ]; then
+            echo "commit adds $f but isn't titled \"$y day $d\"" >&2
+            exit 1
+          fi
+        done
+
+        # Only check messages containing a 4-digit and a 1/2-digit number
+        echo "$first_line" | grep -qE '(^|[^0-9])[0-9][0-9][0-9][0-9]([^0-9]|$)' || exit 0
+        echo "$first_line" | grep -qE '(^|[^0-9])[0-9][0-9]?([^0-9]|$)' || exit 0
+
+        # The message must contain "$year day $day", with no leading zero
+        match=$(echo "$first_line" | grep -oE '\<20[0-9][0-9] day ([1-9]|1[0-9]|2[0-5])\>' | head -n 1)
+        if [ -z "$match" ]; then
+          echo "\"$first_line\" doesn't contain \"\$year day \$day\"" >&2
+          exit 1
+        fi
+
+        year=${match%% *}
+        day=${match##* }
+        path=$(printf 'crates/year%s/src/day%02d.rs' "$year" "$day")
+
+        if [ "$first_line" = "$match" ]; then
+          # A message of exactly "$year day $day" must add the day's solution
+          [ -n "$added" ] && exit 0
+          echo "\"$first_line\" but $path is not added by this commit" >&2
+        else
+          # Any other message (e.g. "Optimize $year day $day") must modify it
+          [ -n "$(git diff --cached --name-only --diff-filter=M -- "$path")" ] && exit 0
+          echo "\"$first_line\" but $path is not modified by this commit" >&2
+        fi
+        exit 1
+
 pre-commit:
   parallel: true
   commands:
