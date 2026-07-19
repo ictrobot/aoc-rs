@@ -31,6 +31,10 @@ pub mod year2018 {
 pub mod year2019 {
     pub use ::utils::puzzles_noop as puzzles;
 }
+#[cfg(not(feature = "year2020"))]
+pub mod year2020 {
+    pub use ::utils::puzzles_noop as puzzles;
+}
 #[cfg(not(feature = "year2024"))]
 pub mod year2024 {
     pub use ::utils::puzzles_noop as puzzles;
@@ -49,6 +53,8 @@ pub use ::year2017;
 pub use ::year2018;
 #[cfg(feature = "year2019")]
 pub use ::year2019;
+#[cfg(feature = "year2020")]
+pub use ::year2020;
 #[cfg(feature = "year2024")]
 pub use ::year2024;
 #[cfg(feature = "year2025")]
@@ -124,6 +130,7 @@ macro_rules! all_puzzles {
                 $crate::year2017::puzzles,
                 $crate::year2018::puzzles,
                 $crate::year2019::puzzles,
+                $crate::year2020::puzzles,
                 $crate::year2024::puzzles,
                 $crate::year2025::puzzles,
 
