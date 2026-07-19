@@ -155,10 +155,8 @@ impl Day17 {
             .map(|line| line.strip_suffix(b",").unwrap_or(line))
             .chain(std::iter::once(b"n".as_slice()))
         {
-            for &b in line {
-                interpreter.push_input(i64::from(b));
-            }
-            interpreter.push_input(i64::from(b'\n'));
+            interpreter.push_bytes(line);
+            interpreter.push_bytes("\n");
         }
 
         loop {

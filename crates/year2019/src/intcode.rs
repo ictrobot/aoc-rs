@@ -53,6 +53,13 @@ impl Interpreter {
     }
 
     #[inline]
+    pub fn push_bytes(&mut self, bytes: impl AsRef<[u8]>) {
+        for &b in bytes.as_ref() {
+            self.input.push_back(i64::from(b));
+        }
+    }
+
+    #[inline]
     pub fn run<F: Features>(&mut self) -> Event {
         loop {
             let instruction = self.mem.get(self.ip).copied().unwrap_or(0);

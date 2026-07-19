@@ -50,9 +50,7 @@ impl Day21 {
 
     fn run(&self, script: &[u8]) -> i64 {
         let mut interpreter = self.interpreter.clone();
-        for &x in script {
-            interpreter.push_input(i64::from(x));
-        }
+        interpreter.push_bytes(script);
 
         loop {
             if let x @ 128.. = interpreter.expect_output::<Day09Features>() {
