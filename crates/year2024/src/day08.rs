@@ -1,4 +1,5 @@
 use utils::array::ArrayVec;
+use utils::grid;
 use utils::prelude::*;
 
 /// Plotting lines between nodes of the same frequency.
@@ -14,52 +15,36 @@ const FREQUENCY_COUNT: usize = 62;
 
 impl Day08 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let mut lines = input.lines().peekable();
-        let Some(cols) = lines.peek().map(|s| s.len()) else {
-            return Err(InputError::new(input, 0, "expected grid"));
-        };
-        if cols == 0 {
-            return Err(InputError::new(input, 0, "expected at least one column"));
-        }
-
         let mut antennas = std::array::from_fn(|_| ArrayVec::default());
-        let mut index = 0;
-        for line in lines {
-            if line.len() != cols {
-                return Err(InputError::new(
-                    input,
-                    &line[cols.min(line.len())..],
-                    format!("expected {cols} columns"),
-                ));
-            }
-            for b in line.bytes() {
-                let freq = if b.is_ascii_lowercase() {
-                    b - b'a'
-                } else if b.is_ascii_uppercase() {
-                    b - b'A' + 26
-                } else if b.is_ascii_digit() {
-                    b - b'0' + 52
-                } else if b == b'.' {
-                    index += 1;
-                    continue;
-                } else {
-                    return Err(InputError::new(input, b as char, "expected . or frequency"));
-                };
+        let (rows, cols) = grid::for_each_row(
+            input,
+            |b| b == b'.' || b.is_ascii_alphanumeric(),
+            || "expected '.' or frequency",
+            |row, cols, line| {
+                for (col, &b) in line.iter().enumerate() {
+                    let freq = match b {
+                        b'a'..=b'z' => b - b'a',
+                        b'A'..=b'Z' => b - b'A' + 26,
+                        b'0'..=b'9' => b - b'0' + 52,
+                        b'.' => continue,
+                        _ => unreachable!("input already validated"),
+                    };
 
-                if antennas[freq as usize].push(index).is_err() {
-                    return Err(InputError::new(
-                        input,
-                        line,
-                        format!("expected at most {MAX_ANTENNA} '{}' antennas", b as char),
-                    ));
+                    if antennas[freq as usize].push(row * cols + col).is_err() {
+                        return Err(InputError::new(
+                            input,
+                            line,
+                            format!("expected at most {MAX_ANTENNA} '{}' antennas", b as char),
+                        ));
+                    }
                 }
-                index += 1;
-            }
-        }
+                Ok(())
+            },
+        )?;
 
         Ok(Self {
             cols,
-            len: index,
+            len: rows * cols,
             antennas,
         })
     }
