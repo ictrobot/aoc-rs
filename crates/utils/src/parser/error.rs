@@ -2,7 +2,7 @@ use crate::ascii::AsciiSet;
 use crate::parser::then::Then2;
 use crate::parser::{ParseState, Parser, ParserResult};
 use std::error::Error;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
 /// Error type returned by parsers.
 ///
@@ -20,6 +20,10 @@ pub enum ParseError {
     ExpectedByteRange(u8, u8),
     /// Expected one of $set.
     ExpectedOneOf(AsciiSet),
+    /// Expected one of $bytes.
+    ExpectedOneOfBytes(&'static [u8]),
+    /// Expected one of $literals.
+    ExpectedOneOfLiterals(&'static [&'static str]),
     /// Expected at least $n characters matching $set.
     ExpectedAtLeastMatches(usize, fn(&u8) -> bool),
     /// Expected at most $n characters matching $set.
@@ -89,6 +93,10 @@ impl Display for ParseError {
                 write!(f, "expected exactly {n} characters matching {set}")
             }
             ParseError::ExpectedOneOf(set) => write!(f, "expected one of {set}"),
+            ParseError::ExpectedOneOfBytes(bytes) => {
+                write_one_of(f, bytes.iter().map(|&b| b as char))
+            }
+            ParseError::ExpectedOneOfLiterals(literals) => write_one_of(f, literals.iter()),
             ParseError::ExpectedEof() => write!(f, "expected end of input"),
             ParseError::ExpectedLessItems(x) => write!(f, "expected {x} items or less"),
             ParseError::NumberTooLarge(x) => write!(f, "expected number <= {x}"),
@@ -100,6 +108,22 @@ impl Display for ParseError {
 }
 
 impl Error for ParseError {}
+
+/// Write "expected $item" or "expected one of $item, $item, ...".
+fn write_one_of<T: Debug>(
+    f: &mut Formatter<'_>,
+    mut items: impl ExactSizeIterator<Item = T>,
+) -> std::fmt::Result {
+    if items.len() == 1 {
+        return write!(f, "expected {:?}", items.next().unwrap());
+    }
+    write!(f, "expected one of ")?;
+    for (i, item) in items.enumerate() {
+        let separator = if i == 0 { "" } else { ", " };
+        write!(f, "{separator}{item:?}")?;
+    }
+    Ok(())
+}
 
 impl PartialEq for ParseError {
     fn eq(&self, other: &Self) -> bool {
@@ -124,6 +148,8 @@ impl PartialEq for ParseError {
                 a1 == b1 && a2 == b2
             }
             (Self::ExpectedOneOf(a), Self::ExpectedOneOf(b)) => a == b,
+            (Self::ExpectedOneOfBytes(a), Self::ExpectedOneOfBytes(b)) => a == b,
+            (Self::ExpectedOneOfLiterals(a), Self::ExpectedOneOfLiterals(b)) => a == b,
             (Self::ExpectedLessItems(a), Self::ExpectedLessItems(b)) => a == b,
             (Self::ExpectedEof(), Self::ExpectedEof())
             | (Self::NumberOutOfRange(), Self::NumberOutOfRange()) => true,
@@ -137,6 +163,8 @@ impl PartialEq for ParseError {
                 | Self::ExpectedByte(_)
                 | Self::ExpectedByteRange(_, _)
                 | Self::ExpectedOneOf(_)
+                | Self::ExpectedOneOfBytes(_)
+                | Self::ExpectedOneOfLiterals(_)
                 | Self::ExpectedAtLeastMatches(_, _)
                 | Self::ExpectedAtMostMatches(_, _)
                 | Self::ExpectedExactlyMatches(_, _)

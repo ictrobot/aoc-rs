@@ -1,3 +1,5 @@
+use crate::parser::ParseError;
+
 /// Helper to create a [`parser::byte_lut`](super::byte_lut) parser using `match`-like syntax.
 ///
 /// Each expression must be const and must evaluate to a value of the same copy type.
@@ -187,12 +189,17 @@ macro_rules! parser_parsable_enum {
 /// - **Expression (`=>`)**: The expression on the right-hand is evaluated and returned.
 /// - **Fallible (`=?>`)**: Similar to Expression, but the right-hand side evaluates a result. If
 ///   the expression evaluates to [`Ok`], the value contained inside is returned. Otherwise, the
-///   string contained inside the [`Err`] is handled as a custom [`ParseError`](super::ParseError),
-///   and parsing will continue with the following rule.
+///   string contained inside the [`Err`] is handled as a custom [`ParseError`], and parsing will
+///   continue with the following rule.
 /// - **Subtree (`=>>`)**: The right-hand side is a nested set of rules enclosed in braces.
 ///
 /// Both the top-level and each `=>>` subtree create their own commit scopes. If a parser commits,
 /// no more branches within the current scope are tried.
+///
+/// As an optimisation, when every rule in a scope starts with a string or byte literal, the
+/// generated parser matches each leading literal with a simple comparison for more efficient
+/// dispatch between rules. If no rule in such a scope matches, the error is "expected one of ..."
+/// listing the rules' leading literals. All leading literals in a scope must be the same type.
 ///
 /// # Examples
 /// ```
@@ -245,6 +252,9 @@ macro_rules! parser_parsable_enum {
 /// assert!(instruction
 ///     .parse_complete("copy A, A")
 ///     .is_err_and(|err| err.to_string().contains("cannot copy register to itself")));
+/// assert!(instruction
+///     .parse_complete("mov A, B")
+///     .is_err_and(|err| err.to_string().contains(r#"expected one of "add ", "copy ", "noop""#)));
 /// ```
 #[macro_export]
 macro_rules! parser_parse_tree {
@@ -272,7 +282,7 @@ macro_rules! parser_parse_tree {
         // However, if both fail then an error should be returned.
         {
             let mut $commit = false;
-            $crate::parser_parse_tree!(@toplevel $input $state $commit $token $($rhs)+);
+            $crate::parser_parse_tree!(@scope $input $state $commit $token $($rhs)+);
         }
         if ($commit) {
             return Err($token);
@@ -306,25 +316,96 @@ macro_rules! parser_parse_tree {
         };
     };
 
-    (@toplevel $input:ident $state:ident $commit:ident $token:ident
+    // Check whether every rule in the scope starts with a literal, taking a copy of the rules
+    // to emit once the answer is known
+    (@scope $input:ident $state:ident $commit:ident $token:ident $($rules:tt)+) => {
+        $crate::parser_parse_tree!(@check $input $state $commit $token [$($rules)+] $($rules)+)
+    };
+    (@check $input:ident $state:ident $commit:ident $token:ident [$($all:tt)+]
+        ($first:literal $(, $($lhs:tt)*)?) => $rhs:expr $(, $($tail:tt)*)?
+    ) => {
+        $crate::parser_parse_tree!(@check $input $state $commit $token [$($all)+] $($($tail)*)?)
+    };
+    (@check $input:ident $state:ident $commit:ident $token:ident [$($all:tt)+]
+        ($first:literal $(, $($lhs:tt)*)?) =?> $rhs:expr $(, $($tail:tt)*)?
+    ) => {
+        $crate::parser_parse_tree!(@check $input $state $commit $token [$($all)+] $($($tail)*)?)
+    };
+    (@check $input:ident $state:ident $commit:ident $token:ident [$($all:tt)+]
+        ($first:literal $(, $($lhs:tt)*)?) =>> {$($rhs:tt)+} $(, $($tail:tt)*)?
+    ) => {
+        $crate::parser_parse_tree!(@check $input $state $commit $token [$($all)+] $($($tail)*)?)
+    };
+    (@check $input:ident $state:ident $commit:ident $token:ident [$($all:tt)+]) => {
+        $crate::parser_parse_tree!(@lit $input $state $commit $token [] $($all)+)
+    };
+    (@check $input:ident $state:ident $commit:ident $token:ident [$($all:tt)+] $($rest:tt)+) => {
+        $crate::parser_parse_tree!(@seq $input $state $commit $token $($all)+)
+    };
+
+    // Every rule starts with a literal: try to match each literal with a
+    // `LiteralPrefix::strip_literal` comparison instead of the full parser for each literal.
+    // Eliminating the usual parser error path allows the comparisons to be optimized into a
+    // shared byte load and compare chain which dispatches between the rules. If no rule
+    // matches, an error containing all the leading literals is recorded.
+    (@lit $input:ident $state:ident $commit:ident $token:ident [$($lits:tt)*]
+        ($first:literal $(, $($lhs:tt)*)?) => $rhs:expr $(, $($tail:tt)*)?
+    ) => {
+        if let Some($input) = $crate::parser::LiteralPrefix::strip_literal(&$first, $input) {
+            $crate::parser_parse_tree!(@rule $input $state $commit $token
+                [$($($lhs)*)?] @expr $rhs);
+        }
+        $crate::parser_parse_tree!(@lit $input $state $commit $token
+            [$($lits)* $first] $($($tail)*)?);
+    };
+    (@lit $input:ident $state:ident $commit:ident $token:ident [$($lits:tt)*]
+        ($first:literal $(, $($lhs:tt)*)?) =?> $rhs:expr $(, $($tail:tt)*)?
+    ) => {
+        if let Some($input) = $crate::parser::LiteralPrefix::strip_literal(&$first, $input) {
+            $crate::parser_parse_tree!(@rule $input $state $commit $token
+                [$($($lhs)*)?] @expr_res $rhs);
+        }
+        $crate::parser_parse_tree!(@lit $input $state $commit $token
+            [$($lits)* $first] $($($tail)*)?);
+    };
+    (@lit $input:ident $state:ident $commit:ident $token:ident [$($lits:tt)*]
+        ($first:literal $(, $($lhs:tt)*)?) =>> {$($rhs:tt)+} $(, $($tail:tt)*)?
+    ) => {
+        if let Some($input) = $crate::parser::LiteralPrefix::strip_literal(&$first, $input) {
+            $crate::parser_parse_tree!(@rule $input $state $commit $token
+                [$($($lhs)*)?] @subtree $($rhs)+);
+        }
+        $crate::parser_parse_tree!(@lit $input $state $commit $token
+            [$($lits)* $first] $($($tail)*)?);
+    };
+    (@lit $input:ident $state:ident $commit:ident $token:ident [$($first:literal)+]) => {
+        $token = $state.error(
+            $crate::parser::LiteralPrefix::expected_one_of(&[$($first),+]),
+            $input,
+        );
+    };
+
+    // At least one rule starts with a parser: try each rule in order, with every failing rule
+    // recording an error
+    (@seq $input:ident $state:ident $commit:ident $token:ident
         ($($lhs:tt)+) => $rhs:expr $(, $($tail:tt)*)?
     ) => {
         $crate::parser_parse_tree!(@rule $input $state $commit $token [$($lhs)+] @expr $rhs);
-        $($crate::parser_parse_tree!(@toplevel $input $state $commit $token $($tail)*);)?
+        $($crate::parser_parse_tree!(@seq $input $state $commit $token $($tail)*);)?
     };
-    (@toplevel $input:ident $state:ident $commit:ident $token:ident
+    (@seq $input:ident $state:ident $commit:ident $token:ident
         ($($lhs:tt)+) =?> $rhs:expr $(, $($tail:tt)*)?
     ) => {
         $crate::parser_parse_tree!(@rule $input $state $commit $token [$($lhs)+] @expr_res $rhs);
-        $($crate::parser_parse_tree!(@toplevel $input $state $commit $token $($tail)*);)?
+        $($crate::parser_parse_tree!(@seq $input $state $commit $token $($tail)*);)?
     };
-    (@toplevel $input:ident $state:ident $commit:ident $token:ident
+    (@seq $input:ident $state:ident $commit:ident $token:ident
         ($($lhs:tt)+) =>> {$($rhs:tt)+} $(, $($tail:tt)*)?
     ) => {
         $crate::parser_parse_tree!(@rule $input $state $commit $token [$($lhs)+] @subtree $($rhs)+);
-        $($crate::parser_parse_tree!(@toplevel $input $state $commit $token $($tail)*);)?
+        $($crate::parser_parse_tree!(@seq $input $state $commit $token $($tail)*);)?
     };
-    (@toplevel $input:ident $state:ident $commit:ident $token:ident $(,)?) => {};
+    (@seq $input:ident $state:ident $commit:ident $token:ident $(,)?) => {};
 
     // Ensures this branch only matches inputs starting with (, giving each rule set a unique prefix
     (($($first:tt)+) $($tail:tt)+) => {{
@@ -332,9 +413,54 @@ macro_rules! parser_parse_tree {
             let mut commit = false;
             let mut token;
 
-            $crate::parser_parse_tree!(@toplevel input state commit token ($($first)+) $($tail)+);
+            $crate::parser_parse_tree!(@scope input state commit token ($($first)+) $($tail)+);
 
             Err(token)
         })
     }};
+}
+
+/// Helper trait for rule literals in [`parser::parse_tree!`](crate::parser::parse_tree) scopes.
+pub trait LiteralPrefix: Sized + 'static {
+    /// Returns the remaining input if the input starts with this literal.
+    fn strip_literal<'i>(&self, input: &'i [u8]) -> Option<&'i [u8]>;
+
+    /// Returns a [`ParseError`] containing the expected literals.
+    fn expected_one_of(literals: &'static [Self]) -> ParseError;
+}
+
+impl LiteralPrefix for &'static str {
+    #[inline]
+    fn strip_literal<'i>(&self, input: &'i [u8]) -> Option<&'i [u8]> {
+        let bytes = self.as_bytes();
+
+        // Deliberately redundant with strip_prefix below: LLVM merges the first byte checks
+        // from a parse_tree! scope's successive rules into one shared byte load and compare
+        // chain, dispatching between rules before the full literal comparisons.
+        if !bytes.is_empty() && input.first() != bytes.first() {
+            return None;
+        }
+
+        input.strip_prefix(bytes)
+    }
+
+    #[inline]
+    fn expected_one_of(literals: &'static [Self]) -> ParseError {
+        ParseError::ExpectedOneOfLiterals(literals)
+    }
+}
+
+impl LiteralPrefix for u8 {
+    #[inline]
+    fn strip_literal<'i>(&self, input: &'i [u8]) -> Option<&'i [u8]> {
+        match input {
+            [first, rest @ ..] if first == self => Some(rest),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    fn expected_one_of(literals: &'static [Self]) -> ParseError {
+        ParseError::ExpectedOneOfBytes(literals)
+    }
 }
