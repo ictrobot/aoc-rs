@@ -2,7 +2,7 @@
 
 use crate::number::{Integer, Number, Signed, UnsignedInteger};
 use std::fmt::Debug;
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Not, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Not, Sub, SubAssign};
 
 macro_rules! vec_impl {
     ($n:literal, $tuple:tt =>
@@ -192,6 +192,17 @@ macro_rules! vec_impl {
             #[inline]
             fn sub_assign(&mut self, rhs: Self) {
                 $(self.$f -= rhs.$f;)+
+            }
+        }
+
+        impl<T: Signed> Neg for $s<T> {
+            type Output = Self;
+
+            #[inline]
+            fn neg(self) -> Self {
+                Self{
+                    $($f: -self.$f,)+
+                }
             }
         }
 
