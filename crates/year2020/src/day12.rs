@@ -1,4 +1,4 @@
-use utils::geometry::Vec2;
+use utils::geometry::{Direction, Vec2};
 use utils::prelude::*;
 
 /// Moving a point with translations and rotations.
@@ -10,8 +10,8 @@ pub struct Day12 {
 
 #[derive(Copy, Clone, Debug)]
 enum Instruction {
-    Move(Vec2<i32>),
-    Forward(i32),
+    Move(Direction, u16),
+    Forward(u16),
     Rotate90,
     Rotate180,
     Rotate270,
@@ -20,11 +20,11 @@ enum Instruction {
 impl Day12 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let instruction = parser::parse_tree!(
-            (b'N', v @ parser::u16()) => Instruction::Move(Vec2::UP * i32::from(v)),
-            (b'S', v @ parser::u16()) => Instruction::Move(Vec2::DOWN * i32::from(v)),
-            (b'E', v @ parser::u16()) => Instruction::Move(Vec2::RIGHT * i32::from(v)),
-            (b'W', v @ parser::u16()) => Instruction::Move(Vec2::LEFT * i32::from(v)),
-            (b'F', v @ parser::u16()) => Instruction::Forward(i32::from(v)),
+            (b'N', v @ parser::u16()) => Instruction::Move(Direction::Up, v),
+            (b'S', v @ parser::u16()) => Instruction::Move(Direction::Down, v),
+            (b'E', v @ parser::u16()) => Instruction::Move(Direction::Right, v),
+            (b'W', v @ parser::u16()) => Instruction::Move(Direction::Left, v),
+            (b'F', v @ parser::u16()) => Instruction::Forward(v),
             (b'L') =>> {
                 // Rotations are normalised to clockwise
                 ("90") => Instruction::Rotate270,
@@ -43,13 +43,14 @@ impl Day12 {
         let (mut ship2, mut waypoint) = (Vec2::ORIGIN, Vec2::new(10, 1));
         for item in instruction.parse_iterator(input) {
             match item? {
-                Instruction::Move(m) => {
-                    ship1 += m;
-                    waypoint += m;
+                Instruction::Move(dir, v) => {
+                    let movement = Vec2::from(dir) * i32::from(v);
+                    ship1 += movement;
+                    waypoint += movement;
                 }
                 Instruction::Forward(v) => {
-                    ship1 += direction * v;
-                    ship2 += waypoint * v;
+                    ship1 += direction * i32::from(v);
+                    ship2 += waypoint * i32::from(v);
                 }
                 Instruction::Rotate90 => {
                     (direction, waypoint) = (direction.turn_right(), waypoint.turn_right());
