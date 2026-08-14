@@ -93,7 +93,8 @@ macro_rules! puzzles_noop {
 /// functions, but they must be comparable with [`PartialEq`]. For functions returning [`String`]
 /// `&'static str` should be used.
 ///
-/// If no examples are provided, tests aren't generated.
+/// If no examples are provided, tests aren't generated. The `part1` and `part2` tests are only
+/// generated if an example has an answer for that part.
 ///
 /// # Examples
 ///
@@ -128,11 +129,30 @@ macro_rules! examples {
         }
 
         $(
+        // Gate the invocation, not the generated module, to skip expansion in non-test builds
         #[cfg(test)]
+        $crate::examples!(@tests $day [] [] $($tail)+);
+        )?
+    };
+
+    // Helper rules to only generate each part's test if an example has an answer for that part,
+    // using the answer's tuple index as the condition for each part
+    (@tests $day:ident [$($idx1:tt)?] [$($idx2:tt)?]
+        {$key:ident: $input:literal, part1: $a:expr, part2: $b:expr $(,)?} $($rest:tt)*) => {
+        $crate::examples!(@tests $day [1] [2] $($rest)*);
+    };
+    (@tests $day:ident [$($idx1:tt)?] [$($idx2:tt)?]
+        {$key:ident: $input:literal, part1: $a:expr $(,)?} $($rest:tt)*) => {
+        $crate::examples!(@tests $day [1] [$($idx2)?] $($rest)*);
+    };
+    (@tests $day:ident [$($idx1:tt)?] [$($idx2:tt)?]
+        {$key:ident: $input:literal, part2: $b:expr $(,)?} $($rest:tt)*) => {
+        $crate::examples!(@tests $day [$($idx1)?] [2] $($rest)*);
+    };
+    (@tests $day:ident [$($idx1:tt)?] [$($idx2:tt)?]) => {
         mod example_tests {
             use $crate::{PuzzleExamples, input::InputType};
             use super::$day;
-            $crate::examples!(@ignore $($tail)+);
 
             #[test]
             fn new() {
@@ -157,10 +177,11 @@ macro_rules! examples {
                 }
             }
 
+            $(
             #[test]
             fn part1() {
                 for (i, example) in $day::EXAMPLES.iter().enumerate() {
-                    if let Some(expected) = example.1 {
+                    if let Some(expected) = example.$idx1 {
                         let (lf, crlf) = $crate::input::to_lf_crlf(example.0);
 
                         let solution = $day::new(&lf, InputType::Example).unwrap();
@@ -183,11 +204,13 @@ macro_rules! examples {
                     }
                 }
             }
+            )?
 
+            $(
             #[test]
             fn part2() {
                 for (i, example) in $day::EXAMPLES.iter().enumerate() {
-                    if let Some(expected) = example.2 {
+                    if let Some(expected) = example.$idx2 {
                         let (lf, crlf) = $crate::input::to_lf_crlf(example.0);
 
                         let solution = $day::new(&lf, InputType::Example).unwrap();
@@ -210,8 +233,8 @@ macro_rules! examples {
                     }
                 }
             }
+            )?
         }
-        )?
     };
 
     (@item {input: $str:literal, part1: $p1:expr, part2: $p2:expr $(,)?}) => {
@@ -244,5 +267,4 @@ macro_rules! examples {
             Some($p2),
         )
     };
-    (@ignore $($tail:tt)*) => {};
 }
