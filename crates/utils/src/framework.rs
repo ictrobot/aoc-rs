@@ -139,7 +139,7 @@ macro_rules! examples {
     // using the answer's tuple index as the condition for each part
     (@tests $day:ident [$($idx1:tt)?] [$($idx2:tt)?]
         {$key:ident: $input:literal, part1: $a:expr, part2: $b:expr $(,)?} $($rest:tt)*) => {
-        $crate::examples!(@tests $day [1] [2] $($rest)*);
+        $crate::examples!(@tests $day [1] [2]);
     };
     (@tests $day:ident [$($idx1:tt)?] [$($idx2:tt)?]
         {$key:ident: $input:literal, part1: $a:expr $(,)?} $($rest:tt)*) => {
