@@ -1,4 +1,5 @@
 use crate::{md5, multithreading, multiversion};
+use core::fmt::NumBuffer;
 use std::array;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
@@ -37,21 +38,6 @@ pub fn find_hash_with_appended_count(
     });
 }
 
-fn u32_to_ascii(buf: &mut [u8], mut value: u32) -> usize {
-    assert!(buf.len() >= 10);
-
-    let length = 1 + value.checked_ilog10().unwrap_or(0) as usize;
-    assert!(length < 10);
-
-    for d in (0..length).rev() {
-        let new = (value % 10) as u8 + b'0';
-        buf[d] = new;
-        value /= 10;
-    }
-
-    length
-}
-
 multiversion! {
     use {crate::simd::*, crate::md5::*};
 
@@ -88,8 +74,11 @@ multiversion! {
                     None => {
                         // Lengths are different
                         array::from_fn(|i| {
-                            let digits = u32_to_ascii(&mut single[prefix.len()..], base + i as u32);
-                            md5::hash(&single[..prefix.len() + digits])
+                            let mut num_buf = NumBuffer::new();
+                            let digits = (base + i as u32).format_into(&mut num_buf).as_bytes();
+                            let end = prefix.len() + digits.len();
+                            single[prefix.len()..end].copy_from_slice(digits);
+                            md5::hash(&single[..end])
                         })
                     }
                 };

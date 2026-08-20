@@ -1,4 +1,5 @@
 use crate::knot_hash::knot_hash;
+use core::fmt::NumBuffer;
 use utils::bit::BitIterator;
 use utils::prelude::*;
 
@@ -16,25 +17,11 @@ impl Day14 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let mut grid = [0u128; 128];
 
-        let mut buf = Vec::with_capacity(input.len() + 4);
-        buf.extend_from_slice(input.as_bytes());
-        buf.push(b'-');
-
+        let mut num_buf = NumBuffer::new();
         for (i, row) in grid.iter_mut().enumerate() {
-            buf.truncate(input.len() + 1);
-            if i < 10 {
-                buf.push(b'0' + (i as u8));
-            } else if i < 100 {
-                buf.push(b'0' + ((i / 10) as u8));
-                buf.push(b'0' + ((i % 10) as u8));
-            } else {
-                buf.push(b'0' + ((i / 100) as u8));
-                buf.push(b'0' + (((i / 10) % 10) as u8));
-                buf.push(b'0' + ((i % 10) as u8));
-            }
-
-            let hash = knot_hash(buf.iter().copied());
-            *row = u128::from_be_bytes(hash);
+            let suffix = i.format_into(&mut num_buf);
+            let lengths = input.bytes().chain(*b"-").chain(suffix.bytes());
+            *row = u128::from_be_bytes(knot_hash(lengths));
         }
 
         Ok(Day14 { grid })

@@ -147,11 +147,9 @@ impl ToIndex for &[u8] {
     /// For use with functions that iterate over a string's bytes.
     /// See the [`&str`](#impl-ToIndex-for-%26str) implementation.
     fn input_index(self, input: &str) -> usize {
-        let self_ptr = self.as_ptr() as usize;
-        let input_ptr = input.as_ptr() as usize;
-        match self_ptr.checked_sub(input_ptr) {
-            Some(offset) if offset + self.len() <= input.len() => offset,
-            _ => panic!("invalid string index: {self_ptr:#x} is not a substring of {input_ptr:#x}"),
+        match input.as_bytes().subslice_range(self) {
+            Some(range) => range.start,
+            None => panic!("invalid string index: {self:p} is not a substring of {input:p}"),
         }
     }
 }

@@ -151,8 +151,7 @@ fn find_days(src_dir: &Path) -> Result<Vec<(Day, bool)>, Box<dyn Error>> {
         if let Some(day_num) = path
             .file_name()
             .and_then(OsStr::to_str)
-            .and_then(|s| s.strip_prefix("day"))
-            .and_then(|s| s.strip_suffix(".rs"))
+            .and_then(|s| s.strip_circumfix("day", ".rs"))
         {
             let day = day_num.parse()?;
 
