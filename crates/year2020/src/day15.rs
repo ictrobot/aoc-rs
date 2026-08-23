@@ -7,6 +7,8 @@ pub struct Day15 {
 }
 
 const DENSE_THRESHOLD: u32 = 65_536;
+const SPARSE_THRESHOLD: u32 = 16_777_216;
+const SPARSE_BUCKET_SHIFT: u32 = 16;
 
 impl Day15 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
@@ -19,41 +21,65 @@ impl Day15 {
 
     #[must_use]
     pub fn part1(&self) -> u32 {
-        self.number_at(2020)
+        self.number_at::<2020>()
     }
 
     #[must_use]
     pub fn part2(&self) -> u32 {
-        self.number_at(30_000_000)
+        self.number_at::<30_000_000>()
     }
 
     #[inline]
-    fn number_at(&self, target: u32) -> u32 {
-        if target as usize <= self.starting.len() {
-            return self.starting[target as usize - 1];
+    fn number_at<const TARGET: u32>(&self) -> u32 {
+        if TARGET as usize <= self.starting.len() {
+            return self.starting[TARGET as usize - 1];
         }
 
-        let mut last_turn = vec![0u32; target as usize];
-        let mut seen = vec![0u64; target.div_ceil(64) as usize];
+        let dense_limit = TARGET.min(DENSE_THRESHOLD);
+        let mut dense = vec![0u32; dense_limit as usize];
+        let middle_limit = TARGET.min(SPARSE_THRESHOLD);
+        let mut middle = vec![0u32; middle_limit.saturating_sub(DENSE_THRESHOLD) as usize];
+        let sparse_buckets = TARGET
+            .saturating_sub(SPARSE_THRESHOLD)
+            .div_ceil(1 << SPARSE_BUCKET_SHIFT) as usize;
+        let mut sparse = vec![Vec::new(); sparse_buckets];
+        let mut seen = vec![0u64; TARGET.div_ceil(64) as usize];
+
         for (turn, &number) in self.starting[..self.starting.len() - 1].iter().enumerate() {
-            last_turn[number as usize] = turn as u32 + 1;
-            seen[number as usize / 64] |= 1 << (number % 64);
+            dense[number as usize] = turn as u32 + 1;
         }
 
         let mut number = *self.starting.last().unwrap();
-        for turn in self.starting.len() as u32..target {
+        for turn in self.starting.len() as u32..TARGET {
             let previous = if number < DENSE_THRESHOLD {
-                std::mem::replace(&mut last_turn[number as usize], turn)
-            } else {
+                std::mem::replace(&mut dense[number as usize], turn)
+            } else if number < SPARSE_THRESHOLD {
                 // Track seen numbers in a bitset to reduce random timestamp reads
                 let base = number as usize / 64;
                 let mask = 1 << (number % 64);
                 if seen[base] & mask == 0 {
                     seen[base] |= mask;
-                    last_turn[number as usize] = turn;
+                    middle[(number - DENSE_THRESHOLD) as usize] = turn;
                     0
                 } else {
-                    std::mem::replace(&mut last_turn[number as usize], turn)
+                    std::mem::replace(&mut middle[(number - DENSE_THRESHOLD) as usize], turn)
+                }
+            } else {
+                // Store rarely repeated numbers sparsely to shrink the timestamp array
+                std::hint::cold_path();
+                let base = number as usize / 64;
+                let mask = 1 << (number % 64);
+                let bucket = ((number - SPARSE_THRESHOLD) >> SPARSE_BUCKET_SHIFT) as usize;
+                if seen[base] & mask == 0 {
+                    seen[base] |= mask;
+                    sparse[bucket].push((number, turn));
+                    0
+                } else {
+                    let (_, v) = sparse[bucket]
+                        .iter_mut()
+                        .find(|&&mut (n, _)| n == number)
+                        .expect("expected previously seen number");
+                    std::mem::replace(v, turn)
                 }
             };
             number = if previous == 0 { 0 } else { turn - previous };
