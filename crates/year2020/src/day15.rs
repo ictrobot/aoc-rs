@@ -6,6 +6,8 @@ pub struct Day15 {
     starting: Vec<u32>,
 }
 
+const DENSE_THRESHOLD: u32 = 65_536;
+
 impl Day15 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
@@ -32,13 +34,28 @@ impl Day15 {
         }
 
         let mut last_turn = vec![0u32; target as usize];
+        let mut seen = vec![0u64; target.div_ceil(64) as usize];
         for (turn, &number) in self.starting[..self.starting.len() - 1].iter().enumerate() {
             last_turn[number as usize] = turn as u32 + 1;
+            seen[number as usize / 64] |= 1 << (number % 64);
         }
 
         let mut number = *self.starting.last().unwrap();
         for turn in self.starting.len() as u32..target {
-            let previous = std::mem::replace(&mut last_turn[number as usize], turn);
+            let previous = if number < DENSE_THRESHOLD {
+                std::mem::replace(&mut last_turn[number as usize], turn)
+            } else {
+                // Track seen numbers in a bitset to reduce random timestamp reads
+                let base = number as usize / 64;
+                let mask = 1 << (number % 64);
+                if seen[base] & mask == 0 {
+                    seen[base] |= mask;
+                    last_turn[number as usize] = turn;
+                    0
+                } else {
+                    std::mem::replace(&mut last_turn[number as usize], turn)
+                }
+            };
             number = if previous == 0 { 0 } else { turn - previous };
         }
         number
