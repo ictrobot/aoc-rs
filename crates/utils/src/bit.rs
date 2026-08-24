@@ -148,9 +148,28 @@ pub fn bitwise_count8<T: UnsignedInteger>(m: &[T; 8]) -> [T; 4] {
     [bit0, bit1, bit2, bit3]
 }
 
+/// Computes the population count for each bit position across 3 input masks.
+///
+/// Returns two masks `(bit0, bit1)` that encode, per bit position, the 2-bit count of how many of
+/// the 3 inputs have that bit set.
+///
+/// For example, if a given bit is set in all 3 inputs, then that bit would be set in both `bit0`
+/// and `bit1`.
+///
+/// # Examples
+/// ```
+/// # use utils::bit::carry_save_adder;
+/// let (bit0, bit1) = carry_save_adder::<u8>(
+///     0b1000,
+///     0b1100,
+///     0b1110,
+/// );
+/// assert_eq!(bit0, 0b1010);
+/// assert_eq!(bit1, 0b1100);
+/// ```
 #[inline]
 #[must_use]
-fn carry_save_adder<T: UnsignedInteger>(a: T, b: T, c: T) -> (T, T) {
+pub fn carry_save_adder<T: UnsignedInteger>(a: T, b: T, c: T) -> (T, T) {
     let sum_ab = a ^ b;
     let carry_ab = a & b;
     let sum_abc = sum_ab ^ c;
