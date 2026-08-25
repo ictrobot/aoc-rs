@@ -20,8 +20,9 @@ const PADDING: usize = CYCLES + 1;
 const DEPTH: usize = CYCLES + 2;
 const MAX_ROWS: usize = 8;
 const MAX_COLS: usize = u32::BITS as usize - 2 * CYCLES;
-const HEIGHT: usize = MAX_ROWS + 2 * PADDING;
-const INNER_ROWS: usize = HEIGHT - 2;
+// Rounding up to a multiple of 8 rows helps with vectorization in native builds
+const INNER_ROWS: usize = (MAX_ROWS + 2 * CYCLES).next_multiple_of(8);
+const HEIGHT: usize = INNER_ROWS + 2;
 const LAYERS: usize = DEPTH * DEPTH;
 
 impl Day17 {
@@ -113,7 +114,7 @@ impl Day17 {
 
             // Add the counts from the adjacent z layers
             for (w, sums) in z_sums.iter_mut().enumerate().take(cycle) {
-                for (z, sum) in sums[..=cycle]
+                for (z, sum) in sums[..cycle]
                     .iter_mut()
                     .enumerate()
                     .skip(w.saturating_sub(1))
@@ -121,6 +122,9 @@ impl Day17 {
                     let adjacent = Self::adjacent(z).map(|z| Self::layer_index(w, z));
                     *sum = NeighbourCounts::sum(adjacent.map(|layer| &layer_counts[layer]));
                 }
+
+                // Only the layer below the new layer can contain active cells
+                sums[cycle] = layer_counts[Self::layer_index(w, cycle - 1)];
             }
 
             // Add the counts from the adjacent w layers to get each cell's total
@@ -173,8 +177,10 @@ impl Day17 {
 }
 
 // Saturating neighbour counts for the inner rows from one layer.
-// Stored as three arrays so the row loops can be vectorized by the compiler.
+// Stored as three arrays so the row loops can be vectorized by the compiler, and aligned for a
+// further ~10% faster native performance
 #[derive(Clone, Copy, Debug, Default)]
+#[repr(align(64))]
 struct NeighbourCounts {
     ones: [u32; INNER_ROWS],
     twos: [u32; INNER_ROWS],
