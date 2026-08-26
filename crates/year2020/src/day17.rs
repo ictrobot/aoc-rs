@@ -20,10 +20,14 @@ const PADDING: usize = CYCLES + 1;
 const DEPTH: usize = CYCLES + 2;
 const MAX_ROWS: usize = 8;
 const MAX_COLS: usize = u32::BITS as usize - 2 * CYCLES;
-// Rounding up to a multiple of 8 rows helps with vectorization in native builds
-const INNER_ROWS: usize = (MAX_ROWS + 2 * CYCLES).next_multiple_of(8);
+// Rounding up to a multiple of 8/16 rows helps with vectorization in AVX2/AVX512 builds
+const INNER_ROWS: usize = (MAX_ROWS + 2 * CYCLES).next_multiple_of(cfg_select! {
+    target_feature = "avx512f" => 16,
+    target_feature = "avx2" => 8,
+    _ => 1,
+});
 const HEIGHT: usize = INNER_ROWS + 2;
-const LAYERS: usize = DEPTH * DEPTH;
+const LAYERS: usize = DEPTH * (DEPTH + 1) / 2;
 
 impl Day17 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
@@ -172,15 +176,15 @@ impl Day17 {
 
     #[inline]
     fn layer_index(w: usize, z: usize) -> usize {
-        if w < z { w * DEPTH + z } else { z * DEPTH + w }
+        let (w, z) = if w < z { (w, z) } else { (z, w) };
+        z * (z + 1) / 2 + w
     }
 }
 
-// Saturating neighbour counts for the inner rows from one layer.
-// Stored as three arrays so the row loops can be vectorized by the compiler, and aligned for a
-// further ~10% faster native performance
+// Saturating neighbour counts for the inner rows from one layer, stored as three arrays so the row
+// loops can be vectorized by the compiler. Also aligned to 64 bytes when using 256+ bit AVX vectors
 #[derive(Clone, Copy, Debug, Default)]
-#[repr(align(64))]
+#[cfg_attr(target_feature = "avx2", repr(align(64)))]
 struct NeighbourCounts {
     ones: [u32; INNER_ROWS],
     twos: [u32; INNER_ROWS],
