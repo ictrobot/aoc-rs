@@ -50,7 +50,8 @@ impl Day15 {
         }
 
         let mut number = *self.starting.last().unwrap();
-        for turn in self.starting.len() as u32..TARGET {
+        let mut turn = self.starting.len() as u32;
+        while turn < TARGET {
             let previous = if number < DENSE_THRESHOLD {
                 std::mem::replace(&mut dense[number as usize], turn)
             } else if number < SPARSE_THRESHOLD {
@@ -82,9 +83,33 @@ impl Day15 {
                     std::mem::replace(v, turn)
                 }
             };
-            number = if previous == 0 { 0 } else { turn - previous };
+
+            if previous == 0 {
+                turn += 1;
+
+                // Process the known zero inline to avoid another pass through the range checks
+                let previous = std::mem::replace(&mut dense[0], turn);
+                number = if previous == 0 {
+                    std::hint::cold_path();
+                    0
+                } else {
+                    turn - previous
+                };
+                turn += 1;
+            } else {
+                number = turn - previous;
+                turn += 1;
+            }
         }
-        number
+
+        if turn == TARGET {
+            number
+        } else if turn == TARGET + 1 {
+            // Target was the zero processed as part of the double turn
+            0
+        } else {
+            panic!("Reached turn {turn} but target is {TARGET}");
+        }
     }
 }
 
