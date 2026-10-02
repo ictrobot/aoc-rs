@@ -3,8 +3,6 @@
 // #[inline(always)] is required to ensure hashing is branchless for fixed-sized types.
 #![allow(clippy::inline_always)]
 
-#[expect(clippy::disallowed_types)]
-use std::collections::{HashMap, HashSet};
 use std::hash::{BuildHasherDefault, Hasher};
 
 // Reused wyhash secret, used as a non-zero initial state.
@@ -173,12 +171,12 @@ impl Hasher for FastHasher {
 
 /// [`BuildHasherDefault`] using [`FastHasher`].
 pub type BuildFastHasher = BuildHasherDefault<FastHasher>;
-/// [`HashMap`] using [`FastHasher`].
+/// [`HashMap`](std::collections::HashMap) using [`FastHasher`].
 #[expect(clippy::disallowed_types)]
-pub type FastMap<K, V> = HashMap<K, V, BuildFastHasher>;
-/// [`HashSet`] using [`FastHasher`].
+pub type FastMap<K, V> = std::collections::HashMap<K, V, BuildFastHasher>;
+/// [`HashSet`](std::collections::HashSet) using [`FastHasher`].
 #[expect(clippy::disallowed_types)]
-pub type FastSet<T> = HashSet<T, BuildFastHasher>;
+pub type FastSet<T> = std::collections::HashSet<T, BuildFastHasher>;
 
 /// Helper trait providing `new` and `with_capacity` functions for [`FastMap`] and [`FastSet`].
 pub trait FastCollectionBuilder {

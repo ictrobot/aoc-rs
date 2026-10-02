@@ -226,8 +226,8 @@ impl Day24 {
             let sum = x + y;
 
             // Check non-final bits in check pattern match
-            for i in 0..n {
-                let b = Self::evaluate(self.z_indexes[i], wires, x, y, &mut cache);
+            for (i, &z_index) in self.z_indexes.iter().enumerate().take(n) {
+                let b = Self::evaluate(z_index, wires, x, y, &mut cache);
                 if ((sum >> i) & 1 != 0) != b {
                     // Non-final bit in test case incorrect, previous swap must have been incorrect
                     return ControlFlow::Continue(());
