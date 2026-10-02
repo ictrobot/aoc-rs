@@ -61,8 +61,15 @@ struct Searcher {
 
 // Pre-calculated sequences of recipes processed before index 23 where they all converge
 const INITIAL_SEQUENCES: [u32; 9] = [
-    0xfff9_4113, 0xffff_0657, 0xfff9_4111, 0xfff9_4110, 0xffff_9411, 0xffff_9410, 0xffff_f941,
-    0xffff_1812, 0xffff_ff94,
+    0xfff9_4113,
+    0xffff_0657,
+    0xfff9_4111,
+    0xfff9_4110,
+    0xffff_9411,
+    0xffff_9410,
+    0xffff_f941,
+    0xffff_1812,
+    0xffff_ff94,
 ];
 
 // The first 23 recipes

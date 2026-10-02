@@ -1,5 +1,5 @@
-use crate::intcode::features::Day05Part2Features;
 use crate::intcode::Interpreter;
+use crate::intcode::features::Day05Part2Features;
 use std::ops::Range;
 use utils::prelude::*;
 

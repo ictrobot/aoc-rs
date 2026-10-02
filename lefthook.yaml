@@ -51,7 +51,8 @@ pre-commit:
   parallel: true
   commands:
     rustfmt:
-      run: cargo fmt --all --check
+      glob: "*.rs"
+      run: cargo fmt --all --check -- {all_files}
     clippy:
       run: cargo clippy --all --all-targets
       env:

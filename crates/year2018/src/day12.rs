@@ -95,7 +95,10 @@ impl Day12 {
 
 impl State {
     fn next(&self, rules: u32) -> State {
-        assert!(self.len + 4 < WIDTH * 64, "no solution found: reached width limit");
+        assert!(
+            self.len + 4 < WIDTH * 64,
+            "no solution found: reached width limit"
+        );
 
         let (mut pots, mut start, mut len, mut sum) = ([0; WIDTH], self.start - 2, 0, 0);
         let (mut index, mut rule) = (0, 0);

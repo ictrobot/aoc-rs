@@ -26,11 +26,7 @@ impl Day03 {
             bottom_right - (ring * 5), // Top
             bottom_right - (ring * 7), // Right
         ];
-        let offset = middles
-            .iter()
-            .map(|m| m.abs_diff(input))
-            .min()
-            .unwrap();
+        let offset = middles.iter().map(|m| m.abs_diff(input)).min().unwrap();
         ring + offset
     }
 

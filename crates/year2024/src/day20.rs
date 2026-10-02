@@ -67,13 +67,15 @@ impl Day20 {
         let end_index = self.distances.len() - start_index;
         let offset = y_offset * (self.cols as isize) + x_offset;
 
-        u32::from(self.distances[start_index..end_index]
-            .iter()
-            .zip(self.distances[start_index.wrapping_add_signed(offset)..].iter())
-            .map(|(&current, &target)| {
-                u16::from(target.wrapping_add(1).saturating_sub(current) >= threshold)
-            })
-            .sum::<u16>())
+        u32::from(
+            self.distances[start_index..end_index]
+                .iter()
+                .zip(self.distances[start_index.wrapping_add_signed(offset)..].iter())
+                .map(|(&current, &target)| {
+                    u16::from(target.wrapping_add(1).saturating_sub(current) >= threshold)
+                })
+                .sum::<u16>(),
+        )
     }
 }
 

@@ -155,7 +155,10 @@ impl Day06 {
 
     #[must_use]
     pub fn part2(&self) -> u32 {
-        assert!(!(self.you == u16::MAX || self.san == u16::MAX), "expected YOU and SAN objects");
+        assert!(
+            !(self.you == u16::MAX || self.san == u16::MAX),
+            "expected YOU and SAN objects"
+        );
 
         let mut a = usize::from(self.parents[self.you as usize]);
         let mut b = usize::from(self.parents[self.san as usize]);

@@ -140,11 +140,7 @@ impl<const N: usize> Scrambler<N> {
     }
 
     const fn rotate_letter_amount(i: usize) -> usize {
-        if i < 4 {
-            i + 1
-        } else {
-            i + 2
-        }
+        if i < 4 { i + 1 } else { i + 2 }
     }
 
     const fn reverse_letter_rotations() -> Option<[usize; N]> {
