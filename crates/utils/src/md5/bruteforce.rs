@@ -1,6 +1,6 @@
 use crate::{md5, multithreading, multiversion};
-use core::fmt::NumBuffer;
 use std::array;
+use std::fmt::NumBuffer;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 

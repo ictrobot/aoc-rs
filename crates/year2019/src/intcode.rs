@@ -322,7 +322,7 @@ mod tests {
         if !final_memory.is_empty() {
             assert_eq!(interpreter.mem, final_memory);
         }
-        assert_eq!(interpreter.input.len(), 0);
+        assert!(interpreter.input.is_empty());
     }
 
     #[test]

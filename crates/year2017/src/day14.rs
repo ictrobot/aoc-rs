@@ -1,5 +1,5 @@
 use crate::knot_hash::knot_hash;
-use core::fmt::NumBuffer;
+use std::fmt::NumBuffer;
 use utils::bit::BitIterator;
 use utils::prelude::*;
 
