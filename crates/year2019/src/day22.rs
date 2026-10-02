@@ -95,8 +95,8 @@ impl<const DECK_SIZE: u64> Shuffle<DECK_SIZE> {
                     (self.offset as i64 - i64::from(amount)).rem_euclid(DECK_SIZE as i64) as u64;
             }
             Technique::DealWithIncrement(increment) => {
-                self.multiplier = Self::mod_mul(increment as u64, self.multiplier);
-                self.offset = Self::mod_mul(increment as u64, self.offset);
+                self.multiplier = Self::mod_mul(u64::from(increment), self.multiplier);
+                self.offset = Self::mod_mul(u64::from(increment), self.offset);
             }
         }
     }

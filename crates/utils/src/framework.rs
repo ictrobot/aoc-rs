@@ -123,6 +123,7 @@ macro_rules! puzzles_noop {
 macro_rules! examples {
     ($day:ident$(<$lifetime:lifetime>)? -> ($p1:ty, $p2:ty) [$($($tail:tt,)+)?]) => {
         impl $crate::PuzzleExamples<$p1, $p2> for $day$(<$lifetime>)? {
+            #[allow(clippy::allow_attributes, clippy::unreadable_literal)]
             const EXAMPLES: &'static [(&'static str, Option<$p1>, Option<$p2>)] = &[$($(
                 $crate::examples!(@item $tail)
             ),+)?];

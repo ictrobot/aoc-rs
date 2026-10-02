@@ -105,7 +105,7 @@ impl Day11 {
         let mut routes_from = |from: u16, to: u16, not_including: &[u16]| {
             visited.fill(State::Unvisited);
             visited[to as usize] = State::Visited(1);
-            for &x in not_including.iter() {
+            for &x in not_including {
                 visited[x as usize] = State::Visited(0);
             }
             self.visit(from, &mut visited)
@@ -135,7 +135,7 @@ impl Day11 {
         visited[current as usize] = State::CurrentlyVisiting;
 
         let mut total = 0;
-        for &next in self.connections[current as usize].iter() {
+        for &next in &self.connections[current as usize] {
             total += self.visit(next, visited);
         }
 

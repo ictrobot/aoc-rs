@@ -38,8 +38,8 @@ impl Day10 {
         let delta_rows = 2 * rows - 1;
         let delta_cols = 2 * cols - 1;
         let delta_index = |delta: Vec2<i16>| {
-            (delta.y as i32 + rows as i32 - 1) as usize * delta_cols
-                + (delta.x as i32 + cols as i32 - 1) as usize
+            (i32::from(delta.y) + rows as i32 - 1) as usize * delta_cols
+                + (i32::from(delta.x) + cols as i32 - 1) as usize
         };
 
         let mut reduced_cache = vec![u32::MAX; delta_rows * delta_cols];

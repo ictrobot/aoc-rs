@@ -83,12 +83,14 @@ impl Day11 {
         }
     }
 
+    #[expect(clippy::trivially_copy_pass_by_ref)]
     fn valid(pass: &[u8; 8]) -> bool {
         Self::has_two_pairs(pass)
             && Self::has_three_run(pass)
             && Self::has_no_confusing_letters(pass)
     }
 
+    #[expect(clippy::trivially_copy_pass_by_ref)]
     fn has_two_pairs(x: &[u8; 8]) -> bool {
         for i in 0..7 {
             if x[i] == x[i + 1] {
@@ -102,10 +104,12 @@ impl Day11 {
         false
     }
 
+    #[expect(clippy::trivially_copy_pass_by_ref)]
     fn has_three_run(x: &[u8; 8]) -> bool {
         x.array_windows().any(|&[a, b, c]| a + 1 == b && a + 2 == c)
     }
 
+    #[expect(clippy::trivially_copy_pass_by_ref)]
     fn has_no_confusing_letters(x: &[u8; 8]) -> bool {
         x.iter().all(|&x| x != b'i' && x != b'o' && x != b'l')
     }

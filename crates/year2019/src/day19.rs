@@ -44,6 +44,7 @@ impl Day19 {
     }
 
     #[must_use]
+    #[expect(clippy::maybe_infinite_iter)]
     pub fn part2(&self) -> u32 {
         let mut interpreter = Interpreter::new(Vec::new());
         let inside_x = (0..=50)

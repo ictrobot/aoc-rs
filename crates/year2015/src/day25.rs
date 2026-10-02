@@ -30,7 +30,7 @@ impl Day25 {
         let triangle = (row + column - 2) * (row + column - 1) / 2;
         let index = triangle + column - 1;
 
-        (20151125 * mod_pow(252533, index, 33554393)) % 33554393
+        (20_151_125 * mod_pow(252_533, index, 33_554_393)) % 33_554_393
     }
 
     #[must_use]

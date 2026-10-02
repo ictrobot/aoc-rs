@@ -66,7 +66,7 @@ impl Day21 {
                     + matrix[digits[0] as usize][digits[1] as usize]
                     + matrix[digits[1] as usize][digits[2] as usize]
                     + matrix[digits[2] as usize][NumericKeypad::Activate as usize];
-                length * code as u64
+                length * u64::from(code)
             })
             .sum()
     }
@@ -149,7 +149,7 @@ macro_rules! cost_matrix_functions {
 
 impl DirectionalKeypad {
     const fn neighbours(self) -> &'static [(DirectionalKeypad, Self)] {
-        use DirectionalKeypad::*;
+        use DirectionalKeypad::{Activate, Down, Left, Right, Up};
         match self {
             Up => &[(Right, Activate), (Down, Down)],
             Activate => &[(Left, Up), (Down, Right)],
@@ -160,7 +160,7 @@ impl DirectionalKeypad {
     }
 
     const fn coords(self) -> Vec2<u32> {
-        use DirectionalKeypad::*;
+        use DirectionalKeypad::{Activate, Down, Left, Right, Up};
         match self {
             Up => Vec2::new(1, 0),
             Activate => Vec2::new(2, 0),
@@ -176,7 +176,7 @@ impl DirectionalKeypad {
 impl NumericKeypad {
     const fn neighbours(self) -> &'static [(DirectionalKeypad, Self)] {
         use DirectionalKeypad::{Down, Left, Right, Up};
-        use NumericKeypad::*;
+        use NumericKeypad::{Activate, Key0, Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8, Key9};
         match self {
             Key7 => &[(Right, Key8), (Down, Key4)],
             Key8 => &[(Left, Key7), (Right, Key9), (Down, Key5)],
@@ -193,7 +193,7 @@ impl NumericKeypad {
     }
 
     const fn coords(self) -> Vec2<u32> {
-        use NumericKeypad::*;
+        use NumericKeypad::{Activate, Key0, Key1, Key2, Key3, Key4, Key5, Key6, Key7, Key8, Key9};
         match self {
             Key7 => Vec2::new(0, 0),
             Key8 => Vec2::new(1, 0),

@@ -63,7 +63,7 @@ impl Day09 {
         for y in 0..inside_height {
             let mut inside = false;
             let mut last_x = 0;
-            for &(x, y1, y2) in vertical_edges.iter() {
+            for &(x, y1, y2) in &vertical_edges {
                 if y < y1 || y >= y2 {
                     continue;
                 }
@@ -98,8 +98,8 @@ impl Day09 {
             let y1_compressed = points_compressed[i].y;
 
             for j in (i + 1)..points.len() {
-                let dx = x1.abs_diff(points[j].x) as u64 + 1;
-                let dy = y1.abs_diff(points[j].y) as u64 + 1;
+                let dx = u64::from(x1.abs_diff(points[j].x)) + 1;
+                let dy = u64::from(y1.abs_diff(points[j].y)) + 1;
                 let area = dx * dy;
                 part1 = part1.max(area);
 

@@ -69,7 +69,7 @@ impl Day20 {
                 }
             };
 
-            for p in positions.iter_mut() {
+            for p in &mut positions {
                 let distance = grid[*p];
                 *p = p.wrapping_add_signed(dir);
                 if grid[*p] == 0 || distance + 1 < grid[*p] {

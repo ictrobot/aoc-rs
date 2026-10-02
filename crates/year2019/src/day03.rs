@@ -32,7 +32,7 @@ impl Day03 {
             1,
             (Vec::new(), Vec::new(), Vec2::ORIGIN, 0u32),
             |(mut horizontal, mut vertical, start, steps), (dir, dist)| {
-                let end = start + Vec2::from(dir) * dist as i32;
+                let end = start + Vec2::from(dir) * i32::from(dist);
                 let segment = Segment {
                     min: start.component_min(end),
                     max: start.component_max(end),
@@ -44,7 +44,7 @@ impl Day03 {
                 } else {
                     vertical.push(segment);
                 }
-                (horizontal, vertical, end, steps + dist as u32)
+                (horizontal, vertical, end, steps + u32::from(dist))
             },
         )
         .map(|(horizontal, vertical, _, _)| (horizontal, vertical))
@@ -71,7 +71,7 @@ impl Day03 {
             }
         };
 
-        for horizontal in wire2h.iter() {
+        for horizontal in &wire2h {
             for vertical in wire1v
                 .iter()
                 .skip(wire1v.partition_point(|s| s.min.x < horizontal.min.x))
@@ -80,7 +80,7 @@ impl Day03 {
                 check(horizontal, vertical);
             }
         }
-        for vertical in wire2v.iter() {
+        for vertical in &wire2v {
             for horizontal in wire1h
                 .iter()
                 .skip(wire1h.partition_point(|s| s.min.y < vertical.min.y))

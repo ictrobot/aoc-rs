@@ -41,7 +41,7 @@ impl Day14 {
             for (_, bit) in BitIterator::ones(row) {
                 if visited[r] & bit == 0 {
                     regions += 1;
-                    self.visit(&mut visited, r, bit)
+                    self.visit(&mut visited, r, bit);
                 }
             }
         }

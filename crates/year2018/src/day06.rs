@@ -87,7 +87,7 @@ impl Day06 {
         }
 
         let mut counts = vec![0; self.locations.len() + 1];
-        for &c in closest.iter() {
+        for &c in &closest {
             counts[c as usize] += 1;
         }
 

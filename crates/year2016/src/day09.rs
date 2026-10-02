@@ -23,9 +23,9 @@ impl Day09 {
             if input[0] == b'(' {
                 let (characters, repeats);
                 (characters, input) = parser::u32().parse(&input[1..])?;
-                (_, input) = b'x'.parse(input)?;
+                ((), input) = b'x'.parse(input)?;
                 (repeats, input) = parser::u32().parse(input)?;
-                (_, input) = b')'.parse(input)?;
+                ((), input) = b')'.parse(input)?;
 
                 if input.len() < characters as usize {
                     return Err((
@@ -37,10 +37,10 @@ impl Day09 {
                 let repeated_len = if RECURSIVE {
                     Self::decompressed_length::<true>(&input[..characters as usize])?.0
                 } else {
-                    characters as u64
+                    u64::from(characters)
                 };
 
-                len += repeated_len * repeats as u64;
+                len += repeated_len * u64::from(repeats);
                 input = &input[characters as usize..];
             } else {
                 len += 1;

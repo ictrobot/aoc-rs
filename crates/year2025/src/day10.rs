@@ -72,7 +72,7 @@ impl Day10 {
         let (mut part1, mut part2) = (0, 0);
         for line in machine.parse_iterator(input) {
             let (lights, buttons, targets) = line?;
-            let (p1, p2) = Self::calculate(lights, buttons, targets);
+            let (p1, p2) = Self::calculate(lights, &buttons, &targets);
             part1 += p1;
             part2 += p2;
         }
@@ -93,8 +93,8 @@ impl Day10 {
     #[inline]
     fn calculate(
         lights: u32,
-        buttons: ArrayVec<u32, MAX_BUTTONS>,
-        targets: ArrayVec<u16, MAX_TARGETS>,
+        buttons: &ArrayVec<u32, MAX_BUTTONS>,
+        targets: &ArrayVec<u16, MAX_TARGETS>,
     ) -> (u32, u32) {
         // Precalculate the results and parity of every button press combination
         let combination_count = 1usize << buttons.len();

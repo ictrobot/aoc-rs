@@ -56,7 +56,7 @@ impl Day13 {
         self.machines
             .iter()
             .map(|&(mut m)| {
-                m.prize += Vec2::new(10000000000000, 10000000000000);
+                m.prize += Vec2::new(10_000_000_000_000, 10_000_000_000_000);
                 m.required_tokens().unwrap_or(0)
             })
             .sum()

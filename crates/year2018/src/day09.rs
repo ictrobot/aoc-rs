@@ -54,7 +54,7 @@ impl Day09 {
             //      [pop_back]
 
             scores[((base + 23) % players) as usize] +=
-                (base + 23) as u64 + circle[tail - 19] as u64;
+                u64::from(base + 23) + u64::from(circle[tail - 19]);
 
             if head > 0 {
                 let push_front = [

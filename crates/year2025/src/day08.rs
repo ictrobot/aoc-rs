@@ -147,7 +147,7 @@ impl Day08 {
                     remaining_merges -= 1;
                     if remaining_merges == 0 {
                         return ControlFlow::Break(
-                            self.points[i].x as u64 * self.points[j].x as u64,
+                            u64::from(self.points[i].x) * u64::from(self.points[j].x),
                         );
                     }
                 }
@@ -166,7 +166,7 @@ impl Day08 {
         let mut edges = Vec::new();
         let mut next_edges = Vec::new();
 
-        for &(min_dist2, offsets) in DISTANCE_TIER_OFFSETS.iter() {
+        for &(min_dist2, offsets) in DISTANCE_TIER_OFFSETS {
             let max_dist2 = min_dist2 + SUBDIVISION_WIDTH2;
 
             // Move edges now below max_dist2 from next_edges to edges
@@ -206,7 +206,7 @@ impl Day08 {
                 }
 
                 let sub1_coords = Self::subdivision_coords(sub1);
-                for offset in offsets.iter() {
+                for offset in offsets {
                     let sub2_coords = sub1_coords.wrapping_add_signed(offset.cast());
                     if sub2_coords.x >= SUBDIVISIONS
                         || sub2_coords.y >= SUBDIVISIONS
@@ -217,8 +217,8 @@ impl Day08 {
 
                     let sub2 = Self::subdivision_index(sub2_coords);
 
-                    for &i in self.subdivisions[sub1].iter() {
-                        for &j in self.subdivisions[sub2].iter() {
+                    for &i in &self.subdivisions[sub1] {
+                        for &j in &self.subdivisions[sub2] {
                             process_pair(i, j);
                         }
                     }
@@ -233,7 +233,7 @@ impl Day08 {
             edges.sort_unstable_by_key(|(a, _, _)| *a);
             limit -= edges.len();
 
-            for &(d, i, j) in edges.iter() {
+            for &(d, i, j) in &edges {
                 if let ControlFlow::Break(result) = f(d, i as usize, j as usize) {
                     return result;
                 }

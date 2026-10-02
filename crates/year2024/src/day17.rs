@@ -56,7 +56,7 @@ impl Day17 {
 
         while pc + 1 < self.program.len() {
             let opcode = self.program[pc];
-            let operand = self.program[pc + 1] as u64;
+            let operand = u64::from(self.program[pc + 1]);
             let combo_operand = || match operand {
                 0..=3 => operand,
                 4 => a,

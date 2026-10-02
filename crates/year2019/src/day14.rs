@@ -169,7 +169,7 @@ impl Day14 {
         }
 
         while lower + 1 < upper {
-            let middle = (lower + upper) / 2;
+            let middle = lower.midpoint(upper);
             if self.ore_needed(middle) <= PART2_LIMIT {
                 lower = middle;
             } else {

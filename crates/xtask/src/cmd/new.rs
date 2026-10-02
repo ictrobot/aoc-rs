@@ -39,6 +39,9 @@ utils = {{ path = "../utils", default-features = false }}
 
 [features]
 unsafe = ["utils/unsafe"]
+
+[lints]
+workspace = true
 "#
             ),
         )?;
@@ -50,6 +53,11 @@ unsafe = ["utils/unsafe"]
             format!(
                 r#"#![doc = include_str!("../README.md")]
 #![cfg_attr(not(feature = "unsafe"), forbid(unsafe_code))]
+#![allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss
+)]
 
 utils::year!({year:#} => {{}});
 "#

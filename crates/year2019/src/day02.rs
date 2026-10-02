@@ -31,7 +31,7 @@ impl Day02 {
         let mut noun_hi = 99u32;
         while noun_lo + 1 < noun_hi {
             let mid = noun_lo + (noun_hi - noun_lo) / 2;
-            if self.run(mid as i64, 0) <= PART2_TARGET {
+            if self.run(i64::from(mid), 0) <= PART2_TARGET {
                 noun_lo = mid;
             } else {
                 noun_hi = mid;
@@ -42,7 +42,7 @@ impl Day02 {
         let mut verb_hi = 99u32;
         while verb_lo + 1 < verb_hi {
             let mid = verb_lo + (verb_hi - verb_lo) / 2;
-            if self.run(noun_lo as i64, mid as i64) <= PART2_TARGET {
+            if self.run(i64::from(noun_lo), i64::from(mid)) <= PART2_TARGET {
                 verb_lo = mid;
             } else {
                 verb_hi = mid;
@@ -50,7 +50,7 @@ impl Day02 {
         }
 
         assert_eq!(
-            self.run(noun_lo as i64, verb_lo as i64),
+            self.run(i64::from(noun_lo), i64::from(verb_lo)),
             PART2_TARGET,
             "no solution found"
         );

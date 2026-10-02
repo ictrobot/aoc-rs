@@ -13,7 +13,7 @@ impl Day07 {
         let mut part1_total = 0;
         let mut part2_total = 0;
 
-        for line in input.lines().map(|l| l.as_bytes()) {
+        for line in input.lines().map(str::as_bytes) {
             let mut part1_valid = true;
             let mut part1_match = false;
 

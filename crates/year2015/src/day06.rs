@@ -49,12 +49,12 @@ impl Day06 {
 
         let mut x_values = Vec::with_capacity(instructions.len() * 2);
         let mut y_values = Vec::with_capacity(instructions.len() * 2);
-        instructions.iter().for_each(|&(_, (x1, y1, x2, y2))| {
+        for &(_, (x1, y1, x2, y2)) in &instructions {
             x_values.push(x1);
             x_values.push(x2 + 1);
             y_values.push(y1);
             y_values.push(y2 + 1);
-        });
+        }
         x_values.sort_unstable();
         x_values.dedup();
         y_values.sort_unstable();
@@ -65,19 +65,19 @@ impl Day06 {
 
         let mut x_map = [0; 1000];
         for (i, &[a, b]) in x_values.array_windows().enumerate() {
-            x_map[a as usize..b as usize].fill(i as u16)
+            x_map[a as usize..b as usize].fill(i as u16);
         }
         let mut y_map = [0; 1000];
         for (i, &[a, b]) in y_values.array_windows().enumerate() {
-            y_map[a as usize..b as usize].fill(i as u16)
+            y_map[a as usize..b as usize].fill(i as u16);
         }
 
-        instructions.iter_mut().for_each(|(_, (x1, y1, x2, y2))| {
+        for (_, (x1, y1, x2, y2)) in &mut instructions {
             *x1 = x_map[*x1 as usize];
             *y1 = y_map[*y1 as usize];
             *x2 = x_map[*x2 as usize];
             *y2 = y_map[*y2 as usize];
-        });
+        }
 
         Ok(Self {
             instructions,
@@ -120,9 +120,9 @@ impl Day06 {
         let mut total = 0;
         for y in 0..height {
             for x in 0..width {
-                total += grid[y * width + x] as u32
-                    * self.row_widths[x] as u32
-                    * self.col_heights[y] as u32;
+                total += u32::from(grid[y * width + x])
+                    * u32::from(self.row_widths[x])
+                    * u32::from(self.col_heights[y]);
             }
         }
         total

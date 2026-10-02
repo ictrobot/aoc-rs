@@ -143,9 +143,10 @@ impl Day17 {
 
         let mut main = ArrayVec::new();
         let mut routines = [None; 3];
-        if Self::compress(&path, &mut main, &mut routines).is_continue() {
-            panic!("no solution found: failed to compress path into three routines");
-        }
+        assert!(
+            Self::compress(&path, &mut main, &mut routines).is_break(),
+            "no solution found: failed to compress path into three routines"
+        );
 
         let mut interpreter = self.interpreter.clone();
         interpreter.mem[0] = 2;
@@ -180,7 +181,7 @@ impl Day17 {
         for r in 0..3 {
             if main.push(b'A' + r as u8).is_err() {
                 return ControlFlow::Continue(());
-            };
+            }
             main.push(b',')
                 .expect("pushing 2nd byte into even length array should never fail");
 

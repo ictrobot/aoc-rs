@@ -28,7 +28,9 @@ impl Day14 {
         // Use a string for part 1 to preserve leading zeros
         let mut part1 = [0u8; 10];
         part1.copy_from_slice(&searcher.recipes[index..index + 10]);
-        part1.iter_mut().for_each(|x| *x += b'0');
+        for x in &mut part1 {
+            *x += b'0';
+        }
 
         Ok(Self { part1, part2 })
     }
@@ -59,8 +61,8 @@ struct Searcher {
 
 // Pre-calculated sequences of recipes processed before index 23 where they all converge
 const INITIAL_SEQUENCES: [u32; 9] = [
-    0xfff94113, 0xffff0657, 0xfff94111, 0xfff94110, 0xffff9411, 0xffff9410, 0xfffff941, 0xffff1812,
-    0xffffff94,
+    0xfff9_4113, 0xffff_0657, 0xfff9_4111, 0xfff9_4110, 0xffff_9411, 0xffff_9410, 0xffff_f941,
+    0xffff_1812, 0xffff_ff94,
 ];
 
 // The first 23 recipes
@@ -137,12 +139,12 @@ impl Searcher {
             while self.initial[0] != -1 || self.initial[1] != -1 {
                 let mut recipe = 0;
                 for i in 0..2 {
-                    if self.initial[i] != -1 {
-                        recipe += (self.initial[i] & 0xF) as u8;
-                        self.initial[i] >>= 4;
-                    } else {
+                    if self.initial[i] == -1 {
                         recipe += self.packed[self.elves[i]];
                         self.elves[i] += 1;
+                    } else {
+                        recipe += (self.initial[i] & 0xF) as u8;
+                        self.initial[i] >>= 4;
                     }
                 }
                 self.append_recipe(recipe);

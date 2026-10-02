@@ -9,7 +9,7 @@ pub struct Day22 {
 impl Day22 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
-            input: parser::number_range(0..=0xFFFFFF).parse_lines(input)?,
+            input: parser::number_range(0..=0x00FF_FFFF).parse_lines(input)?,
         })
     }
 
@@ -22,13 +22,13 @@ impl Day22 {
                 *n = Self::next(*n);
             }
         }
-        numbers.iter().map(|&n| n as u64).sum()
+        numbers.iter().map(|&n| u64::from(n)).sum()
     }
 
     #[must_use]
     pub fn part2(&self) -> u16 {
-        let mut bananas = [0; 130321]; // 19 ** 4
-        let mut seen = [0; 130321];
+        let mut bananas = [0; 130_321]; // 19 ** 4
+        let mut seen = [0; 130_321];
         for (i, &(mut n)) in self.input.iter().enumerate() {
             let mut prev = n % 10;
             let mut s4;
@@ -62,11 +62,12 @@ impl Day22 {
         bananas.iter().max().copied().unwrap()
     }
 
+    #[expect(clippy::inline_always)]
     #[inline(always)]
     fn next(mut n: u32) -> u32 {
-        n = (n ^ (n << 6)) & 0xFFFFFF;
-        n = (n ^ (n >> 5)) & 0xFFFFFF;
-        (n ^ (n << 11)) & 0xFFFFFF
+        n = (n ^ (n << 6)) & 0x00FF_FFFF;
+        n = (n ^ (n >> 5)) & 0x00FF_FFFF;
+        (n ^ (n << 11)) & 0x00FF_FFFF
     }
 }
 

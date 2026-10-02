@@ -56,7 +56,7 @@ impl Day08 {
                     alternatives.push((pc.wrapping_add_signed(offset as isize), part1));
                     pc += 1;
                 }
-            };
+            }
         }
 
         if pc >= len {

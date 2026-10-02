@@ -164,7 +164,7 @@ impl State {
         }
         self.player_health -= boss_damage;
 
-        self.player_turn(min_mana_to_win)
+        self.player_turn(min_mana_to_win);
     }
 
     #[inline]

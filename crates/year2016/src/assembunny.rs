@@ -194,9 +194,9 @@ fn execute(
 
                 instructions[index] = match instructions[index] {
                     Instruction::Increment(r) => Instruction::Decrement(r),
-                    Instruction::Decrement(r) => Instruction::Increment(r),
-                    Instruction::Toggle(r) => Instruction::Increment(r),
-                    Instruction::Out(r) => Instruction::Increment(r),
+                    Instruction::Decrement(r) | Instruction::Toggle(r) | Instruction::Out(r) => {
+                        Instruction::Increment(r)
+                    }
                     Instruction::JumpIfNotZero(v, Value::Register(r)) => Instruction::Copy(v, r),
                     Instruction::JumpIfNotZero(v, o @ Value::Number(_)) => {
                         Instruction::Invalid2(v, o)

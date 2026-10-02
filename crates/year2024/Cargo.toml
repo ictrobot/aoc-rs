@@ -13,3 +13,6 @@ utils = { path = "../utils", default-features = false }
 [features]
 unsafe = ["utils/unsafe"]
 const_lut = []
+
+[lints]
+workspace = true

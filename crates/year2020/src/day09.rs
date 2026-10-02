@@ -48,9 +48,7 @@ impl Day09 {
         let (mut start, mut end, mut total) = (0, 2, self.numbers[0] + self.numbers[1]);
         while total != self.part1 || end - start < 2 {
             if total < self.part1 {
-                if end >= self.numbers.len() {
-                    panic!("no solution found")
-                }
+                assert!(end < self.numbers.len(), "no solution found");
                 total += self.numbers[end];
                 end += 1;
             } else {

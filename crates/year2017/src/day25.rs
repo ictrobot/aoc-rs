@@ -121,12 +121,6 @@ impl Day25 {
         // number of cache hits.
         type Element = u32;
 
-        let mut tape: VecDeque<Element> = VecDeque::with_capacity(512);
-        tape.push_back(0);
-        let mut element_index = 0;
-        let mut bit_index = 0;
-        let mut state = self.start;
-
         #[derive(Debug)]
         struct StateTransition {
             from_state: State,
@@ -136,6 +130,13 @@ impl Day25 {
             steps: u32,
             element_index: usize,
         }
+
+        let mut tape: VecDeque<Element> = VecDeque::with_capacity(512);
+        tape.push_back(0);
+        let mut element_index = 0;
+        let mut bit_index = 0;
+        let mut state = self.start;
+
         // Index with cache[(state as usize << 1) | (bit_index > 0) as usize]
         let mut cache: [Vec<StateTransition>; 12] = Default::default();
 
@@ -151,7 +152,7 @@ impl Day25 {
 
             // Used the cached transition if this (state, starting bit index, from element) has been
             // seen previously
-            for t in &cache[(state as usize * 2) | (bit_index > 0) as usize] {
+            for t in &cache[(state as usize * 2) | usize::from(bit_index > 0)] {
                 if t.from_element == tape[element_index] && t.steps + step <= self.steps {
                     while element_index > 0
                         && element_index < tape.len()
@@ -200,7 +201,7 @@ impl Day25 {
 
             // Cache the transition if the machine traversed the entire element
             if starting_bit_index == bit_index {
-                cache[((starting_state as usize) << 1) | (bit_index > 0) as usize].push(
+                cache[((starting_state as usize) << 1) | usize::from(bit_index > 0)].push(
                     StateTransition {
                         from_state: starting_state,
                         from_element: starting_element,

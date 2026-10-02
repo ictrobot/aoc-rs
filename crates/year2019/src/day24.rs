@@ -38,7 +38,7 @@ impl Day24 {
                     _ => {
                         return Err(InputError::new(
                             input,
-                            &line.as_bytes()[column..column + 1],
+                            &line.as_bytes()[column..=column],
                             "expected '.' or '#'",
                         ));
                     }

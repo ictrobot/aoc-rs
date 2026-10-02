@@ -29,7 +29,7 @@ impl Day18 {
                     _ => {
                         return Err(InputError::new(input, b as char, "expected '.', '|', '#'"));
                     }
-                };
+                }
             }
             row += 1;
         }
@@ -131,6 +131,7 @@ impl Day18 {
     }
 
     #[inline]
+    #[must_use]
     pub fn adjacent_gte1_gte3(mask: &[u64; 52], row: usize) -> (u64, u64) {
         let adjacent = [
             mask[row - 1] << 1,

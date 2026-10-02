@@ -35,7 +35,7 @@ impl Day07 {
                     (count @ parser::nonzero_u8(), b' ', c @ color, " bags") => (count.get(), c),
                 )
                 .repeat_arrayvec::<MAX_INSIDE, _>(", ", 1)
-                .or("no other bags".map(|_| ArrayVec::new())),
+                .or("no other bags".map(|()| ArrayVec::new())),
             )
             .with_suffix(b'.')
             .with_eol();
@@ -125,7 +125,7 @@ impl Day07 {
 
             let mut result = 0u64;
             for &(child, count) in &rules[bag] {
-                result += count as u64 * (1 + total_bags(rules, usize::from(child), states));
+                result += u64::from(count) * (1 + total_bags(rules, usize::from(child), states));
             }
 
             states[bag] = State::Visited(result);

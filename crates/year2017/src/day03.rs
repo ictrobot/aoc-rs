@@ -17,7 +17,7 @@ impl Day03 {
     #[must_use]
     pub fn part1(&self) -> u32 {
         let input = self.input.get();
-        let ring = (input as f64).sqrt().ceil() as u32 / 2;
+        let ring = f64::from(input).sqrt().ceil() as u32 / 2;
         let side_length = ring * 2 + 1;
         let bottom_right = side_length * side_length;
         let middles = [

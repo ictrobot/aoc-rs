@@ -3,6 +3,9 @@
 //! See [`Day02`](crate::Day02), [`Day05`](crate::Day05), [`Day07`](crate::Day07) and
 //! [`Day09`](crate::Day09).
 
+// #[inline(always)] significantly improves performance
+#![allow(clippy::inline_always)]
+
 use std::collections::VecDeque;
 use utils::prelude::*;
 
@@ -64,10 +67,12 @@ impl Interpreter {
         loop {
             let instruction = self.mem.get(self.ip).copied().unwrap_or(0);
 
-            if !(0..=99999).contains(&instruction) {
-                // 2 digits for opcode, 3x 1 digit for opcode mode
-                panic!("invalid instruction {instruction} at address {}", self.ip);
-            }
+            // 2 digits for opcode, 3x 1 digit for opcode mode
+            assert!(
+                (0..=99999).contains(&instruction),
+                "invalid instruction {instruction} at address {}",
+                self.ip
+            );
             let opcode = instruction % 100;
 
             match opcode {
@@ -292,6 +297,7 @@ pub mod features {
 mod tests {
     use super::features::*;
     use super::*;
+    use std::cmp::Ordering;
 
     #[derive(Debug, PartialEq, Eq)]
     enum TestEvent {
@@ -301,7 +307,7 @@ mod tests {
 
     fn interpreter_test<F: Features>(
         initial_memory: Vec<i64>,
-        final_memory: Vec<i64>,
+        final_memory: &[i64],
         events: Vec<TestEvent>,
     ) {
         let mut interpreter = Interpreter::new(initial_memory);
@@ -311,7 +317,7 @@ mod tests {
                 (Event::Halt, None) => break,
                 (Event::Input, Some(TestEvent::Input(value))) => interpreter.push_input(value),
                 (Event::Output(value), Some(TestEvent::Output(expected))) => {
-                    assert_eq!(value, expected)
+                    assert_eq!(value, expected);
                 }
                 (event, expected) => {
                     panic!("unexpected event: expected {expected:?}, got {event:?}")
@@ -329,23 +335,19 @@ mod tests {
     fn day02_part1_examples() {
         interpreter_test::<Day02Features>(
             vec![1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50],
-            vec![3500, 9, 10, 70, 2, 3, 11, 0, 99, 30, 40, 50],
+            &[3500, 9, 10, 70, 2, 3, 11, 0, 99, 30, 40, 50],
             vec![],
         );
 
-        interpreter_test::<Day02Features>(vec![1, 0, 0, 0, 99], vec![2, 0, 0, 0, 99], vec![]);
+        interpreter_test::<Day02Features>(vec![1, 0, 0, 0, 99], &[2, 0, 0, 0, 99], vec![]);
 
-        interpreter_test::<Day02Features>(vec![2, 3, 0, 3, 99], vec![2, 3, 0, 6, 99], vec![]);
+        interpreter_test::<Day02Features>(vec![2, 3, 0, 3, 99], &[2, 3, 0, 6, 99], vec![]);
 
-        interpreter_test::<Day02Features>(
-            vec![2, 4, 4, 5, 99, 0],
-            vec![2, 4, 4, 5, 99, 9801],
-            vec![],
-        );
+        interpreter_test::<Day02Features>(vec![2, 4, 4, 5, 99, 0], &[2, 4, 4, 5, 99, 9801], vec![]);
 
         interpreter_test::<Day02Features>(
             vec![1, 1, 1, 4, 99, 5, 6, 0, 99],
-            vec![30, 1, 1, 4, 2, 5, 6, 0, 99],
+            &[30, 1, 1, 4, 2, 5, 6, 0, 99],
             vec![],
         );
     }
@@ -354,19 +356,19 @@ mod tests {
     fn day05_part1_examples() {
         interpreter_test::<Day05Part1Features>(
             vec![3, 0, 4, 0, 99],
-            vec![42, 0, 4, 0, 99],
+            &[42, 0, 4, 0, 99],
             vec![TestEvent::Input(42), TestEvent::Output(42)],
         );
 
         interpreter_test::<Day05Part1Features>(
             vec![1002, 4, 3, 4, 33],
-            vec![1002, 4, 3, 4, 99],
+            &[1002, 4, 3, 4, 99],
             vec![],
         );
 
         interpreter_test::<Day05Part1Features>(
             vec![1101, 100, -1, 4, 0],
-            vec![1101, 100, -1, 4, 99],
+            &[1101, 100, -1, 4, 99],
             vec![],
         );
     }
@@ -379,23 +381,23 @@ mod tests {
 
             interpreter_test::<Day05Part2Features>(
                 vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8],
-                vec![3, 9, 8, 9, 10, 9, 4, 9, 99, equal_to, 8],
+                &[3, 9, 8, 9, 10, 9, 4, 9, 99, equal_to, 8],
                 vec![TestEvent::Input(input), TestEvent::Output(equal_to)],
             );
             interpreter_test::<Day05Part2Features>(
                 vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8],
-                vec![3, 9, 7, 9, 10, 9, 4, 9, 99, less_than, 8],
+                &[3, 9, 7, 9, 10, 9, 4, 9, 99, less_than, 8],
                 vec![TestEvent::Input(input), TestEvent::Output(less_than)],
             );
 
             interpreter_test::<Day05Part2Features>(
                 vec![3, 3, 1108, -1, 8, 3, 4, 3, 99],
-                vec![3, 3, 1108, equal_to, 8, 3, 4, 3, 99],
+                &[3, 3, 1108, equal_to, 8, 3, 4, 3, 99],
                 vec![TestEvent::Input(input), TestEvent::Output(equal_to)],
             );
             interpreter_test::<Day05Part2Features>(
                 vec![3, 3, 1107, -1, 8, 3, 4, 3, 99],
-                vec![3, 3, 1107, less_than, 8, 3, 4, 3, 99],
+                &[3, 3, 1107, less_than, 8, 3, 4, 3, 99],
                 vec![TestEvent::Input(input), TestEvent::Output(less_than)],
             );
         }
@@ -405,7 +407,7 @@ mod tests {
 
             interpreter_test::<Day05Part2Features>(
                 vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9],
-                vec![
+                &[
                     3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, input, output, 1, 9,
                 ],
                 vec![TestEvent::Input(input), TestEvent::Output(output)],
@@ -413,7 +415,7 @@ mod tests {
 
             interpreter_test::<Day05Part2Features>(
                 vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1],
-                vec![3, 3, 1105, input, 9, 1101, 0, 0, 12, 4, 12, 99, output],
+                &[3, 3, 1105, input, 9, 1101, 0, 0, 12, 4, 12, 99, output],
                 vec![TestEvent::Input(input), TestEvent::Output(output)],
             );
         }
@@ -425,18 +427,16 @@ mod tests {
                     36, 98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46,
                     1101, 1000, 1, 20, 4, 20, 1105, 1, 46, 98, 99,
                 ],
-                vec![],
+                &[],
                 vec![
                     TestEvent::Input(input),
-                    TestEvent::Output(if input < 8 {
-                        999
-                    } else if input == 8 {
-                        1000
-                    } else {
-                        1001
+                    TestEvent::Output(match input.cmp(&8) {
+                        Ordering::Less => 999,
+                        Ordering::Equal => 1000,
+                        Ordering::Greater => 1001,
                     }),
                 ],
-            )
+            );
         }
     }
 
@@ -446,7 +446,7 @@ mod tests {
             vec![
                 109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
             ],
-            vec![],
+            &[],
             vec![
                 TestEvent::Output(109),
                 TestEvent::Output(1),
@@ -469,7 +469,7 @@ mod tests {
 
         interpreter_test::<Day09Features>(
             vec![1102, 34_915_192, 34_915_192, 7, 4, 7, 99, 0],
-            vec![
+            &[
                 1102,
                 34_915_192,
                 34_915_192,
@@ -484,7 +484,7 @@ mod tests {
 
         interpreter_test::<Day09Features>(
             vec![104, 1_125_899_906_842_624, 99],
-            vec![104, 1_125_899_906_842_624, 99],
+            &[104, 1_125_899_906_842_624, 99],
             vec![TestEvent::Output(1_125_899_906_842_624)],
         );
     }

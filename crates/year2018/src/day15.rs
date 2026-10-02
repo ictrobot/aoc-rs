@@ -20,6 +20,7 @@ struct Battle {
 }
 
 #[derive(Clone, Debug)]
+#[expect(clippy::struct_field_names)]
 struct Unit {
     pos: usize,
     unit_type: UnitType,

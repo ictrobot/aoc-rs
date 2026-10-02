@@ -6,6 +6,7 @@ use std::array;
 use utils::md5;
 
 #[inline]
+#[expect(clippy::needless_pass_by_value)]
 pub(crate) fn knot_rounds(lengths: impl Iterator<Item = u8> + Clone, rounds: u32) -> [u8; 256] {
     let mut list = array::from_fn(|i| i as u8);
     let mut position = 0;

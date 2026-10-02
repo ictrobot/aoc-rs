@@ -95,12 +95,12 @@ impl Day04 {
 
                 grid[r * self.cols..(r + 1) * self.cols].copy_from_slice(&new_row);
 
-                if before_row_total != total {
+                if before_row_total == total {
+                    rows_to_update[r] = false;
+                } else {
                     // Row has been updated, need to update it again as well as its neighbours
                     rows_to_update[r - 1] = true;
                     rows_to_update[r + 1] = true;
-                } else {
-                    rows_to_update[r] = false;
                 }
             }
 

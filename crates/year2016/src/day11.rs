@@ -85,15 +85,15 @@ impl Day11 {
 
     fn minimum_steps(floors: [Floor; 4], types: usize) -> u16 {
         // Ensure the current state is valid, as the code below assumes the current state is always valid
-        if types > 7 {
-            panic!("only 7 types supported"); // An eighth could be supported by updating to_unique
-        }
+        // An eighth could be supported by updating to_unique
+        assert!(types <= 7, "only 7 types supported");
         for f in floors {
-            if f.generators != 0 && (f.microchips & !f.generators) != 0 {
-                // Triggered running part 2 on the example input, as it starts with unpaired
-                // microchips on the first floor
-                panic!("invalid start state");
-            }
+            // Triggered running part 2 on the example input, as it starts with unpaired
+            // microchips on the first floor
+            assert!(
+                f.generators == 0 || (f.microchips & !f.generators) == 0,
+                "invalid start state"
+            );
         }
 
         let mut queue = VecDeque::with_capacity(1024);
@@ -124,7 +124,7 @@ impl Day11 {
                 (0, 0)
             } else if src_pairs.count_ones() > 2
                 || (src_pairs.count_ones() == 2 && src_unpaired_generators != 0)
-                || (src_pairs.count_ones() == 1 && src_unpaired_generators.count_ones() >= 2)
+                || (src_pairs.is_power_of_two() && src_unpaired_generators.count_ones() >= 2)
             {
                 // Only possible to move unpaired generators, as moving one of the paired generators
                 // will leave a generator and an incompatible microchip behind
@@ -133,7 +133,7 @@ impl Day11 {
                 // Both paired generators must be moved, as leaving one behind will break
                 // the incompatible microchip
                 (src_pairs, src_pairs)
-            } else if src_pairs.count_ones() == 1 && src_unpaired_generators.count_ones() <= 1 {
+            } else if src_pairs.is_power_of_two() && src_unpaired_generators.count_ones() <= 1 {
                 // Unpaired generator must be moved (if present), paired generator can be moved
                 (src.generators, src_unpaired_generators)
             } else {
@@ -192,16 +192,16 @@ impl Day11 {
                         if elevator > state.elevator {
                             // Going up, move as many generators as possible
                             if must_move.count_ones() == 2
-                                || (must_move.count_ones() == 1 && (can_move & !must_move) == 0)
+                                || (must_move.is_power_of_two() && (can_move & !must_move) == 0)
                             {
                                 // 2 must-move generators, or 1 must-move generator if there are no other movable generators
                                 try_move(must_move, 0);
-                            } else if must_move.count_ones() == 1 {
+                            } else if must_move.is_power_of_two() {
                                 // Any combination of the 1 must-move generator + a can-move generator
                                 for (_, g1) in BitIterator::ones(can_move & !must_move) {
                                     try_move(must_move | g1, 0);
                                 }
-                            } else if can_move.count_ones() == 1 {
+                            } else if can_move.is_power_of_two() {
                                 // 1 can-move generator only
                                 try_move(can_move, 0);
                             } else {

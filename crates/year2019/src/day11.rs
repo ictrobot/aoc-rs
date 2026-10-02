@@ -98,9 +98,10 @@ impl Day11 {
                 dir = dir.turn_right();
             }
             pos += Vec2::from(dir);
-            if pos.x < 0 || pos.x >= WIDTH as i32 || pos.y < 0 || pos.y >= WIDTH as i32 {
-                panic!("robot left grid bounds");
-            }
+            assert!(
+                pos.x >= 0 && pos.x < WIDTH as i32 && pos.y >= 0 && pos.y < WIDTH as i32,
+                "robot left grid bounds"
+            );
         }
     }
 }

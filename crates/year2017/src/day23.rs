@@ -148,15 +148,15 @@ impl Day23 {
 
             match self.instructions[pc] {
                 Instruction::Set(r, r2) => reg[r as usize] = reg[r2 as usize],
-                Instruction::SetN(r, v) => reg[r as usize] = v as i64,
+                Instruction::SetN(r, v) => reg[r as usize] = i64::from(v),
                 Instruction::Sub(r, r2) => reg[r as usize] -= reg[r2 as usize],
-                Instruction::SubN(r, v) => reg[r as usize] -= v as i64,
+                Instruction::SubN(r, v) => reg[r as usize] -= i64::from(v),
                 Instruction::Mul(r, r2) => {
                     reg[r as usize] *= reg[r2 as usize];
                     mul_count += 1;
                 }
                 Instruction::MulN(r, v) => {
-                    reg[r as usize] *= v as i64;
+                    reg[r as usize] *= i64::from(v);
                     mul_count += 1;
                 }
                 Instruction::JnzN(r, o) => {

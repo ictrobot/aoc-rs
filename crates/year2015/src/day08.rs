@@ -16,10 +16,8 @@ impl<'a> Day08<'a> {
         self.input
             .bytes()
             .fold((false, 0), |(escaped, diff), b| match (escaped, b) {
-                (false, b'"') => (false, diff + 1),
+                (false, b'"') | (true, b'\\' | b'"') => (false, diff + 1),
                 (false, b'\\') => (true, diff),
-                (true, b'\\') => (false, diff + 1),
-                (true, b'"') => (false, diff + 1),
                 (true, b'x') => (false, diff + 3),
                 _ => (false, diff),
             })
@@ -33,8 +31,7 @@ impl<'a> Day08<'a> {
             .fold((false, 0), |(escaped, diff), b| match (escaped, b) {
                 (false, b'"') => (false, diff + 2),
                 (false, b'\\') => (true, diff + 1),
-                (true, b'\\') => (false, diff + 1),
-                (true, b'"') => (false, diff + 1),
+                (true, b'\\' | b'"') => (false, diff + 1),
                 _ => (false, diff),
             })
             .1

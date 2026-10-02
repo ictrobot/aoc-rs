@@ -50,7 +50,7 @@ impl Day11 {
                     sizes.push(upper_bound);
                     continue;
                 }
-            };
+            }
 
             let (total, x, y) = self.largest_total_power(size);
             sizes.push(total);

@@ -13,7 +13,7 @@ impl<'a> Day09<'a> {
         let mut pos = 0;
         for b in input.bytes() {
             if b.is_ascii_digit() {
-                pos += (b - b'0') as u32;
+                pos += u32::from(b - b'0');
             } else {
                 return Err(InputError::new(input, b as char, "expected digit"));
             }
@@ -139,8 +139,8 @@ impl<'a> Day09<'a> {
             #[inline]
             fn next(&mut self) -> Option<Self::Item> {
                 while self.input.len() >= 2 {
-                    let file_len = (self.input[0] - b'0') as u32;
-                    let free_len = (self.input[1] - b'0') as u32;
+                    let file_len = u32::from(self.input[0] - b'0');
+                    let free_len = u32::from(self.input[1] - b'0');
                     let free_pos = self.pos + file_len;
 
                     self.input = &self.input[2..];
@@ -174,11 +174,11 @@ impl<'a> Day09<'a> {
             fn next(&mut self) -> Option<Self::Item> {
                 while !self.input.is_empty() {
                     if self.input.len().is_multiple_of(2) {
-                        self.pos -= (self.input[self.input.len() - 1] - b'0') as u32;
+                        self.pos -= u32::from(self.input[self.input.len() - 1] - b'0');
                         self.input = &self.input[..self.input.len() - 1];
                     }
 
-                    let file_len = (self.input[self.input.len() - 1] - b'0') as u32;
+                    let file_len = u32::from(self.input[self.input.len() - 1] - b'0');
                     self.pos -= file_len;
                     self.id -= 1;
                     self.input = &self.input[..self.input.len() - 1];
@@ -201,7 +201,7 @@ impl<'a> Day09<'a> {
     #[inline]
     fn file_checksum(pos: u32, len: u32, id: u32) -> u64 {
         let pos_sum = len * (2 * pos + len - 1) / 2;
-        pos_sum as u64 * id as u64
+        u64::from(pos_sum) * u64::from(id)
     }
 }
 

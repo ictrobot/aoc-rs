@@ -24,12 +24,12 @@ impl Day09 {
             .parse_lines(input)?;
 
         let mut indexes = FastMap::new();
-        parsed.iter().for_each(|&(start, end, _)| {
+        for &(start, end, _) in &parsed {
             let len = indexes.len();
             indexes.entry(start).or_insert(len);
             let len = indexes.len();
             indexes.entry(end).or_insert(len);
-        });
+        }
 
         let locations = indexes.len();
         if locations > Visited::BITS as usize {
@@ -37,12 +37,12 @@ impl Day09 {
         }
 
         let mut matrix = vec![0; indexes.len() * indexes.len()];
-        parsed.iter().for_each(|&(start, end, dist)| {
+        for &(start, end, dist) in &parsed {
             let start = indexes[start];
             let end = indexes[end];
             matrix[indexes.len() * start + end] = dist;
             matrix[indexes.len() * end + start] = dist;
-        });
+        }
 
         let (mut part1, mut part2) = (u32::MAX, 0);
         explore_hamiltonian_paths(
@@ -55,7 +55,7 @@ impl Day09 {
             },
             |(total, min_edge, max_edge), loop_edge| {
                 part1 = part1.min(total + loop_edge - max_edge.max(loop_edge));
-                part2 = part2.max(total + loop_edge - min_edge.min(loop_edge))
+                part2 = part2.max(total + loop_edge - min_edge.min(loop_edge));
             },
         );
 

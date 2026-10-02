@@ -139,7 +139,7 @@ impl Day18 {
         while program0.run(
             |v| {
                 // Send to program 1
-                inbound1.push_back(v)
+                inbound1.push_back(v);
             },
             |_| {
                 // Receive from program 1
@@ -149,7 +149,7 @@ impl Day18 {
             |v| {
                 // Send to program 0, keeping track of how many values are sent
                 sent += 1;
-                inbound0.push_back(v)
+                inbound0.push_back(v);
             },
             |_| {
                 // Receive from program 0
@@ -176,18 +176,18 @@ impl<'a> Program<'a> {
         while let Some(&instruction) = self.instructions.get(self.pc) {
             match instruction {
                 Instruction::Snd(r) => snd(self.reg[r as usize]),
-                Instruction::SndN(v) => snd(v as i64),
+                Instruction::SndN(v) => snd(i64::from(v)),
                 Instruction::Set(r, r2) => self.reg[r as usize] = self.reg[r2 as usize],
-                Instruction::SetN(r, v) => self.reg[r as usize] = v as i64,
+                Instruction::SetN(r, v) => self.reg[r as usize] = i64::from(v),
                 Instruction::Add(r, r2) => self.reg[r as usize] += self.reg[r2 as usize],
-                Instruction::AddN(r, v) => self.reg[r as usize] += v as i64,
+                Instruction::AddN(r, v) => self.reg[r as usize] += i64::from(v),
                 Instruction::Mul(r, r2) => self.reg[r as usize] *= self.reg[r2 as usize],
-                Instruction::MulN(r, v) => self.reg[r as usize] *= v as i64,
+                Instruction::MulN(r, v) => self.reg[r as usize] *= i64::from(v),
                 Instruction::Mod(r, r2) => {
-                    self.reg[r as usize] = self.reg[r as usize].rem_euclid(self.reg[r2 as usize])
+                    self.reg[r as usize] = self.reg[r as usize].rem_euclid(self.reg[r2 as usize]);
                 }
                 Instruction::ModN(r, v) => {
-                    self.reg[r as usize] = self.reg[r as usize].rem_euclid(v as i64)
+                    self.reg[r as usize] = self.reg[r as usize].rem_euclid(i64::from(v));
                 }
                 Instruction::Rcv(r) if let Some(value) = rcv(self.reg[r as usize]) => {
                     self.reg[r as usize] = value;

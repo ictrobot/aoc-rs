@@ -60,7 +60,7 @@ impl Day24 {
                 .then(attack_types.with_prefix("; immune to ").optional())
                 .with_suffix(") ")
                 .map(|(weak, immune)| (immune.unwrap_or_default(), weak)),
-            parser::noop().map(|_| Default::default()),
+            parser::noop().map(|()| Default::default()),
         ))
         .map_res(|(immune, weak)| {
             let mut modifiers = [Modifier::Normal; AttackType::COUNT];
@@ -143,7 +143,9 @@ impl Day24 {
         let mut infection = self.infection.clone();
         let groups = immune.len() + infection.len();
 
-        immune.iter_mut().for_each(|g| g.damage += boost);
+        for g in &mut immune {
+            g.damage += boost;
+        }
 
         let mut attacks = [None; 32];
         loop {
@@ -180,7 +182,7 @@ impl Day24 {
 
             let mut changed = false;
             for (attack_idx, defend_idx, army) in
-                attacks[..groups].iter_mut().rev().flat_map(Option::take)
+                attacks[..groups].iter_mut().rev().filter_map(Option::take)
             {
                 let (attack_group, defend_group) = match army {
                     Army::Immune => (&immune[attack_idx], &mut infection[defend_idx]),

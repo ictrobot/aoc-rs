@@ -54,7 +54,7 @@ impl Day16 {
                     // possible operations as used in both parts.
                     Operation::iter().fold(0, |acc, op| {
                         let possible = Self::execute(op, a, b, &before) == after[c as usize];
-                        acc | (possible as u16) << op as u32
+                        acc | u16::from(possible) << op as u32
                     }),
                 )
             });
@@ -92,13 +92,15 @@ impl Day16 {
         for _ in 0..16 {
             let opcode = op_masks
                 .iter()
-                .position(|&mask| mask.count_ones() == 1)
+                .position(|&mask| mask.is_power_of_two())
                 .expect("no solution found: all remaining opcodes could be multiple operations");
 
             let mask = op_masks[opcode];
             ops[opcode] = Operation::from_discriminant(mask.trailing_zeros());
 
-            op_masks.iter_mut().for_each(|m| *m &= !mask);
+            for m in &mut op_masks {
+                *m &= !mask;
+            }
         }
 
         let mut registers = [0; 4];

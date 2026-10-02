@@ -34,7 +34,7 @@ impl Day12 {
                             .repeat_n::<3, _>(parser::noop())
                             .repeat_n::<3, _>(parser::eol()),
                     )
-                    .repeat_fold(parser::eol().with_eol(), 1, (), |_, _| ())
+                    .repeat_fold(parser::eol().with_eol(), 1, (), |(), _| ())
                     .with_eol()
                     .with_eol(),
             )

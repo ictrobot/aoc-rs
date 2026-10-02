@@ -42,8 +42,8 @@ impl Day04 {
                         .with_prefix("Guard #")
                         .with_suffix(" begins shift")
                         .map(Event::BeginsShift),
-                    "falls asleep".map(|_| Event::FallsAsleep),
-                    "wakes up".map(|_| Event::WakesUp),
+                    "falls asleep".map(|()| Event::FallsAsleep),
+                    "wakes up".map(|()| Event::WakesUp),
                 )))
                 .parse_complete(line)
                 .map_err(|e| InputError::new(input, line, e.into_source()))?;

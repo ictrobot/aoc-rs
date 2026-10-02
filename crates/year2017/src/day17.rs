@@ -25,7 +25,7 @@ impl Day17 {
             i += 1;
         }
 
-        buffer[(i + 1) % buffer.len()] as u32
+        u32::from(buffer[(i + 1) % buffer.len()])
     }
 
     #[must_use]

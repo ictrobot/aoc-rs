@@ -52,8 +52,8 @@ pub(crate) enum HookControlFlow {
 
 impl Interpreter {
     pub fn new(input: &str) -> Result<Self, InputError> {
-        let register =
-            parser::byte_range(b'0'..=b'5').map(|b| Register::from_discriminant((b - b'0') as u32));
+        let register = parser::byte_range(b'0'..=b'5')
+            .map(|b| Register::from_discriminant(u32::from(b - b'0')));
         let rrr_instructions = parser::literal_map!(
             "addr " => Instruction::Addr as fn(_, _, _) -> _,
             "mulr " => Instruction::Mulr,

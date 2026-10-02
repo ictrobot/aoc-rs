@@ -57,7 +57,7 @@ impl Day19 {
 
         let rules = Atom::PARSER
             .map(Some)
-            .or(b'e'.map(|_| None))
+            .or(b'e'.map(|()| None))
             .with_suffix(" => ")
             .then(Atom::PARSER.repeat_arrayvec(parser::noop(), 1))
             .parse_lines(rules_str)?;

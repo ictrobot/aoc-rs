@@ -22,7 +22,7 @@ struct BatchResults {
 
 const FACTOR_A: u64 = 16807;
 const FACTOR_B: u64 = 48271;
-const MODULUS: u64 = 2147483647;
+const MODULUS: u64 = 2_147_483_647;
 
 const PART1_PAIRS: u32 = 40_000_000;
 const PART2_PAIRS: u32 = 5_000_000;
@@ -43,8 +43,8 @@ impl Day15 {
 
         multithreading::worker_pool(|| {
             Self::values_worker(
-                start_a as u64,
-                start_b as u64,
+                u64::from(start_a),
+                u64::from(start_b),
                 &mutex,
                 &next_index,
                 &part2_a_count,
@@ -103,8 +103,8 @@ impl Day15 {
             let mut part2_a_values = Vec::with_capacity(if part2_a_finished { 0 } else { 65536 });
             let mut part2_b_values = Vec::with_capacity(if part2_b_finished { 0 } else { 32768 });
 
-            let mut a = start_a * mod_pow(FACTOR_A, start_index as u64, MODULUS);
-            let mut b = start_b * mod_pow(FACTOR_B, start_index as u64, MODULUS);
+            let mut a = start_a * mod_pow(FACTOR_A, u64::from(start_index), MODULUS);
+            let mut b = start_b * mod_pow(FACTOR_B, u64::from(start_index), MODULUS);
             for _ in 0..BATCH_SIZE {
                 a = (a * FACTOR_A) % MODULUS;
                 b = (b * FACTOR_B) % MODULUS;

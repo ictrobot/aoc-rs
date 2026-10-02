@@ -97,14 +97,14 @@ impl Day12 {
 }
 
 examples!(Day12 -> (i32, i32) [
-    {input: r#"[1,2,3]"#, part1: 6, part2: 6},
+    {input: r"[1,2,3]", part1: 6, part2: 6},
     {input: r#"{"a":2,"b":4}"#, part1: 6},
-    {input: r#"[[[3]]]"#, part1: 3},
+    {input: r"[[[3]]]", part1: 3},
     {input: r#"{"a":{"b":4},"c":-1}"#, part1: 3},
     {input: r#"{"a":[-1,1]}"#, part1: 0},
     {input: r#"[-1,{"a":1}]"#, part1: 0},
-    {input: r#"[]"#, part1: 0},
-    {input: r#"{}"#, part1: 0},
+    {input: r"[]", part1: 0},
+    {input: r"{}", part1: 0},
     {input: r#"[1,{"c":"red","b":2},3]"#, part2: 4},
     {input: r#"{"d":"red","e":[1,2,3,4],"f":5}"#, part2: 0},
     {input: r#"[1,"red",5]"#, part2: 6},

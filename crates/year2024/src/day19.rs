@@ -51,7 +51,7 @@ impl Day19 {
             .parse_iterator(patterns)
         {
             let mut index = 0;
-            for &s in item?.iter() {
+            for &s in &item? {
                 match trie[index].child_offsets[s as usize] {
                     None => {
                         trie.push(TrieNode::default());
@@ -94,7 +94,7 @@ impl Day19 {
             }
 
             let ways = combinations[design.len()];
-            part1 += if ways > 0 { 1 } else { 0 };
+            part1 += u64::from(ways > 0);
             part2 += ways;
         }
 

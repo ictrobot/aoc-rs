@@ -79,13 +79,13 @@ impl Day06 {
 
             let mut intern = |label| {
                 let dense_index = label_to_dense[usize::from(label)];
-                if dense_index != u16::MAX {
-                    dense_index
-                } else {
+                if dense_index == u16::MAX {
                     let next = parents.len();
                     parents.push(u16::MAX);
                     label_to_dense[usize::from(label)] = next as u16;
                     next as u16
+                } else {
+                    dense_index
                 }
             };
             let lhs = intern(lhs);
@@ -155,9 +155,7 @@ impl Day06 {
 
     #[must_use]
     pub fn part2(&self) -> u32 {
-        if self.you == u16::MAX || self.san == u16::MAX {
-            panic!("expected YOU and SAN objects");
-        }
+        assert!(!(self.you == u16::MAX || self.san == u16::MAX), "expected YOU and SAN objects");
 
         let mut a = usize::from(self.parents[self.you as usize]);
         let mut b = usize::from(self.parents[self.san as usize]);

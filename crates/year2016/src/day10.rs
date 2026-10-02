@@ -75,7 +75,7 @@ impl Day10 {
         let mut part2 = 1;
         let mut output_fn = |index, value| {
             if index <= 2 {
-                part2 *= value as u32;
+                part2 *= u32::from(value);
             }
         };
 

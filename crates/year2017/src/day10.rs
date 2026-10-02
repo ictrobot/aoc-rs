@@ -22,7 +22,7 @@ impl<'a> Day10<'a> {
 
         let list = knot_rounds(lengths.iter().copied(), 1);
 
-        list[0] as u32 * list[1] as u32
+        u32::from(list[0]) * u32::from(list[1])
     }
 
     #[must_use]

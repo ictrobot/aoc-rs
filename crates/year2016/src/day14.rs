@@ -1,5 +1,4 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::ops::DerefMut;
 use std::sync::Mutex;
 use utils::md5;
 use utils::prelude::*;
@@ -59,7 +58,7 @@ impl<'a> Day14<'a> {
                 .fold(0, |acc, &[a, ..]| acc | (1u16 << a));
 
             let mut guard = mutex.lock().unwrap();
-            let (keys, triplets, quintuplets) = guard.deref_mut();
+            let (keys, triplets, quintuplets) = &mut *guard;
 
             triplets.insert(i, triplet);
 

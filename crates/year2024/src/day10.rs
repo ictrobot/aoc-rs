@@ -75,6 +75,7 @@ impl Day10 {
         total
     }
 
+    #[must_use]
     pub fn part2(&self) -> u32 {
         let mut total = 0;
         let mut cache = vec![None; self.grid.len()];

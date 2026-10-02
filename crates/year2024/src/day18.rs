@@ -93,9 +93,7 @@ impl Day18 {
                 .fill(next, fallen, &mut blocked_at, &mut reachable)
                 .is_break()
             {
-                if fallen == self.total_fallen {
-                    panic!("path is never blocked");
-                }
+                assert_ne!(fallen, self.total_fallen, "path is never blocked");
                 return format!("{},{}", (next % self.size) - 1, (next / self.size) - 1);
             }
 

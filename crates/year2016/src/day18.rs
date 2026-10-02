@@ -35,7 +35,7 @@ impl Day18 {
 
     #[must_use]
     pub fn part2(&self) -> u32 {
-        self.count_safe(400000)
+        self.count_safe(400_000)
     }
 
     #[inline]

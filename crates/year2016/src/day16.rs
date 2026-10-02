@@ -18,7 +18,7 @@ use utils::prelude::*;
 /// - XOR the four calculated parity values together.
 ///
 /// This allows computing the parity from the start of the sequence to the end of each chunk, which
-/// then can be used to find each chunk's parity by XORing each parity with the previous one.
+/// then can be used to find each chunk's parity by `XORing` each parity with the previous one.
 #[derive(Clone, Debug)]
 pub struct Day16<'a> {
     input: &'a str,
@@ -44,7 +44,7 @@ impl<'a> Day16<'a> {
 
     #[must_use]
     pub fn part2(&self) -> String {
-        self.checksum(35651584)
+        self.checksum(35_651_584)
     }
 
     fn checksum(&self, length: u32) -> String {

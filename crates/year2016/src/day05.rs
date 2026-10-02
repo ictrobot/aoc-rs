@@ -1,4 +1,3 @@
-use std::ops::DerefMut;
 use std::sync::Mutex;
 use utils::md5;
 use utils::prelude::*;
@@ -28,7 +27,7 @@ impl<'a> Day05<'a> {
                 return false;
             }
 
-            let character = match (a & 0x00000F00) >> 8 {
+            let character = match (a & 0x0000_0F00) >> 8 {
                 n @ 0..=9 => b'0' + n as u8,
                 n @ 10..=15 => b'a' + (n - 10) as u8,
                 _ => unreachable!(),
@@ -62,7 +61,7 @@ impl<'a> Day05<'a> {
             };
 
             let mut guard = mutex.lock().unwrap();
-            let (password, counts) = guard.deref_mut();
+            let (password, counts) = &mut *guard;
 
             if password[position] == 0 || i < counts[position] {
                 password[position] = character;

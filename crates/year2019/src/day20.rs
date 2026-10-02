@@ -354,13 +354,10 @@ impl Day20 {
                 let mut next_level = level;
                 let mut next_distance = distance + u32::from(edge.distance);
 
-                if target == START {
+                if target == START || (target == END && level != 0) {
                     continue;
-                } else if target == END {
-                    if level != 0 {
-                        continue;
-                    }
-                } else {
+                }
+                if target != END {
                     let portal = self.portals[target];
                     if level == 0 && portal.outer {
                         continue;

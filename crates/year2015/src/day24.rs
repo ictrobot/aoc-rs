@@ -83,7 +83,7 @@ impl Day24 {
                     count + 1,
                     product * u64::from(size),
                     min_found,
-                )
+                );
             }
         }
     }

@@ -59,7 +59,7 @@ impl Day05 {
         let [mut start, mut end] = ranges[0];
         ranges = ranges
             .into_iter()
-            .flat_map(|[s, e]| {
+            .filter_map(|[s, e]| {
                 if s > end.saturating_add(1) {
                     let result = [start, end];
                     [start, end] = [s, e];

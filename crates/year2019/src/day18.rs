@@ -99,9 +99,10 @@ impl Day18 {
         for dy in [-cols, 0, cols] {
             for dx in [-1, 0, 1] {
                 let i = middle.wrapping_add_signed(dy + dx);
-                if grid[i] != (if dy == 0 && dx == 0 { b'@' } else { b'.' }) {
-                    panic!("expected empty spaces around the entrance");
-                }
+                assert!(
+                    grid[i] == (if dy == 0 && dx == 0 { b'@' } else { b'.' }),
+                    "expected empty spaces around the entrance"
+                );
                 grid[i] = b'#';
             }
         }
@@ -124,9 +125,7 @@ impl Day18 {
         let positions = (1u32 << starts.len()) - 1;
         let mut cache = FastMap::with_capacity(8192);
         let result = Self::search(&graph, positions, self.all_keys, &mut cache);
-        if result == u32::MAX {
-            panic!("no solution found");
-        }
+        assert!(result != u32::MAX, "no solution found");
         result
     }
 

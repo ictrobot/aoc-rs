@@ -22,7 +22,7 @@ impl<'a> Day01<'a> {
         self.input
             .iter()
             .zip(self.input.iter().cycle().skip(1))
-            .map(|(&a, &b)| if a == b { (a - b'0') as u32 } else { 0 })
+            .map(|(&a, &b)| if a == b { u32::from(a - b'0') } else { 0 })
             .sum()
     }
 
@@ -31,7 +31,7 @@ impl<'a> Day01<'a> {
         self.input
             .iter()
             .zip(self.input.iter().cycle().skip(self.input.len() / 2))
-            .map(|(&a, &b)| if a == b { (a - b'0') as u32 } else { 0 })
+            .map(|(&a, &b)| if a == b { u32::from(a - b'0') } else { 0 })
             .sum()
     }
 }

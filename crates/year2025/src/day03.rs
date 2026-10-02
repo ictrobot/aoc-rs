@@ -42,7 +42,7 @@ impl<'a> Day03<'a> {
                             if b > max { (b, i) } else { (max, offset) }
                         },
                     );
-                joltage = (joltage * 10) + (max_byte - b'0') as u64;
+                joltage = (joltage * 10) + u64::from(max_byte - b'0');
                 start += start_offset + 1;
             }
             sum += joltage;

@@ -114,7 +114,7 @@ impl Day13 {
                 let new_loc = carts[i].location;
 
                 if bitset[new_loc / 64] & (1 << (new_loc % 64)) != 0 {
-                    for cart in carts.iter_mut() {
+                    for cart in &mut carts {
                         cart.crashed |= cart.location == new_loc;
                     }
 

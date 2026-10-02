@@ -42,17 +42,17 @@ impl Day12 {
         let mut pots = [0; WIDTH];
         let mut sum = 0;
         for (i, &b) in initial.iter().enumerate() {
-            pots[i / 64] |= (b as u64) << (i % 64);
+            pots[i / 64] |= u64::from(b) << (i % 64);
             sum += i64::from(b) * i as i64;
         }
 
         let mut rules_mask = 0;
-        for &(lhs, rhs) in rules.iter() {
+        for &(lhs, rhs) in &rules {
             let index = lhs
                 .iter()
                 .enumerate()
-                .fold(0, |acc, (i, &b)| acc | (b as u32) << i);
-            rules_mask |= (rhs as u32) << index;
+                .fold(0, |acc, (i, &b)| acc | u32::from(b) << i);
+            rules_mask |= u32::from(rhs) << index;
         }
 
         Ok(Self {
@@ -95,9 +95,7 @@ impl Day12 {
 
 impl State {
     fn next(&self, rules: u32) -> State {
-        if self.len + 4 >= WIDTH * 64 {
-            panic!("no solution found: reached width limit");
-        }
+        assert!(self.len + 4 < WIDTH * 64, "no solution found: reached width limit");
 
         let (mut pots, mut start, mut len, mut sum) = ([0; WIDTH], self.start - 2, 0, 0);
         let (mut index, mut rule) = (0, 0);
@@ -111,7 +109,7 @@ impl State {
                 start += 1;
                 continue;
             }
-            pots[index / 64] |= (value as u64) << (index % 64);
+            pots[index / 64] |= u64::from(value) << (index % 64);
 
             index += 1;
             if value {

@@ -182,9 +182,10 @@ impl Day24 {
         }
 
         let mut wires = self.wires.clone();
-        if self.find_swaps(&test_cases, &mut wires, None).is_continue() {
-            panic!("failed to find working combination");
-        }
+        assert!(
+            self.find_swaps(&test_cases, &mut wires, None).is_break(),
+            "failed to find working combination"
+        );
 
         let mut changes = Vec::new();
         for (i, (&wire, &orig)) in wires.iter().zip(&self.wires).enumerate() {
@@ -278,7 +279,7 @@ impl Day24 {
                     (wires[c1], wires[c2]) = (wires[c2], wires[c1]);
 
                     // Check swap didn't create a loop
-                    if !self.loops(wires, &[c1, c2]) {
+                    if !Self::loops(wires, &[c1, c2]) {
                         // Check swap fixed this test case before recursively calling and checking
                         // all cases from the start
                         cache.fill(None);
@@ -309,8 +310,7 @@ impl Day24 {
                 return used_bits[index];
             }
             let v = match wires[index] {
-                Wire::X(n) => return 1 << n,
-                Wire::Y(n) => return 1 << n,
+                Wire::X(n) | Wire::Y(n) => return 1 << n,
                 Wire::And(a, b) | Wire::Or(a, b) | Wire::Xor(a, b) => {
                     eval(a, wires, used_bits) | eval(b, wires, used_bits)
                 }
@@ -326,7 +326,7 @@ impl Day24 {
         used
     }
 
-    fn loops(&self, wires: &[Wire], to_check: &[usize]) -> bool {
+    fn loops(wires: &[Wire], to_check: &[usize]) -> bool {
         #[derive(Copy, Clone, PartialEq)]
         enum State {
             Unvisited,

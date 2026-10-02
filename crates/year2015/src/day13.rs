@@ -29,10 +29,10 @@ impl Day13 {
             .parse_lines(input)?;
 
         let mut indexes = FastMap::new();
-        parsed.iter().for_each(|&(person, ..)| {
+        for &(person, ..) in &parsed {
             let len = indexes.len();
             indexes.entry(person).or_insert(len);
-        });
+        }
 
         if indexes.len() > Seated::BITS as usize {
             return Err(InputError::new(input, 0, "too many people"));
@@ -40,9 +40,9 @@ impl Day13 {
 
         let people = indexes.len();
         let mut matrix = vec![0; people * people];
-        parsed.iter().for_each(|&(person1, change, person2)| {
+        for &(person1, change, person2) in &parsed {
             matrix[indexes[person1] * people + indexes[person2]] = change;
-        });
+        }
 
         let (mut part1, mut part2) = (i32::MIN, i32::MIN);
         explore_hamiltonian_paths(

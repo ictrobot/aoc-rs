@@ -82,14 +82,14 @@ impl Day06 {
                     if !matches!(l[i], b'1'..=b'9') {
                         return Err(InputError::new(input, &l[i..], "expected '1'-'9' or ' '"));
                     }
-                    normal_number = (normal_number * 10) + (l[i] - b'0') as u64;
+                    normal_number = (normal_number * 10) + u64::from(l[i] - b'0');
                 }
                 normal_numbers[i] = normal_number;
 
                 for (j, &b) in l[index..index + number_width].iter().enumerate() {
                     if b != b' ' {
                         // Normal number loop has already checked that any non-space bytes are '1'-'9'
-                        cephalopod_numbers[j] = (cephalopod_numbers[j] * 10) + (b - b'0') as u64;
+                        cephalopod_numbers[j] = (cephalopod_numbers[j] * 10) + u64::from(b - b'0');
                     }
                 }
 

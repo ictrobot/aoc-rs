@@ -21,7 +21,7 @@ impl Day13 {
         let (earliest, buses) = parser::u64()
             .with_eol()
             .then(
-                parser::one_of((parser::nonzero_u32().map(Some), b'x'.map(|_| None)))
+                parser::one_of((parser::nonzero_u32().map(Some), b'x'.map(|()| None)))
                     .repeat_fold(b',', 1, (Vec::new(), 0i64), |(mut buses, offset), id| {
                         if let Some(id) = id {
                             buses.push(Bus {

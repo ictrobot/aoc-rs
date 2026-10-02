@@ -21,7 +21,7 @@ struct Disc {
 
 impl Day15 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let seen_positions: RefCell<FastSet<u32>> = Default::default();
+        let seen_positions = RefCell::<FastSet<u32>>::default();
         Ok(Self {
             discs: parser::u32()
                 .with_prefix(" has ".with_prefix(parser::u32()).with_prefix("Disc #"))
@@ -60,8 +60,8 @@ impl Day15 {
         let residues = discs
             .clone()
             .enumerate()
-            .map(|(i, disc)| -(disc.position as i64) - (i as i64 + 1));
-        let moduli = discs.map(|disc| disc.size as i64);
+            .map(|(i, disc)| -i64::from(disc.position) - (i as i64 + 1));
+        let moduli = discs.map(|disc| i64::from(disc.size));
 
         chinese_remainder(residues, moduli).expect("sizes are all prime")
     }

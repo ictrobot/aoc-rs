@@ -36,7 +36,7 @@ impl Day14 {
     #[must_use]
     pub fn part1(&self) -> u64 {
         let mut counts = [0; 4];
-        for &(mut r) in self.robots.iter() {
+        for &(mut r) in &self.robots {
             r.position += r.velocity * 100;
             r.position.x = r.position.x.rem_euclid(WIDTH);
             r.position.y = r.position.y.rem_euclid(HEIGHT);

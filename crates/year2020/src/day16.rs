@@ -26,7 +26,7 @@ impl Day16 {
         let name = parser::take_while1(u8::is_ascii_lowercase)
             .repeat_fold(b' ', 1, (), |(), _| ())
             .with_consumed()
-            .map(|(_, name)| name)
+            .map(|((), name)| name)
             .with_suffix(": ");
         let rule = name
             .then(range.repeat_n::<2, _>(" or "))
@@ -130,7 +130,7 @@ impl Day16 {
         for _ in 0..rules.len() {
             let Some(column) = candidates[..rules.len()]
                 .iter()
-                .position(|fields| fields.count_ones() == 1)
+                .position(|fields| fields.is_power_of_two())
             else {
                 return Err(InputError::new(
                     input,
