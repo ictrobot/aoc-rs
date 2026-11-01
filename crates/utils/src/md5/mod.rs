@@ -18,7 +18,7 @@ mod tests;
 
 /// Fastest supported implementation, for dynamic dispatch.
 ///
-/// Determined using a small microbenchmark at runtime.
+/// Determined using a small microbenchmark at runtime, see [`multiversion!`](crate::multiversion!).
 pub static FASTEST: LazyLock<Version> = multiversion! { fastest(microbenchmark()) };
 
 /// Returns the MD5 hash of the input slice.

@@ -266,6 +266,15 @@ macro_rules! multiversion {
     };
 
     // Microbenchmark for dynamic dispatch
+    //
+    // The first time each version runs it is slower than normal (page faults, cold caches), which
+    // is often enough to select the wrong version. Each version is timed up to three times, keeping
+    // the best time seen so far:
+    //  1. All versions once, dropping only those over 3x slower than the fastest, so one slightly
+    //     slower first run can't eliminate the eventual winner.
+    //  2. The remaining versions again, keeping the fastest half (at least two).
+    //  3. The remaining versions again, then the fastest is selected.
+    // The scalar version is skipped when a SIMD version is supported to speed up the process.
     (fastest($name:ident())) => {
         ::std::sync::LazyLock::new(#[cfg_attr(target_family = "wasm", expect(unreachable_code))] || {
             use $crate::multiversion::Version::*;
@@ -280,11 +289,9 @@ macro_rules! multiversion {
                 return version;
             }
 
-            $crate::multiversion::VERSIONS
-                .iter()
-                .map(|&x| {
-                    let start = ::std::time::Instant::now();
-                    ::std::hint::black_box(match x {
+            let time = |x: $crate::multiversion::Version| {
+                let start = ::std::time::Instant::now();
+                ::std::hint::black_box(match x {
                         Scalar => scalar::$name(),
                         Array128 => array128::$name(),
                         Array256 => array256::$name(),
@@ -314,13 +321,46 @@ macro_rules! multiversion {
                         Neonx4 => unsafe { neonx4::$name() },
                         #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
                         Neonx8 => unsafe { neonx8::$name() },
-                    });
-                    (start.elapsed(), x)
-                })
-                // .inspect(|x| { dbg!(x); })
-                .min_by_key(|x| x.0)
-                .unwrap()
-                .1
+                });
+                start.elapsed()
+            };
+
+            let is_scalar_or_array = |x: $crate::multiversion::Version| match x {
+                Scalar | Array128 | Array256 => true,
+                #[cfg(feature = "all-simd")]
+                Array4096 => true,
+                _ => false,
+            };
+            let has_simd = $crate::multiversion::VERSIONS.iter().any(|&x| !is_scalar_or_array(x));
+
+            // Round 1: all versions, dropping only those far behind the fastest
+            let mut candidates: ::std::vec::Vec<($crate::multiversion::Version, ::std::time::Duration)> =
+                $crate::multiversion::VERSIONS
+                    .iter()
+                    .copied()
+                    .filter(|&x| !(has_simd && x == Scalar))
+                    .map(|x| (x, time(x)))
+                    .collect();
+            let leader = candidates.iter().map(|&(_, t)| t).min().unwrap();
+            candidates.retain(|&(_, t)| t <= leader * 3);
+
+            if candidates.len() > 1 {
+                // Round 2: the remaining versions again, keeping the fastest half
+                for (x, best) in &mut candidates {
+                    *best = (*best).min(time(*x));
+                }
+                candidates.sort_by_key(|&(_, t)| t);
+                if candidates.len() > 2 {
+                    candidates.truncate((candidates.len() / 2).max(2));
+                }
+
+                // Round 3: the remaining versions again
+                for (x, best) in &mut candidates {
+                    *best = (*best).min(time(*x));
+                }
+            }
+
+            candidates.into_iter().min_by_key(|&(_, t)| t).unwrap().0
         })
     };
 
