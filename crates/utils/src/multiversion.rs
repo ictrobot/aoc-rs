@@ -329,6 +329,7 @@ macro_rules! multiversion {
                 Scalar | Array128 | Array256 => true,
                 #[cfg(feature = "all-simd")]
                 Array4096 => true,
+                #[allow(clippy::allow_attributes, unreachable_patterns)]
                 _ => false,
             };
             let has_simd = $crate::multiversion::VERSIONS.iter().any(|&x| !is_scalar_or_array(x));
