@@ -794,6 +794,12 @@ macro_rules! versions_impl {
         }
 
         impl Version {
+            /// All versions on this platform, including any unsupported by the current processor.
+            #[must_use]
+            pub const fn all() -> &'static [Self] {
+                &[$($(#[$m])* Self::$name,)+]
+            }
+
             /// Check if this version is supported at runtime.
             #[must_use]
             pub fn supported(self) -> bool {
@@ -818,7 +824,7 @@ macro_rules! versions_impl {
 
         /// Runtime generated list of supported versions.
         pub static VERSIONS: std::sync::LazyLock<Vec<Version>> = std::sync::LazyLock::new(|| {
-            let mut vec = vec![$($(#[$m])* Version::$name,)+];
+            let mut vec = Version::all().to_vec();
             vec.retain(|i| i.supported());
             vec
         });
