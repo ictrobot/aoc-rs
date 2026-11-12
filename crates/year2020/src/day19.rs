@@ -1,4 +1,3 @@
-use utils::array::ArrayVec;
 use utils::bit::BitIterator;
 use utils::prelude::*;
 
@@ -27,6 +26,15 @@ enum Kind {
     Or(Sequence, Sequence),
 }
 
+// One variant per length stores a sequence in 4 bytes, instead of 16 for an `ArrayVec<u8, 3>`,
+// and lets `Kind` fit in 8 bytes
+#[derive(Clone, Copy, Debug)]
+enum Sequence {
+    One([u8; 1]),
+    Two([u8; 2]),
+    Three([u8; 3]),
+}
+
 #[derive(Clone, Copy, Debug)]
 enum State {
     Unvisited,
@@ -35,14 +43,21 @@ enum State {
 }
 
 const MAX_RULES: usize = 256;
-const MAX_SEQUENCE_LENGTH: usize = 3;
 const MAX_PATTERN_LENGTH: u32 = 8;
 const MAX_MESSAGE_LENGTH: usize = 128;
-type Sequence = ArrayVec<u8, MAX_SEQUENCE_LENGTH>;
 
 impl Day19 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let sequence = parser::u8().repeat_arrayvec(b' ', 1);
+        let id = parser::u8();
+        let sequence = parser::parse_tree!(
+            (a @ id) =>> {
+                (b' ', b @ id) =>> {
+                    (b' ', c @ id) => Sequence::Three([a, b, c]),
+                    (parser::noop()) => Sequence::Two([a, b]),
+                },
+                (parser::noop()) => Sequence::One([a]),
+            },
+        );
         let rule = parser::parse_tree!(
             (b'"', letter @ parser::byte_range(b'a'..=b'b'), b'"') => Kind::Letter(letter),
             (l @ sequence) =>> {
@@ -175,9 +190,16 @@ impl Day19 {
     #[must_use]
     pub fn part2(&self) -> u64 {
         assert!(
-            matches!(&self.rules[0].kind, Some(Kind::Sequence(s)) if s[..] == [8, 11])
-                && matches!(&self.rules[8].kind, Some(Kind::Sequence(s)) if s[..] == [42])
-                && matches!(&self.rules[11].kind, Some(Kind::Sequence(s)) if s[..] == [42, 31]),
+            matches!(
+                self.rules[0].kind,
+                Some(Kind::Sequence(Sequence::Two([8, 11])))
+            ) && matches!(
+                self.rules[8].kind,
+                Some(Kind::Sequence(Sequence::One([42])))
+            ) && matches!(
+                self.rules[11].kind,
+                Some(Kind::Sequence(Sequence::Two([42, 31])))
+            ),
             "part 2 requires rules '0: 8 11', '8: 42' and '11: 42 31'"
         );
         let (rule42, rule31) = (&self.rules[42], &self.rules[31]);
@@ -234,6 +256,19 @@ impl Day19 {
     fn match_pattern(rule: &Rule, bits: u128, index: u32) -> bool {
         let pattern = (bits >> index) as usize & ((1 << rule.length) - 1);
         rule.patterns[pattern / 64] & (1 << (pattern % 64)) != 0
+    }
+}
+
+impl<'a> IntoIterator for &'a Sequence {
+    type Item = &'a u8;
+    type IntoIter = std::slice::Iter<'a, u8>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Sequence::One(ids) => ids.iter(),
+            Sequence::Two(ids) => ids.iter(),
+            Sequence::Three(ids) => ids.iter(),
+        }
     }
 }
 
