@@ -1,6 +1,7 @@
 //! Parser combinator library.
 
 mod base;
+mod bits;
 mod combinator;
 mod error;
 mod iterator;
@@ -13,6 +14,7 @@ mod then;
 mod tinystr;
 
 pub use base::{ErrToken, ParseState, Parser, ParserResult, from_parser_fn};
+pub use bits::bitmask;
 pub use error::ParseError;
 pub use iterator::{ParserIterator, ParserMatchesIterator};
 pub use leaf::*;

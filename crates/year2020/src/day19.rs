@@ -44,7 +44,6 @@ enum State {
 
 const MAX_RULES: usize = 256;
 const MAX_PATTERN_LENGTH: u32 = 8;
-const MAX_MESSAGE_LENGTH: usize = 128;
 
 impl Day19 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
@@ -65,23 +64,13 @@ impl Day19 {
                 (parser::noop()) => Kind::Sequence(l),
             },
         );
-        let message = parser::take_while1(|&b| matches!(b, b'a' | b'b')).map_res(|message| {
-            if message.len() > MAX_MESSAGE_LENGTH {
-                return Err("message too long");
-            }
-            let bits = message
-                .iter()
-                .rev()
-                .fold(0, |bits, &b| (bits << 1) | u128::from(b - b'a'));
-            Ok((bits, message.len() as u32))
-        });
         let (parsed, messages) = parser::u8()
             .with_suffix(": ")
             .then(rule)
             .repeat(parser::eol(), 1)
             .with_eol()
             .with_eol()
-            .then(message.repeat(parser::eol(), 1))
+            .then(parser::bitmask::<u128>(b"ab").repeat(parser::eol(), 1))
             .parse_complete(input)?;
 
         let mut rules = vec![Rule::default(); MAX_RULES];

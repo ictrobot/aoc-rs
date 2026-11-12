@@ -66,10 +66,13 @@ pub trait Integer:
     + ShrAssign
     + ShrAssign<u32>
     + TryInto<i128>
+    + From<bool>
 {
     type NonZero: Copy + TryFrom<Self> + Into<Self>;
     type Unsigned: UnsignedInteger;
     type Signed: SignedInteger;
+
+    const BITS: u32;
 
     #[must_use]
     fn abs_diff(self, rhs: Self) -> Self::Unsigned;
@@ -131,6 +134,8 @@ macro_rules! number_impl {
             type NonZero = std::num::NonZero<$u>;
             type Unsigned = $u;
             type Signed = $s;
+
+            const BITS: u32 = $u::BITS;
 
             #[inline]
             fn abs_diff(self, rhs: Self) -> Self::Unsigned {
@@ -212,6 +217,8 @@ macro_rules! number_impl {
             type NonZero = std::num::NonZero<$s>;
             type Unsigned = $u;
             type Signed = $s;
+
+            const BITS: u32 = $s::BITS;
 
             #[inline]
             fn abs_diff(self, rhs: Self) -> Self::Unsigned {
