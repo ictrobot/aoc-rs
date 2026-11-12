@@ -85,9 +85,12 @@ impl<T, const N: usize> ArrayVec<T, N> {
     /// ```
     #[inline]
     pub fn push(&mut self, value: T) -> Result<(), T> {
-        if self.len < N {
-            self.data[self.len] = value;
-            self.len += 1;
+        let len = self.len;
+        if len < N {
+            self.data[len] = value;
+            // LLVM can't always tell that an element write doesn't overwrite the length, so
+            // write the length last using the value read above to avoid reading it again
+            self.len = len + 1;
             Ok(())
         } else {
             Err(value)
@@ -109,12 +112,11 @@ impl<T, const N: usize> ArrayVec<T, N> {
     where
         T: Default,
     {
-        if self.len > 0 {
-            self.len -= 1;
-            Some(std::mem::take(&mut self.data[self.len]))
-        } else {
-            None
-        }
+        // Write the length last (see push)
+        let len = self.len.checked_sub(1)?;
+        let value = std::mem::take(&mut self.data[len]);
+        self.len = len;
+        Some(value)
     }
 
     /// Returns a slice of all the populated elements in the vector.
