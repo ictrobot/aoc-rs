@@ -19,55 +19,45 @@ const MAX_PARITY_OPTIONS: usize = 16;
 
 impl Day10 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let machine = parser::byte_map!(
-            b'.' => false,
-            b'#' => true,
-        )
-        .repeat_arrayvec::<MAX_TARGETS, _>(parser::noop(), 1)
-        .map(|v| {
-            (
-                v.iter().rfold(0, |acc, &n| (acc << 1) | u32::from(n)),
-                v.len(),
-            )
-        })
-        .with_prefix(b'[')
-        .with_suffix("] ")
-        .then(
-            parser::number_range(0..=MAX_TARGETS - 1)
-                .repeat_arrayvec::<MAX_TARGETS, _>(b',', 1)
-                .map_res(|v| {
-                    let mut mask = 0u32;
-                    for &n in v.iter().rev() {
-                        if mask & (1 << n) != 0 {
-                            return Err("duplicate button within wiring schematic");
+        let machine = parser::bitmask::<u32>(b".#")
+            .with_prefix(b'[')
+            .with_suffix("] ")
+            .then(
+                parser::number_range(0..=MAX_TARGETS - 1)
+                    .repeat_arrayvec::<MAX_TARGETS, _>(b',', 1)
+                    .map_res(|v| {
+                        let mut mask = 0u32;
+                        for &n in v.iter().rev() {
+                            if mask & (1 << n) != 0 {
+                                return Err("duplicate button within wiring schematic");
+                            }
+                            mask |= 1 << n;
                         }
-                        mask |= 1 << n;
-                    }
-                    Ok(mask)
-                })
-                .with_prefix(b'(')
-                .with_suffix(b')')
-                .repeat_arrayvec::<MAX_BUTTONS, _>(b' ', 1),
-        )
-        .then(
-            parser::u16()
-                .repeat_arrayvec(b',', 1)
-                .with_prefix(" {")
-                .with_suffix(b'}'),
-        )
-        .map_res(|((lights, light_count), buttons, targets)| {
-            let all_buttons = buttons.iter().copied().fold(0, |acc, b| acc | b);
-            if all_buttons.trailing_ones() as usize != light_count
-                || all_buttons.bit_width() as usize != light_count
-            {
-                return Err("wiring schematics do not match light count");
-            }
-            if targets.len() != light_count {
-                return Err("joltage targets do not match light count");
-            }
-            Ok((lights, buttons, targets))
-        })
-        .with_eol();
+                        Ok(mask)
+                    })
+                    .with_prefix(b'(')
+                    .with_suffix(b')')
+                    .repeat_arrayvec::<MAX_BUTTONS, _>(b' ', 1),
+            )
+            .then(
+                parser::u16()
+                    .repeat_arrayvec(b',', 1)
+                    .with_prefix(" {")
+                    .with_suffix(b'}'),
+            )
+            .map_res(|((lights, light_count), buttons, targets)| {
+                let all_buttons = buttons.iter().copied().fold(0, |acc, b| acc | b);
+                if all_buttons.trailing_ones() != light_count
+                    || all_buttons.bit_width() != light_count
+                {
+                    return Err("wiring schematics do not match light count");
+                }
+                if targets.len() != light_count as usize {
+                    return Err("joltage targets do not match light count");
+                }
+                Ok((lights, buttons, targets))
+            })
+            .with_eol();
 
         let (mut part1, mut part2) = (0, 0);
         for line in machine.parse_iterator(input) {

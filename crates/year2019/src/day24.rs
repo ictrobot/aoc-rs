@@ -20,41 +20,20 @@ const COLUMN_MASK: u32 = 0b00001_00001_00001_00001_00001;
 
 impl Day24 {
     pub fn new(input: &str, input_type: InputType) -> Result<Self, InputError> {
-        let mut initial = 0;
-        let mut lines = input.lines();
-
-        for row in 0..SIDE {
-            let Some(line) = lines.next() else {
-                return Err(InputError::new(input, 0, "expected exactly 5 rows"));
-            };
-            if line.len() != SIDE {
-                return Err(InputError::new(input, line, "expected exactly 5 columns"));
-            }
-
-            for (column, &byte) in line.as_bytes().iter().enumerate() {
-                match byte {
-                    b'.' => {}
-                    b'#' => initial |= 1 << (row * SIDE + column),
-                    _ => {
-                        return Err(InputError::new(
-                            input,
-                            &line.as_bytes()[column..=column],
-                            "expected '.' or '#'",
-                        ));
-                    }
-                }
-            }
-
-            if row == SIDE / 2 && Self::bug_at(initial, MIDDLE) != 0 {
-                return Err(InputError::new(
-                    input,
-                    &line.as_bytes()[SIDE / 2..],
-                    "expected '.' in the middle",
-                ));
-            }
-        }
-        if let Some(line) = lines.next() {
-            return Err(InputError::new(input, line, "expected exactly 5 rows"));
+        let (rows, grid_str) = parser::bitmask_n::<SIDE, u32>(b".#")
+            .repeat_n::<SIDE, _>(parser::eol())
+            .with_consumed()
+            .parse_complete(input)?;
+        let initial = rows
+            .iter()
+            .enumerate()
+            .fold(0, |acc, (row, &bits)| acc | bits << (row * SIDE));
+        if Self::bug_at(initial, MIDDLE) != 0 {
+            return Err(InputError::new(
+                input,
+                grid_str,
+                "expected '.' in the middle",
+            ));
         }
 
         Ok(Self {

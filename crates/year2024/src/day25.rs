@@ -12,32 +12,26 @@ impl Day25 {
         let mut locks = Vec::with_capacity(250);
         let mut keys = Vec::with_capacity(250);
 
-        for item in parser::byte_map!(b'#' => true, b'.' => false)
-            .repeat_n::<5, _>(parser::noop())
+        for item in parser::bitmask_n::<5, u32>(b".#")
             .repeat_n::<7, _>(parser::eol())
             .with_consumed()
             .with_eol()
             .with_eol()
             .parse_iterator(input)
         {
-            let (grid, grid_str) = item?;
+            let (rows, grid_str) = item?;
 
-            let top = grid[0][0];
-            let bottom = grid[6][0];
-            if top == bottom
-                || grid[0][1..].iter().any(|&x| x != top)
-                || grid[6][1..].iter().any(|&x| x != bottom)
-            {
+            let [top, .., bottom] = rows;
+            if !matches!((top, bottom), (0b11111, 0) | (0, 0b11111)) {
                 return Err(InputError::new(input, grid_str, "expected lock or key"));
             }
 
-            let mask = grid[1..6]
-                .as_flattened()
+            let mask = rows[1..6]
                 .iter()
                 .enumerate()
-                .fold(0, |acc, (i, &x)| acc | (u32::from(x == top) << i));
+                .fold(0, |acc, (i, &row)| acc | row << (i * 5));
 
-            if top {
+            if top != 0 {
                 locks.push(mask);
             } else {
                 keys.push(mask);
@@ -52,7 +46,7 @@ impl Day25 {
         let mut total = 0;
         for &lock in &self.locks {
             for &key in &self.keys {
-                if lock & key == lock {
+                if lock & key == 0 {
                     total += 1;
                 }
             }

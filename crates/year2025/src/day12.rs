@@ -29,11 +29,7 @@ impl Day12 {
                 parser::u32()
                     .with_suffix(b':')
                     .with_eol()
-                    .then(
-                        parser::byte_map!(b'.' => (), b'#' => ())
-                            .repeat_n::<3, _>(parser::noop())
-                            .repeat_n::<3, _>(parser::eol()),
-                    )
+                    .then(parser::bitmask_n::<3, u8>(b".#").repeat_n::<3, _>(parser::eol()))
                     .repeat_fold(parser::eol().with_eol(), 1, (), |(), _| ())
                     .with_eol()
                     .with_eol(),

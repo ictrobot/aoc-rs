@@ -1,5 +1,4 @@
 use std::array;
-use utils::parser::{LeafResult, ParseError};
 use utils::prelude::*;
 
 /// Iteratively applying pixel transformations.
@@ -23,14 +22,24 @@ const START_3X3: usize = 0b010_001_111;
 
 impl Day21 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
+        let square_2x2 = parser::bitmask_n::<2, u16>(b".#")
+            .repeat_n::<2, _>(b'/')
+            .map(Self::pack_square);
+        let square_3x3 = parser::bitmask_n::<3, u16>(b".#")
+            .repeat_n::<3, _>(b'/')
+            .map(Self::pack_square);
+        let square_4x4 = parser::bitmask_n::<4, u16>(b".#")
+            .repeat_n::<4, _>(b'/')
+            .map(Self::pack_square);
+
         let parse_iterator = parser::one_of((
-            Self::parse_square::<3>
+            square_3x3
                 .with_suffix(" => ")
-                .then(Self::parse_square::<4>)
+                .then(square_4x4)
                 .map(|(a, b)| Rule::ThreeToFour(a, b)),
-            Self::parse_square::<2>
+            square_2x2
                 .with_suffix(" => ")
-                .then(Self::parse_square::<3>)
+                .then(square_3x3)
                 .map(|(a, b)| Rule::TwoToThree(a, b)),
         ))
         .with_eol()
@@ -85,6 +94,12 @@ impl Day21 {
         })
     }
 
+    fn pack_square<const N: usize>(rows: [u16; N]) -> usize {
+        rows.iter()
+            .enumerate()
+            .fold(0, |acc, (row, &bits)| acc | usize::from(bits) << (N * row))
+    }
+
     #[must_use]
     pub fn part1(&self) -> u32 {
         self.part1
@@ -93,30 +108,6 @@ impl Day21 {
     #[must_use]
     pub fn part2(&self) -> u32 {
         self.part2
-    }
-
-    #[inline]
-    fn parse_square<const N: usize>(mut input: &[u8]) -> LeafResult<'_, usize> {
-        let mut result = 0;
-        for row in 0..N {
-            for col in 0..N {
-                match input.first() {
-                    Some(b'.') => {}
-                    Some(b'#') => result |= 1 << (col + N * row),
-                    _ => return Err((ParseError::Custom("expected '.' or '#'"), input)),
-                }
-                input = &input[1..];
-            }
-
-            if row < N - 1 {
-                if input.first().copied() != Some(b'/') {
-                    return Err((ParseError::Custom("expected '/'"), input));
-                }
-                input = &input[1..];
-            }
-        }
-
-        Ok((result, input))
     }
 
     #[inline]
