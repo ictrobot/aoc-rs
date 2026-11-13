@@ -25,15 +25,7 @@ impl Day20 {
             .with_prefix("Tile ")
             .with_suffix(b':')
             .with_eol()
-            .then(
-                parser::bitmask::<u16>(b".#")
-                    .map_res(|(bits, len)| {
-                        (len == 10)
-                            .then_some(bits)
-                            .ok_or("expected 10 pixels per row")
-                    })
-                    .repeat_n::<10, _>(parser::eol()),
-            )
+            .then(parser::bitmask_n::<10, u16>(b".#").repeat_n::<10, _>(parser::eol()))
             .map(|(id, rows)| Tile {
                 id,
                 pixels: rows[1..9].iter().rfold(0, |pixels, &row| {

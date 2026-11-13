@@ -98,3 +98,68 @@ pub fn bitmask<U: UnsignedInteger>(bytes: &'static [u8; 2]) -> BitmaskParser<U> 
         _phantom: PhantomData,
     }
 }
+
+#[derive(Copy, Clone)]
+pub struct BitmaskExactParser<const N: usize, U: UnsignedInteger> {
+    bytes: &'static [u8; 2],
+    _phantom: PhantomData<U>,
+}
+impl<'i, const N: usize, U: UnsignedInteger> Leaf<'i> for BitmaskExactParser<N, U> {
+    type Output = U;
+
+    #[inline]
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
+        let [zero, one] = *self.bytes;
+        if let Some((bytes, remaining)) = input.split_first_chunk::<N>()
+            && let Some(value) = pack_exact(bytes, zero, one)
+        {
+            return Ok((value, remaining));
+        }
+
+        let valid = input.iter().take_while(|&&b| b == zero || b == one).count();
+        Err((ParseError::ExpectedOneOfBytes(self.bytes), &input[valid..]))
+    }
+}
+
+#[inline]
+#[expect(clippy::cast_possible_truncation)]
+fn pack_exact<const N: usize, U: UnsignedInteger>(bytes: &[u8; N], zero: u8, one: u8) -> Option<U> {
+    let mut value = U::ZERO;
+    for (i, chunk) in bytes.chunks(8).enumerate() {
+        let mut padded = [zero; 8];
+        padded[..chunk.len()].copy_from_slice(chunk);
+        value |= U::from(pack(padded, zero, one)?) << (i * 8) as u32;
+    }
+    Some(value)
+}
+
+/// [`Leaf`] parser for [`bitmask`] strings exactly `N` long.
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{self, Leaf};
+/// let parser = parser::bitmask_n::<10, u16>(b".#");
+/// assert_eq!(
+///     parser.parse(b"#.###....# abc"),
+///     Ok((0b10_0001_1101, &b" abc"[..]))
+/// );
+/// assert_eq!(
+///     parser.parse(b"#.###....##"),
+///     Ok((0b10_0001_1101, &b"#"[..]))
+/// );
+/// assert!(parser.parse(b"#.###....").is_err());
+/// assert!(parser.parse(b"#.###x...#").is_err());
+/// ```
+#[inline]
+#[must_use]
+pub fn bitmask_n<const N: usize, U: UnsignedInteger>(
+    bytes: &'static [u8; 2],
+) -> BitmaskExactParser<N, U> {
+    const {
+        assert!(N > 0 && N <= U::BITS as usize);
+    }
+    BitmaskExactParser {
+        bytes,
+        _phantom: PhantomData,
+    }
+}

@@ -14,7 +14,7 @@ mod then;
 mod tinystr;
 
 pub use base::{ErrToken, ParseState, Parser, ParserResult, from_parser_fn};
-pub use bits::bitmask;
+pub use bits::{bitmask, bitmask_n};
 pub use error::ParseError;
 pub use iterator::{ParserIterator, ParserMatchesIterator};
 pub use leaf::*;
