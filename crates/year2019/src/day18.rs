@@ -255,8 +255,7 @@ impl Day18 {
             }
         }
 
-        let mut graph = Vec::with_capacity(node_count);
-        for from in 0..node_count {
+        Vec::from_fn(node_count, |from| {
             let mut edges = ArrayVec::new();
             for &(key, target_node) in &key_nodes {
                 if target_node as usize == from {
@@ -275,10 +274,8 @@ impl Day18 {
                         .expect("expected at most MAX_KEYS target key edges");
                 }
             }
-            graph.push(edges);
-        }
-
-        graph
+            edges
+        })
     }
 
     fn search(

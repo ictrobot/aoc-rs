@@ -198,9 +198,10 @@ impl<T> PuzzleVec<T> {
             min_year,
             max_year,
             // Store 25 days even if the year is shorter to make indexing easier
-            vec: std::iter::repeat_with(T::default)
-                .take(25 * (max_year.to_u16() as usize - min_year.to_u16() as usize + 1))
-                .collect(),
+            vec: Vec::from_fn(
+                25 * (max_year.to_u16() as usize - min_year.to_u16() as usize + 1),
+                |_| T::default(),
+            ),
         }
     }
 

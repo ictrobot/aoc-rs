@@ -72,7 +72,7 @@ impl Day09 {
                     inside_grid[y * inside_width + last_x..y * inside_width + x].fill(inside);
                 }
 
-                inside = !inside;
+                inside.toggle();
                 last_x = x;
             }
         }

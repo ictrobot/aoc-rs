@@ -153,7 +153,7 @@ impl Day17 {
 
         for line in std::iter::once(main.as_slice())
             .chain(routines.into_iter().flatten())
-            .map(|line| line.strip_suffix(b",").unwrap_or(line))
+            .map(|line| line.trim_suffix(b","))
             .chain(std::iter::once(b"n".as_slice()))
         {
             interpreter.push_bytes(line);

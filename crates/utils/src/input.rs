@@ -64,7 +64,7 @@ impl InputError {
     fn line_position(input: &str, index: usize) -> (usize, usize, String) {
         let start = input[..index].rfind('\n').map_or(0, |p| p + 1);
         let end = input[start..].find('\n').map_or(input.len(), |p| p + start);
-        let line = input[start..end].trim_end_matches('\r');
+        let line = input[start..end].trim_suffix('\r');
 
         let line_number = input[..start].matches('\n').count() + 1;
         let column_number = index - start + 1;

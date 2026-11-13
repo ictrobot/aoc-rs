@@ -37,9 +37,7 @@ fn main() {
             print!("{SIMD_BACKEND:9}  {:3}", U32Vector::LANES);
 
             #[expect(clippy::cast_possible_truncation)]
-            let input = (0..(max_block_size * U32Vector::LANES))
-                .map(|x| x as u8)
-                .collect::<Vec<_>>();
+            let input = Vec::from_fn(max_block_size * U32Vector::LANES, |x| x as u8);
 
             for &block_size in &block_sizes {
                 let input = &input[..block_size * U32Vector::LANES];
