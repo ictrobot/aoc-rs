@@ -214,14 +214,13 @@ impl<'i, P: Parser<'i>> Parser<'i> for WithErrorMsg<P> {
         commit: &mut bool,
         tail: bool,
     ) -> ParserResult<'i, Self::Output> {
-        let prev_remaining = state.error.map(|e| e.1);
+        let prev_furthest = state.furthest;
         self.parser
             .parse_ctx(input, state, commit, tail)
             .inspect_err(|_| {
-                let remaining = state.error.unwrap().1;
-                if prev_remaining != Some(remaining) {
+                if state.furthest != prev_furthest {
                     // If the error location has changed, update the stored message
-                    state.error = Some((ParseError::Custom(self.message), remaining));
+                    state.error = ParseError::Custom(self.message);
                 }
             })
     }

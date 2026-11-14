@@ -7,6 +7,7 @@ use crate::parser::error::{ParseError, WithErrorMsg};
 use crate::parser::iterator::{ParserIterator, ParserMatchesIterator};
 use crate::parser::simple::{Constant, Eol};
 use crate::parser::then::{Then, Then2, Unimplemented};
+use std::marker::PhantomData;
 
 /// [`Result`] type returned by [`Parser::parse_ctx`].
 pub type ParserResult<'i, T> = Result<(T, &'i [u8]), ErrToken>;
@@ -687,9 +688,21 @@ where
 /// Tracks the furthest encountered error, allowing combinators like [`Parser::optional`] to return
 /// [`Ok`] while still reporting the furthest seen error for better user-facing error messages.
 #[must_use]
-#[derive(Default)]
 pub struct ParseState<'i> {
-    pub(super) error: Option<(ParseError, &'i [u8])>,
+    pub(super) furthest: *const u8,
+    pub(super) error: ParseError,
+    input: PhantomData<&'i [u8]>,
+}
+
+impl Default for ParseState<'_> {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            furthest: std::ptr::null(),
+            error: ParseError::ExpectedEof(),
+            input: PhantomData,
+        }
+    }
 }
 
 impl<'i> ParseState<'i> {
@@ -700,17 +713,31 @@ impl<'i> ParseState<'i> {
     /// Returns an [`ErrToken`] which can be used to return [`Err`] from [`Parser::parse_ctx`].
     #[inline]
     pub fn error(&mut self, error: ParseError, remaining: &'i [u8]) -> ErrToken {
-        if self.error.is_none() || matches!(self.error, Some((_, r)) if r.len() > remaining.len()) {
-            self.error = Some((error, remaining));
+        let position = remaining.as_ptr();
+        if position > self.furthest {
+            self.furthest = position;
+            self.error = error;
         }
         ErrToken::new()
     }
 
     /// Build an [`InputError`] from the furthest error seen.
     #[cold]
-    pub fn into_input_error(self, input: &str) -> InputError {
-        let (error, remaining) = self.error.expect("error not set");
-        InputError::new(input, remaining, error)
+    pub fn into_input_error(self, input: &'i str) -> InputError {
+        assert!(!self.furthest.is_null(), "error not set");
+
+        // Errors at the end of the input are at range.end so the range must be inclusive
+        let range = input.as_bytes().as_ptr_range();
+        assert!(
+            (range.start..=range.end).contains(&self.furthest),
+            "error position outside input"
+        );
+
+        InputError::new(
+            input,
+            self.furthest.addr() - input.as_ptr().addr(),
+            self.error,
+        )
     }
 }
 
