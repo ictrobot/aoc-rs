@@ -723,6 +723,7 @@ impl<'i> ParseState<'i> {
 
     /// Build an [`InputError`] from the furthest error seen.
     #[cold]
+    #[inline]
     pub fn into_input_error(self, input: &'i str) -> InputError {
         assert!(!self.furthest.is_null(), "error not set");
 
