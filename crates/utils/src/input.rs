@@ -35,7 +35,10 @@ pub enum InputType {
 /// ```
 #[must_use]
 #[derive(Debug)]
-pub struct InputError {
+pub struct InputError(Box<Details>);
+
+#[derive(Debug)]
+struct Details {
     line_number: usize,
     column_number: usize,
     line: String,
@@ -52,12 +55,12 @@ impl InputError {
         let (line_number, column_number, line) = Self::line_position(input, index);
         let line = line.replace('\t', " ");
 
-        InputError {
+        InputError(Box::new(Details {
             line_number,
             column_number,
             line,
             source: source.into(),
-        }
+        }))
     }
 
     #[cold]
@@ -75,30 +78,30 @@ impl InputError {
     /// Returns the source error.
     #[must_use]
     pub fn into_source(self) -> Box<dyn Error> {
-        self.source
+        self.0.source
     }
 }
 
 impl Display for InputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        let pad = " ".repeat(self.line_number.to_string().len());
+        let pad = " ".repeat(self.0.line_number.to_string().len());
 
         write!(
             f,
             "invalid input: {}\n  --> line {} column {}\n{pad} |\n{} | {}\n{pad} |{}^\n",
-            self.source,
-            self.line_number,
-            self.column_number,
-            self.line_number,
-            self.line,
-            " ".repeat(self.column_number),
+            self.0.source,
+            self.0.line_number,
+            self.0.column_number,
+            self.0.line_number,
+            self.0.line,
+            " ".repeat(self.0.column_number),
         )
     }
 }
 
 impl Error for InputError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(&*self.source)
+        Some(&*self.0.source)
     }
 }
 
