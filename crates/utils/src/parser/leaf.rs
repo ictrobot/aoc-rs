@@ -25,6 +25,7 @@ impl<'i, L: Leaf<'i>> Parser<'i> for L {
     type Output = L::Output;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
+    #[inline]
     fn parse_ctx(
         &self,
         input: &'i [u8],
