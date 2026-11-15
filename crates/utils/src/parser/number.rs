@@ -18,12 +18,16 @@ impl<'i, U: UnsignedInteger> Leaf<'i> for UnsignedParser<U> {
             _ => return Err((ParseError::Expected("unsigned integer"), input)),
         };
 
-        while let Some(d @ b'0'..=b'9') = input.first() {
+        while let Some(&b) = input.first() {
+            let d = U::from(b).wrapping_sub(U::from(b'0'));
+            if d > U::from(9) {
+                break;
+            }
             // Avoid checked operations until near the maximum value
             if n >= U::MAX / U::from(10) {
                 return unsigned_near_max(n, input);
             }
-            n = n * U::from(10) + U::from(d - b'0');
+            n = n * U::from(10) + d;
             input = &input[1..];
         }
 
@@ -65,18 +69,26 @@ impl<'i, S: SignedInteger> Leaf<'i> for SignedParser<S> {
         };
 
         if positive {
-            while let Some(d @ b'0'..=b'9') = input.first() {
+            while let Some(&b) = input.first() {
+                let d = S::Unsigned::from(b).wrapping_sub(S::Unsigned::from(b'0'));
+                if d > S::Unsigned::from(9) {
+                    break;
+                }
                 n = n
                     .checked_mul(S::from(10))
-                    .and_then(|n| n.checked_add(S::from((d - b'0') as i8)))
+                    .and_then(|n| n.checked_add(d.cast_signed()))
                     .ok_or((ParseError::too_large(S::MAX), input))?;
                 input = &input[1..];
             }
         } else {
-            while let Some(d @ b'0'..=b'9') = input.first() {
+            while let Some(&b) = input.first() {
+                let d = S::Unsigned::from(b).wrapping_sub(S::Unsigned::from(b'0'));
+                if d > S::Unsigned::from(9) {
+                    break;
+                }
                 n = n
                     .checked_mul(S::from(10))
-                    .and_then(|n| n.checked_sub(S::from((d - b'0') as i8)))
+                    .and_then(|n| n.checked_sub(d.cast_signed()))
                     .ok_or((ParseError::too_small(S::MIN), input))?;
                 input = &input[1..];
             }

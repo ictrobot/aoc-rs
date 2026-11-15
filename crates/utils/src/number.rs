@@ -69,8 +69,8 @@ pub trait Integer:
     + From<bool>
 {
     type NonZero: Copy + TryFrom<Self> + Into<Self>;
-    type Unsigned: UnsignedInteger;
-    type Signed: SignedInteger;
+    type Unsigned: UnsignedInteger<Signed = Self::Signed>;
+    type Signed: SignedInteger<Unsigned = Self::Unsigned>;
 
     const BITS: u32;
 
@@ -99,11 +99,20 @@ pub trait Integer:
 /// Trait implemented by the primitive unsigned integer types.
 pub trait UnsignedInteger: Integer<Unsigned = Self> + From<u8> {
     #[must_use]
+    fn cast_signed(self) -> Self::Signed;
+
+    #[must_use]
     fn wrapping_add_signed(self, rhs: Self::Signed) -> Self;
+
+    #[must_use]
+    fn wrapping_sub(self, rhs: Self) -> Self;
 }
 
 /// Trait implemented by the primitive signed integer types.
-pub trait SignedInteger: Integer<Signed = Self> + Signed {}
+pub trait SignedInteger: Integer<Signed = Self> + Signed {
+    #[must_use]
+    fn cast_unsigned(self) -> Self::Unsigned;
+}
 
 macro_rules! number_impl {
     (int => $($u:ident: $s:ident ),+) => {
@@ -181,8 +190,18 @@ macro_rules! number_impl {
 
         $(impl UnsignedInteger for $u {
             #[inline]
+            fn cast_signed(self) -> Self::Signed {
+                self.cast_signed()
+            }
+
+            #[inline]
             fn wrapping_add_signed(self, rhs: Self::Signed) -> Self {
                 self.wrapping_add_signed(rhs)
+            }
+
+            #[inline]
+            fn wrapping_sub(self, rhs: Self) -> Self {
+                self.wrapping_sub(rhs)
             }
         })+
 
@@ -267,7 +286,12 @@ macro_rules! number_impl {
             }
         })+
 
-        $(impl SignedInteger for $s {})+
+        $(impl SignedInteger for $s {
+            #[inline]
+            fn cast_unsigned(self) -> Self::Unsigned {
+                self.cast_unsigned()
+            }
+        })+
     };
     (float => $($t:ident),+) => {$(
         impl Number for $t {
