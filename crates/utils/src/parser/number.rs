@@ -19,15 +19,29 @@ impl<'i, U: UnsignedInteger> Leaf<'i> for UnsignedParser<U> {
         };
 
         while let Some(d @ b'0'..=b'9') = input.first() {
-            n = n
-                .checked_mul(U::from(10))
-                .and_then(|n| n.checked_add(U::from(d - b'0')))
-                .ok_or((ParseError::too_large(U::MAX), input))?;
+            // Avoid checked operations until near the maximum value
+            if n >= U::MAX / U::from(10) {
+                return unsigned_near_max(n, input);
+            }
+            n = n * U::from(10) + U::from(d - b'0');
             input = &input[1..];
         }
 
         Ok((n, input))
     }
+}
+
+#[cold]
+#[inline(never)]
+fn unsigned_near_max<U: UnsignedInteger>(mut n: U, mut input: &[u8]) -> LeafResult<'_, U> {
+    while let Some(d @ b'0'..=b'9') = input.first() {
+        n = n
+            .checked_mul(U::from(10))
+            .and_then(|n| n.checked_add(U::from(d - b'0')))
+            .ok_or((ParseError::too_large(U::MAX), input))?;
+        input = &input[1..];
+    }
+    Ok((n, input))
 }
 
 #[derive(Copy, Clone)]
