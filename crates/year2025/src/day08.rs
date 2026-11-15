@@ -89,7 +89,7 @@ const MAX_DISTANCE_CHECKED: usize = (DISTANCE_TIER_OFFSETS.len() * SUBDIVISION_W
 
 impl Day08 {
     pub fn new(input: &str, input_type: InputType) -> Result<Self, InputError> {
-        let points = parser::number_range(0..=MAX_COORD)
+        let points = parser::digits_range!(0..=MAX_COORD)
             .repeat_n(b',')
             .map(Vec3::from)
             .parse_lines(input)?;

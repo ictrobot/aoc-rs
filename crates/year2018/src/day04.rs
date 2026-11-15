@@ -31,12 +31,12 @@ impl Day04 {
         let mut guard_indexes = FastMap::new();
         let mut guards = Vec::new();
         for line in lines {
-            let (_, _, _, min, event) = parser::number_range(1u32..=12)
+            let (_, _, _, min, event) = parser::digits_range!(1u32..=12)
                 .with_prefix("[1518-")
                 .with_suffix(b'-')
-                .then(parser::number_range(1u32..=31).with_suffix(b' '))
-                .then(parser::number_range(0u32..=23).with_suffix(b':'))
-                .then(parser::number_range(0u32..=59).with_suffix("] "))
+                .then(parser::digits_range!(1u32..=31).with_suffix(b' '))
+                .then(parser::digits_range!(0u32..=23).with_suffix(b':'))
+                .then(parser::digits_range!(0u32..=59).with_suffix("] "))
                 .then(parser::one_of((
                     parser::u32()
                         .with_prefix("Guard #")

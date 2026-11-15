@@ -44,6 +44,24 @@ macro_rules! parser_byte_map {
     }};
 }
 
+/// Helper to create a [`parser::digits_range`](crate::parser::digits_range()) parser using a range.
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{Leaf, self};
+/// let parser = parser::digits_range!(0u32..=15);
+/// assert_eq!(parser.parse(b"12,34"), Ok((12, &b",34"[..])));
+/// assert!(parser.parse(b"16,34").is_err());
+/// ```
+#[macro_export]
+macro_rules! parser_digits_range {
+    ($range:expr) => {
+        $crate::parser::digits_range::<_, { *$range.start() as u128 }, { *$range.end() as u128 }>(
+            $range,
+        )
+    };
+}
+
 /// Helper to create a [`Leaf`](super::Leaf) parser matching string literals using `match`-like
 /// syntax.
 ///

@@ -12,10 +12,10 @@ pub struct Day12 {
 
 impl Day12 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let part1 = parser::u32()
+        let part1 = parser::digits_range!(0u32..=99)
             .repeat_n::<2, _>(b'x')
             .with_suffix(": ")
-            .then(parser::u32().repeat_fold(b' ', 1, 0u32, |acc, x| acc + x))
+            .then(parser::digits_range!(0u32..=99).repeat_fold(b' ', 1, 0u32, |acc, x| acc + x))
             .repeat_fold(
                 parser::eol(),
                 1,
@@ -26,7 +26,7 @@ impl Day12 {
             )
             .with_prefix(
                 // Discard the present shapes at the start of the input
-                parser::u32()
+                parser::digits_range!(0u32..=99)
                     .with_suffix(b':')
                     .with_eol()
                     .then(parser::bitmask_n::<3, u8>(b".#").repeat_n::<3, _>(parser::eol()))

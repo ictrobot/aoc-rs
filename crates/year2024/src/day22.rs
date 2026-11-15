@@ -9,7 +9,7 @@ pub struct Day22 {
 impl Day22 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
-            input: parser::number_range(0..=0x00FF_FFFF).parse_lines(input)?,
+            input: parser::digits_range!(0..=0x00FF_FFFF).parse_lines(input)?,
         })
     }
 

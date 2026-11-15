@@ -10,7 +10,7 @@ pub struct Day24 {
 
 impl Day24 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let mut components: Vec<[u32; 2]> = parser::number_range(0..=63)
+        let mut components: Vec<[u32; 2]> = parser::digits_range!(0..=63)
             .repeat_n(b'/')
             .parse_lines(input)?;
         if components.len() >= 64 {

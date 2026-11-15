@@ -12,7 +12,7 @@ const WIDTH: usize = 320;
 
 impl Day06 {
     pub fn new(input: &str, input_type: InputType) -> Result<Self, InputError> {
-        let locations = parser::number_range(0..=999)
+        let locations = parser::digits_range!(0..=999)
             .repeat_n(", ")
             .map(Vec2::from)
             .parse_lines(input)?;

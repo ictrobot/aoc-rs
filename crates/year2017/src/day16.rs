@@ -29,7 +29,7 @@ struct Dance {
 impl Day16 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let program = parser::byte_range(b'a'..=b'p').map(|b| b - b'a');
-        let position = parser::number_range(0..=15);
+        let position = parser::digits_range!(0..=15);
 
         Ok(Self {
             dance: parser::one_of((

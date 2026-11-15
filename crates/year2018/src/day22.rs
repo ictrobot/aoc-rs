@@ -14,8 +14,8 @@ impl Day22 {
         let (depth, target_x, target_y) = parser::u32()
             .with_prefix("depth: ")
             .with_eol()
-            .then(parser::number_range(0..=31).with_prefix("target: "))
-            .then(parser::number_range(0..=1021).with_prefix(b','))
+            .then(parser::digits_range!(0..=31).with_prefix("target: "))
+            .then(parser::digits_range!(0..=1021).with_prefix(b','))
             .parse_complete(input)?;
 
         Ok(Self {

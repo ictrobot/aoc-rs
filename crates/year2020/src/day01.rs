@@ -14,7 +14,7 @@ impl Day01 {
         let mut present = [false; TARGET as usize + 1];
         let mut values = Vec::with_capacity(1024);
 
-        for entry in parser::number_range(0..=TARGET)
+        for entry in parser::digits_range!(0..=TARGET)
             .with_consumed()
             .with_eol()
             .parse_iterator(input)

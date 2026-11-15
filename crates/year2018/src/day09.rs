@@ -9,9 +9,9 @@ pub struct Day09 {
 
 impl Day09 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let (players, marbles) = parser::number_range(1..=999)
+        let (players, marbles) = parser::digits_range!(1..=999)
             .with_suffix(" players; last marble is worth ")
-            .then(parser::number_range(23..=99_999))
+            .then(parser::digits_range!(23..=99_999))
             .with_suffix(" points")
             .parse_complete(input)?;
 

@@ -97,7 +97,12 @@ pub trait Integer:
 }
 
 /// Trait implemented by the primitive unsigned integer types.
-pub trait UnsignedInteger: Integer<Unsigned = Self> + From<u8> {
+pub trait UnsignedInteger:
+    Integer<Unsigned = Self> + From<u8> + TryFrom<u128, Error: Debug>
+{
+    /// The maximum number of decimal digits which always fit in the type.
+    const SAFE_DIGITS: usize;
+
     #[must_use]
     fn cast_signed(self) -> Self::Signed;
 
@@ -189,6 +194,8 @@ macro_rules! number_impl {
         })+
 
         $(impl UnsignedInteger for $u {
+            const SAFE_DIGITS: usize = $u::MAX.ilog10() as usize;
+
             #[inline]
             fn cast_signed(self) -> Self::Signed {
                 self.cast_signed()

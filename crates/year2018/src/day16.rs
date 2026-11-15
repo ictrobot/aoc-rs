@@ -35,9 +35,9 @@ utils::enumerable_enum! {
 impl Day16 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let registers = parser::digit().map(u32::from).repeat_n::<4, _>(", ");
-        let instruction = parser::number_range(0u32..=15)
+        let instruction = parser::digits_range!(0u32..=15)
             .with_suffix(b' ')
-            .then(parser::number_range(0u32..=3).repeat_n::<3, _>(b' '));
+            .then(parser::digits_range!(0u32..=3).repeat_n::<3, _>(b' '));
         let sample = registers
             .with_prefix("Before: [")
             .with_suffix("]".then(parser::eol()))

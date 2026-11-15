@@ -11,7 +11,7 @@ impl Day07 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let parser = parser::u64()
             .with_suffix(": ")
-            .then(parser::number_range(0u64..=999).repeat_arrayvec::<12, _>(b' ', 2))
+            .then(parser::digits_range!(0u64..=999).repeat_arrayvec::<12, _>(b' ', 2))
             .with_eol();
 
         let (mut part1, mut part2) = (0, 0);

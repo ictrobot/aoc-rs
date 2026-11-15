@@ -13,7 +13,7 @@ const SPARSE_BUCKET_SHIFT: u32 = 16;
 impl Day15 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
-            starting: parser::number_range(0..=2019)
+            starting: parser::digits_range!(0..=2019)
                 .repeat(b',', 1)
                 .parse_complete(input)?,
         })

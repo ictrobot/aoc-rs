@@ -18,7 +18,7 @@ type Rules = [[bool; RANGE]; RANGE];
 
 impl Day05 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let num = parser::number_range(MIN_NUM as u32..=MAX_NUM as u32);
+        let num = parser::digits_range!(MIN_NUM as u32..=MAX_NUM as u32);
         let rules_parser = num.then(num.with_prefix(b'|')).repeat(parser::eol(), 1);
         let updates_parser = num.repeat(b',', 1).repeat(parser::eol(), 1);
 

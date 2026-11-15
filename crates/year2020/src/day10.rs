@@ -13,7 +13,7 @@ const MAX: usize = 255;
 impl Day10 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let (mut count, mut adapters) = (0, [0u64; MAX.div_ceil(64)]);
-        for entry in parser::number_range(1..=MAX)
+        for entry in parser::digits_range!(1..=MAX)
             .with_eol()
             .parse_iterator(input)
         {

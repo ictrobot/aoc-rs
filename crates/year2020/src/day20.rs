@@ -21,7 +21,7 @@ const MAX_SIZE: usize = u128::BITS as usize / 8;
 
 impl Day20 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let tiles = parser::number_range(1000..=9999)
+        let tiles = parser::digits_range!(1000..=9999)
             .with_prefix("Tile ")
             .with_suffix(b':')
             .with_eol()

@@ -33,7 +33,7 @@ static PART2_MATRIX: [[u64; 11]; 11] = num_matrix(25);
 impl Day21 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         Ok(Self {
-            codes: parser::number_range(0..=999)
+            codes: parser::digits_range!(0..=999)
                 .with_suffix(b'A')
                 .parse_lines(input)?,
         })

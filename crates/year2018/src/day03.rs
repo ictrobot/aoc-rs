@@ -19,8 +19,8 @@ struct Claim {
 
 impl Day03 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let coordinate = parser::number_range(0usize..=991);
-        let dimension = parser::number_range(1usize..=31);
+        let coordinate = parser::digits_range!(0usize..=991);
+        let dimension = parser::digits_range!(1usize..=31);
 
         let claims: Vec<Claim> = parser::u32()
             .with_prefix(b'#')

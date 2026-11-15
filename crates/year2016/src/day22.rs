@@ -45,7 +45,7 @@ impl Day22 {
                 }
             })
             .with_suffix(parser::take_while1(u8::is_ascii_whitespace))
-            .with_suffix(parser::number_range(0..=100))
+            .with_suffix(parser::digits_range!(0u32..=100))
             .with_suffix("%")
             .parse_lines(input.trim_ascii_start())?;
 

@@ -76,13 +76,13 @@ impl Day24 {
         });
 
         let initiative_mask = Cell::new(0u32);
-        let group = parser::number_range(1..=99999)
+        let group = parser::digits_range!(1..=99999)
             .with_suffix(" units each with ")
-            .then(parser::number_range(1..=99999).with_suffix(" hit points "))
+            .then(parser::digits_range!(1..=99999).with_suffix(" hit points "))
             .then(modifiers.with_suffix("with an attack that does "))
-            .then(parser::number_range(1..=99999).with_suffix(b' '))
+            .then(parser::digits_range!(1..=99999).with_suffix(b' '))
             .then(AttackType::PARSER.with_suffix(" damage at initiative "))
-            .then(parser::number_range(1..=31))
+            .then(parser::digits_range!(1..=31))
             .map_res(
                 |(units, hit_points, modifiers, damage, damage_type, initiative)| {
                     let initiative = initiative - 1;

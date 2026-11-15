@@ -19,10 +19,10 @@ impl Day17 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
         let segments = parser::byte_range(b'x'..=b'y')
             .with_suffix(b'=')
-            .then(parser::number_range(1..=2999).with_suffix(", "))
+            .then(parser::digits_range!(1..=2999).with_suffix(", "))
             .then(parser::byte_range(b'x'..=b'y').with_suffix(b'='))
-            .then(parser::number_range(1..=2999).with_suffix(".."))
-            .then(parser::number_range(1..=2999))
+            .then(parser::digits_range!(1..=2999).with_suffix(".."))
+            .then(parser::digits_range!(1..=2999))
             .map_res(|(axis1, c1, axis2, c2, c3)| {
                 if axis1 == axis2 {
                     Err("expected line segment")

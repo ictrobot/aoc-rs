@@ -15,7 +15,7 @@ const MAX_VALUE: u16 = 999;
 
 impl Day16 {
     pub fn new(input: &str, _: InputType) -> Result<Self, InputError> {
-        let number = parser::number_range(0..=MAX_VALUE);
+        let number = parser::digits_range!(0..=MAX_VALUE);
         let range = number
             .then(number.with_prefix(b'-'))
             .map_res(|(start, end)| {

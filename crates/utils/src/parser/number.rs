@@ -251,3 +251,105 @@ impl<'i> Leaf<'i> for Digit {
 pub fn digit() -> Digit {
     Digit {}
 }
+
+#[derive(Copy, Clone)]
+pub struct DigitsRange<U, const MIN: u128, const MAX: u128>(PhantomData<U>);
+impl<U: UnsignedInteger, const MIN: u128, const MAX: u128> DigitsRange<U, MIN, MAX> {
+    const MIN_DIGITS: usize = (MIN | 1).ilog10() as usize + 1;
+    const MAX_DIGITS: usize = (MAX | 1).ilog10() as usize + 1;
+
+    // Ensure too large check is omitted when MAX is the largest MAX_DIGITS number.
+    // n < MIN is already skipped when MIN = 0.
+    const CHECK_MAX: bool = MAX.saturating_add(1).ilog10() == (MAX | 1).ilog10();
+}
+impl<'i, U: UnsignedInteger, const MIN: u128, const MAX: u128> Leaf<'i>
+    for DigitsRange<U, MIN, MAX>
+{
+    type Output = U;
+
+    #[inline]
+    fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
+        const {
+            assert!(MIN <= MAX);
+            assert!(Self::MAX_DIGITS <= U::SAFE_DIGITS);
+        }
+
+        // Using a fixed-size chunk to avoid bounds checks
+        let (n, rem) = if let Some((chunk, mut rem)) = input.split_at_checked(Self::MAX_DIGITS) {
+            let mut n = U::ZERO;
+            for (i, &b) in chunk.iter().enumerate().take(Self::MIN_DIGITS) {
+                let d = U::from(b).wrapping_sub(U::from(b'0'));
+                if d > U::from(9) {
+                    // cold_path makes these predictable branches instead of conditional moves
+                    std::hint::cold_path();
+                    return Err((ParseError::Expected("digit"), &input[i..]));
+                }
+                n = n * U::from(10) + d;
+            }
+            for (i, &b) in chunk.iter().enumerate().skip(Self::MIN_DIGITS) {
+                let d = U::from(b).wrapping_sub(U::from(b'0'));
+                if d > U::from(9) {
+                    std::hint::cold_path();
+                    rem = &input[i..];
+                    break;
+                }
+                n = n * U::from(10) + d;
+            }
+            (n, rem)
+        } else {
+            digits_near_end(input, Self::MIN_DIGITS)?
+        };
+
+        if n < MIN.try_into().unwrap() {
+            Err((ParseError::too_small(MIN), input))
+        } else if Self::CHECK_MAX && n > MAX.try_into().unwrap() {
+            Err((ParseError::too_large(MAX), input))
+        } else {
+            Ok((n, rem))
+        }
+    }
+}
+
+#[cold]
+#[inline(never)]
+fn digits_near_end<U: UnsignedInteger>(input: &[u8], min_digits: usize) -> LeafResult<'_, U> {
+    // Always less than max_digits
+    let len = input.iter().take_while(|b| b.is_ascii_digit()).count();
+    if len < min_digits {
+        return Err((ParseError::Expected("digit"), &input[len..]));
+    }
+
+    let n = input[..len]
+        .iter()
+        .fold(U::ZERO, |n, &d| n * U::from(10) + U::from(d - b'0'));
+    Ok((n, &input[len..]))
+}
+
+/// [`Leaf`] parser for unsigned numbers, reading only digits matching the supplied range.
+///
+/// This can be faster than [`number_range`] for ranges with a small number of digits, but unlike
+/// the normal number parsers it does not check for trailing digits. It should be followed by a
+/// parser that wouldn't match digits to ensure the number is in the intended range.
+///
+/// `MIN` and `MAX` must match the supplied range, and all numbers with as many digits as `MAX`
+/// must fit in the unsigned type.
+///
+/// See also [`parser::digits_range!`](crate::parser::digits_range!).
+///
+/// # Examples
+/// ```
+/// # use utils::parser::{self, Leaf};
+/// let parser = parser::digits_range::<_, 1, 12>(1u32..=12);
+/// assert_eq!(parser.parse(b"07-21"), Ok((7, &b"-21"[..])));
+/// assert_eq!(parser.parse(b"123"), Ok((12, &b"3"[..])));
+/// assert!(parser.parse(b"13-21").is_err());
+/// ```
+#[must_use]
+#[inline(always)]
+#[expect(clippy::inline_always, reason = "ensure assert is optimized out")]
+pub fn digits_range<U: UnsignedInteger, const MIN: u128, const MAX: u128>(
+    range: RangeInclusive<U>,
+) -> DigitsRange<U, MIN, MAX> {
+    assert!(*range.start() == MIN.try_into().unwrap() && *range.end() == MAX.try_into().unwrap());
+    DigitsRange(PhantomData)
+}

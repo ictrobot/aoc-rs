@@ -23,7 +23,7 @@ impl Day10 {
             .with_prefix(b'[')
             .with_suffix("] ")
             .then(
-                parser::number_range(0..=MAX_TARGETS - 1)
+                parser::digits_range!(0..=MAX_TARGETS - 1)
                     .repeat_arrayvec::<MAX_TARGETS, _>(b',', 1)
                     .map_res(|v| {
                         let mut mask = 0u32;

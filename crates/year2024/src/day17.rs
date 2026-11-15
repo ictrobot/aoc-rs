@@ -20,7 +20,7 @@ impl Day17 {
             .then(parser::u64().with_prefix("Register B: ").with_eol())
             .then(parser::u64().with_prefix("Register C: ").with_eol())
             .then(
-                parser::number_range(0..=7)
+                parser::digits_range!(0..=7)
                     .repeat(b',', 2)
                     .with_prefix(parser::eol().then("Program: ")),
             )
