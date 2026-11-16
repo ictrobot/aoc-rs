@@ -206,7 +206,7 @@ impl<'i, P: Parser<'i>> Parser<'i> for WithErrorMsg<P> {
     type Output = P::Output;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],

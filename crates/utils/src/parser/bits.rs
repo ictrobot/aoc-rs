@@ -10,7 +10,7 @@ pub struct BitmaskParser<U: UnsignedInteger> {
 impl<'i, U: UnsignedInteger> Leaf<'i> for BitmaskParser<U> {
     type Output = (U, u32);
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let [zero, one] = *self.bytes;
         let (mut value, mut len) = (U::ZERO, 0);
@@ -107,7 +107,7 @@ pub struct BitmaskExactParser<const N: usize, U: UnsignedInteger> {
 impl<'i, const N: usize, U: UnsignedInteger> Leaf<'i> for BitmaskExactParser<N, U> {
     type Output = U;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let [zero, one] = *self.bytes;
         if let Some((bytes, remaining)) = input.split_first_chunk::<N>()

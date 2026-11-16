@@ -25,6 +25,11 @@ impl<'i, L: Leaf<'i>> Parser<'i> for L {
     type Output = L::Output;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
+    // Using #[inline] instead of #[inline(always)] is ~7% faster for 2018 day 2 and 2025 day 12.
+    //
+    // With #[inline(always)] the leaf's result is only partially optimized away, and each
+    // successful parse still writes information only used for errors. For example, 2025 day 12 goes
+    // from ~6k to ~20k writes per run.
     #[inline]
     fn parse_ctx(
         &self,
@@ -46,14 +51,12 @@ impl<'i, L: Leaf<'i>> Parser<'i> for L {
 impl<'i> Leaf<'i> for &'static str {
     type Output = ();
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
-        // This is faster than using strip_prefix for the common case where the string is a short
-        // string literal known at compile time.
-        if input.len() >= self.len() && self.bytes().zip(input).all(|(a, &b)| a == b) {
-            Ok(((), &input[self.len()..]))
-        } else {
-            Err((ParseError::ExpectedLiteral(self), input))
+        // Requires the string literal to be known at compile time to avoid memcmp
+        match input.strip_prefix(self.as_bytes()) {
+            Some(remaining) => Ok(((), remaining)),
+            None => Err((ParseError::ExpectedLiteral(self), input)),
         }
     }
 }
@@ -64,7 +67,7 @@ impl<'i> Leaf<'i> for &'static str {
 impl<'i> Leaf<'i> for u8 {
     type Output = ();
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         if input.first() == Some(self) {
             Ok(((), &input[1..]))
@@ -78,7 +81,7 @@ impl<'i> Leaf<'i> for u8 {
 impl<'i, F: Fn(&'i [u8]) -> LeafResult<'i, O>, O> Leaf<'i> for F {
     type Output = O;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         self(input)
     }

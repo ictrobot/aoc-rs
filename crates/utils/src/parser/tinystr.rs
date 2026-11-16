@@ -10,7 +10,7 @@ pub struct TinyStringParser<T: TinyStrInt> {
 impl<'i, T: TinyStrInt> Leaf<'i> for TinyStringParser<T> {
     type Output = TinyStr<T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let mut accumulator = T::Raw::default();
         let mut len = 0;
@@ -139,7 +139,7 @@ where
 {
     type Output = TinyStr<<() as TinyStrLen<N>>::Int>;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let mut accumulator = <<() as TinyStrLen<N>>::Int as TinyStrInt>::Raw::default();
 

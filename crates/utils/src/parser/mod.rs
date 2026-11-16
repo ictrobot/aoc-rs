@@ -1,5 +1,8 @@
 //! Parser combinator library.
 
+// #[inline(always)] is required to ensure parsers are inlined and optimized with their caller
+#![allow(clippy::inline_always)]
+
 mod base;
 mod bits;
 mod combinator;

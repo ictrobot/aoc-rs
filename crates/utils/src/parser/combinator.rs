@@ -9,7 +9,7 @@ impl<'i, P: Parser<'i>> Parser<'i> for Commit<P> {
     type Output = P::Output;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],
@@ -35,7 +35,7 @@ impl<'i, P: Parser<'i>, F: Fn(P::Output) -> O, O> Parser<'i> for Map<P, F> {
     type Output = O;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],
@@ -60,7 +60,7 @@ impl<'i, P: Parser<'i>, F: Fn(P::Output) -> Result<O, &'static str>, O> Parser<'
     type Output = O;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],
@@ -84,7 +84,7 @@ impl<'i, P: Parser<'i>> Parser<'i> for Optional<P> {
     type Output = Option<P::Output>;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],
@@ -112,7 +112,7 @@ impl<'i, const N: usize, P: Parser<'i, Output: Default>, S: Parser<'i>> Parser<'
     type Output = [P::Output; N];
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         mut input: &'i [u8],
@@ -144,7 +144,7 @@ impl<'i, const N: usize, P: Parser<'i, Output: Copy + Default>, S: Parser<'i>> P
     type Output = ArrayVec<P::Output, N>;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         mut input: &'i [u8],
@@ -205,7 +205,7 @@ impl<'i, P: Parser<'i>, S: Parser<'i>, A: Clone, F: Fn(A, P::Output) -> A> Parse
     type Output = A;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         mut input: &'i [u8],
@@ -259,7 +259,7 @@ impl<'i, P: Parser<'i>, S: Parser<'i>> Parser<'i> for RepeatVec<P, S> {
     type Output = Vec<P::Output>;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         mut input: &'i [u8],
@@ -322,10 +322,6 @@ impl<'i, A: Parser<'i>, B: Parser<'i, Output = A::Output>> Parser<'i> for Or<A, 
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
     #[inline(always)]
-    #[expect(
-        clippy::inline_always,
-        reason = "required for parsing of long or chains to be inlined"
-    )]
     fn parse_ctx(
         &self,
         input: &'i [u8],
@@ -352,7 +348,7 @@ impl<'i, P: Parser<'i>> Parser<'i> for WithConsumed<P> {
     type Output = (P::Output, &'i [u8]);
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],
@@ -374,7 +370,7 @@ impl<'i, A: Parser<'i>, B: Parser<'i>> Parser<'i> for WithPrefix<A, B> {
     type Output = A::Output;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],
@@ -396,7 +392,7 @@ impl<'i, A: Parser<'i>, B: Parser<'i>> Parser<'i> for WithSuffix<A, B> {
     type Output = A::Output;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],

@@ -639,7 +639,7 @@ impl<'i, P: Parser<'i>> Parser<'i> for ParserRef<'_, P> {
     type Output = P::Output;
     type Then<T: Parser<'i>> = Unimplemented;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],
@@ -659,7 +659,7 @@ impl<'i, F: Fn(&'i [u8], &mut ParseState<'i>, &mut bool, bool) -> ParserResult<'
     type Output = O;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],

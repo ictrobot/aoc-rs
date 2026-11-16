@@ -8,7 +8,7 @@ pub struct UnsignedParser<U: UnsignedInteger>(PhantomData<U>);
 impl<'i, U: UnsignedInteger> Leaf<'i> for UnsignedParser<U> {
     type Output = U;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, mut input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let mut n = match input {
             [d @ b'0'..=b'9', ..] => {
@@ -54,7 +54,7 @@ impl<'i, S: SignedInteger> Leaf<'i> for SignedParser<S> {
     type Output = S;
 
     #[expect(clippy::cast_possible_wrap)]
-    #[inline]
+    #[inline(always)]
     fn parse(&self, mut input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let (mut n, positive) = match input {
             [d @ b'0'..=b'9', rem @ ..] | [b'+', d @ b'0'..=b'9', rem @ ..] => {
@@ -103,7 +103,7 @@ pub struct NonZeroParser<I: Integer + Parseable>(PhantomData<I>);
 impl<'i, I: Integer + Parseable> Leaf<'i> for NonZeroParser<I> {
     type Output = I::NonZero;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let (value, remaining) = I::PARSER.parse(input)?;
         match I::NonZero::try_from(value) {
@@ -184,7 +184,7 @@ pub struct NumberRange<I> {
 impl<'i, I: Integer + Parseable> Leaf<'i> for NumberRange<I> {
     type Output = I;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let (v, remaining) = I::PARSER.parse(input)?;
         if v < self.min {
@@ -226,7 +226,7 @@ pub struct Digit {}
 impl<'i> Leaf<'i> for Digit {
     type Output = u8;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         if let Some(d @ b'0'..=b'9') = input.first() {
             Ok((d - b'0', &input[1..]))
@@ -267,7 +267,7 @@ impl<'i, U: UnsignedInteger, const MIN: u128, const MAX: u128> Leaf<'i>
 {
     type Output = U;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         const {
             assert!(MIN <= MAX);

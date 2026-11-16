@@ -68,7 +68,7 @@ impl<'i, O: ParserOneOfTuple<'i>> Parser<'i> for OneOf<O> {
     type Output = O::Output;
     type Then<T: Parser<'i>> = Then2<Self, T>;
 
-    #[inline]
+    #[inline(always)]
     fn parse_ctx(
         &self,
         input: &'i [u8],

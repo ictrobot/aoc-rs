@@ -6,7 +6,7 @@ pub struct Byte();
 impl<'i> Leaf<'i> for Byte {
     type Output = u8;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         if let [byte, remaining @ ..] = input {
             Ok((*byte, remaining))
@@ -46,7 +46,7 @@ pub struct ByteLut<'a, O> {
 impl<'i, O: Copy> Leaf<'i> for ByteLut<'_, O> {
     type Output = O;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         if let [byte, remaining @ ..] = input
             && let Some(output) = self.lut[*byte as usize]
@@ -95,7 +95,7 @@ pub struct ByteRange {
 impl<'i> Leaf<'i> for ByteRange {
     type Output = u8;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         if let [byte, remaining @ ..] = input {
             if *byte >= self.min && *byte <= self.max {
@@ -135,7 +135,7 @@ pub struct Constant<V: Copy>(pub(super) V);
 impl<'i, V: Copy> Leaf<'i> for Constant<V> {
     type Output = V;
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         Ok((self.0, input))
     }
@@ -181,7 +181,7 @@ pub struct Eof();
 impl<'i> Leaf<'i> for Eof {
     type Output = ();
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         match input {
             [] => Ok(((), input)),
@@ -221,7 +221,7 @@ pub struct Eol();
 impl<'i> Leaf<'i> for Eol {
     type Output = ();
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         match input {
             [b'\n', remaining @ ..] | [b'\r', b'\n', remaining @ ..] => Ok(((), remaining)),
@@ -262,7 +262,7 @@ pub struct TakeWhile<const N: usize>(fn(&u8) -> bool);
 impl<'i, const N: usize> Leaf<'i> for TakeWhile<N> {
     type Output = &'i [u8];
 
-    #[inline]
+    #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
         let mut end = 0;
         while end < input.len() && self.0(&input[end]) {
