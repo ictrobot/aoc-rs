@@ -172,6 +172,8 @@ pub trait TinyStrInt: Copy + Clone + Eq + Ord + Hash + Sized {
     fn trailing_zeros(self) -> u32;
     fn set_raw(accumulator: Self::Raw, byte: u8, pos: usize) -> Self::Raw;
     fn from_raw(raw: Self::Raw) -> Option<Self>;
+    fn len_mask(len: usize) -> Self::Raw;
+    fn from_bytes(bytes: &[u8], mask: Self::Raw) -> Option<Self>;
 }
 
 macro_rules! int_impl {
@@ -196,6 +198,15 @@ macro_rules! int_impl {
             #[inline]
             fn from_raw(raw: Self::Raw) -> Option<Self> {
                 NonZero::new(raw)
+            }
+            #[inline]
+            #[expect(clippy::cast_possible_truncation)]
+            fn len_mask(len: usize) -> Self::Raw {
+                !$t::MAX.unbounded_shr(len as u32 * 8)
+            }
+            #[inline]
+            fn from_bytes(bytes: &[u8], mask: Self::Raw) -> Option<Self> {
+                NonZero::new($t::from_be_bytes(*bytes.first_chunk()?) & mask)
             }
         }
 

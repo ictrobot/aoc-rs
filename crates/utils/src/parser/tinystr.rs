@@ -12,35 +12,46 @@ impl<'i, T: TinyStrInt> Leaf<'i> for TinyStringParser<T> {
 
     #[inline(always)]
     fn parse(&self, input: &'i [u8]) -> LeafResult<'i, Self::Output> {
-        let mut accumulator = T::Raw::default();
+        // Use a fixed-size chunk to avoid bounds checks
+        let Some(chunk) = input.get(..=T::LEN) else {
+            return tinystr_near_end(input, self.f)
+                .ok_or((ParseError::ExpectedAtLeastMatches(1, self.f), input));
+        };
+
         let mut len = 0;
-        while len < T::LEN
-            && let Some(&b) = input.get(len)
-            && (self.f)(&b)
-        {
-            accumulator = T::set_raw(accumulator, b, len);
+        let mut mask = T::len_mask(0);
+        for b in chunk {
+            if !(self.f)(b) {
+                break;
+            }
             len += 1;
+            // Compiled into a constant in the unrolled loop
+            mask = T::len_mask(len);
         }
 
-        if len == 0 {
-            return Err((ParseError::ExpectedAtLeastMatches(1, self.f), input));
-        }
-
-        if len == T::LEN
-            && let Some(b) = input.get(T::LEN)
-            && (self.f)(b)
-        {
+        if len > T::LEN {
             return Err((
                 ParseError::ExpectedAtMostMatches(T::LEN, self.f),
                 &input[T::LEN..],
             ));
         }
 
-        match T::from_raw(accumulator) {
+        match T::from_bytes(chunk, mask) {
             None => Err((ParseError::ExpectedAtLeastMatches(1, self.f), input)),
             Some(v) => Ok((TinyStr::from_raw(v), &input[len..])),
         }
     }
+}
+
+#[cold]
+#[inline(never)]
+fn tinystr_near_end<T: TinyStrInt>(
+    input: &[u8],
+    f: fn(&u8) -> bool,
+) -> Option<(TinyStr<T>, &[u8])> {
+    // Always at most T::LEN
+    let len = input.iter().take_while(|&b| f(b)).count();
+    Some((TinyStr::new(&input[..len])?, &input[len..]))
 }
 
 /// [`Leaf`] parser for [`TinyStr`] strings between 1 and 2 bytes matching the provided function.

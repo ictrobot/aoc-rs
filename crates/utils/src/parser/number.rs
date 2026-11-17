@@ -274,7 +274,7 @@ impl<'i, U: UnsignedInteger, const MIN: u128, const MAX: u128> Leaf<'i>
             assert!(Self::MAX_DIGITS <= U::SAFE_DIGITS);
         }
 
-        // Using a fixed-size chunk to avoid bounds checks
+        // Use a fixed-size chunk to avoid bounds checks
         let (n, rem) = if let Some((chunk, mut rem)) = input.split_at_checked(Self::MAX_DIGITS) {
             let mut n = U::ZERO;
             for (i, &b) in chunk.iter().enumerate().take(Self::MIN_DIGITS) {
