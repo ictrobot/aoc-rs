@@ -1,5 +1,5 @@
 use utils::array::ArrayVec;
-use utils::hash::FastSet;
+use utils::hash::IndexedSet;
 use utils::prelude::*;
 
 /// Finding near-match IDs.
@@ -35,7 +35,7 @@ impl Day02 {
 
     #[must_use]
     pub fn part2(&self) -> String {
-        let mut seen = FastSet::with_capacity(self.ids.len());
+        let mut seen = IndexedSet::with_capacity(self.ids.len());
         for column in 0..self.ids[0].capacity() {
             for mut id in self.ids.iter().map(|id| id.clone().into_array()) {
                 id[column] = 0;

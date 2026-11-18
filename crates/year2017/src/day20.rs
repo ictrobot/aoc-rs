@@ -1,5 +1,5 @@
 use utils::geometry::Vec3;
-use utils::hash::FastMap;
+use utils::hash::IndexedMap;
 use utils::prelude::*;
 
 /// Simulating colliding particles.
@@ -48,7 +48,7 @@ impl Day20 {
         let mut particles = self.particles.clone();
         let mut destroyed = vec![false; particles.len()];
 
-        let mut positions = FastMap::with_capacity(self.particles.len());
+        let mut positions = IndexedMap::with_capacity(self.particles.len());
         let mut last_destroyed = 0;
         for t in 0.. {
             positions.clear();
@@ -60,9 +60,9 @@ impl Day20 {
 
                 p.tick();
 
-                if let Some(j) = positions.insert(p.position, i) {
+                if let Err(index) = positions.try_insert_with(p.position, || i) {
                     destroyed[i] = true;
-                    destroyed[j] = true;
+                    destroyed[positions[index]] = true;
                     last_destroyed = t;
                 }
             }

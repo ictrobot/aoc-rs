@@ -3,7 +3,9 @@
 // #[inline(always)] is required to ensure hashing is branchless for fixed-sized types.
 #![allow(clippy::inline_always)]
 
-use std::hash::{BuildHasherDefault, Hasher};
+use std::fmt::{Debug, Formatter};
+use std::hash::{BuildHasher, BuildHasherDefault, Hash, Hasher};
+use std::ops::{Index, IndexMut};
 
 // Reused wyhash secret, used as a non-zero initial state.
 const SEED: u64 = 0xa076_1d64_78bd_642f;
@@ -213,6 +215,215 @@ impl<T> FastCollectionBuilder for FastSet<T> {
     }
 }
 
+/// A simple hash map which assigns each key an index in insertion order.
+///
+/// Keys and values are stored in a [`Vec`] in insertion order. A separate hash table using linear
+/// probing and [`FastHasher`] maps keys to their indexes. Keys cannot be removed.
+///
+/// The table is kept at most 25% full for performance. This can be faster than [`FastMap`] for
+/// small maps with up to ~1000 entries.
+///
+/// # Examples
+///
+/// ```
+/// # use utils::hash::IndexedMap;
+/// let mut map = IndexedMap::<&str, u32>::new();
+/// let index = map.intern("x");
+/// map[index] += 2;
+/// assert_eq!(map.try_insert("x"), Err(0));
+/// assert_eq!(map.try_insert_with("y", || 5), Ok(1));
+/// assert_eq!(map.into_values().collect::<Vec<_>>(), [2, 5]);
+/// ```
+#[derive(Clone)]
+pub struct IndexedMap<K, V> {
+    entries: Vec<(K, V)>,
+    table: Vec<u32>,
+}
+
+/// Hash set using [`IndexedMap`].
+///
+/// Keys are assigned indexes in insertion order, which can be used to intern them.
+///
+/// # Examples
+///
+/// ```
+/// # use utils::hash::IndexedSet;
+/// let mut set = IndexedSet::new();
+/// assert!(set.insert("b"));
+/// assert!(!set.insert("b"));
+/// assert_eq!(set.intern("a"), 1);
+/// assert_eq!(set.index_of(&"a"), Some(1));
+/// assert_eq!(set.index_of(&"c"), None);
+/// ```
+pub type IndexedSet<K> = IndexedMap<K, ()>;
+
+const EMPTY: u32 = u32::MAX;
+
+impl<K: Hash + Eq, V> IndexedMap<K, V> {
+    /// Creates an empty map.
+    #[inline]
+    #[must_use]
+    pub fn new() -> Self {
+        Self::with_capacity(0)
+    }
+
+    /// Creates an empty map with at least the specified capacity.
+    #[inline]
+    #[must_use]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            entries: Vec::with_capacity(capacity),
+            table: vec![EMPTY; (capacity * 4).next_power_of_two().max(64)],
+        }
+    }
+
+    /// Inserts the key if it is not present, creating the value using `f`.
+    ///
+    /// Returns [`Ok`] containing the new index, or [`Err`] containing the existing index.
+    #[inline(always)]
+    #[expect(clippy::cast_possible_truncation)]
+    pub fn try_insert_with(&mut self, key: K, f: impl FnOnce() -> V) -> Result<usize, usize> {
+        if (self.entries.len() + 1) * 4 > self.table.len() {
+            self.grow();
+        }
+        match self.find(&key) {
+            Ok(index) => Err(index),
+            Err(slot) => {
+                let index = self.entries.len();
+                self.table[slot] = index as u32;
+                self.entries.push((key, f()));
+                Ok(index)
+            }
+        }
+    }
+
+    /// Inserts the key if it is not present, using the default value.
+    ///
+    /// See [`try_insert_with`](Self::try_insert_with).
+    #[inline(always)]
+    pub fn try_insert(&mut self, key: K) -> Result<usize, usize>
+    where
+        V: Default,
+    {
+        self.try_insert_with(key, V::default)
+    }
+
+    /// Inserts the key if it is not present, returning whether it was inserted.
+    #[inline]
+    pub fn insert(&mut self, key: K) -> bool
+    where
+        V: Default,
+    {
+        self.try_insert(key).is_ok()
+    }
+
+    /// Returns the index of the key, inserting the key first if it is not present.
+    #[inline]
+    pub fn intern(&mut self, key: K) -> usize
+    where
+        V: Default,
+    {
+        let (Ok(index) | Err(index)) = self.try_insert(key);
+        index
+    }
+
+    /// Returns the index of the provided key if it is present.
+    #[inline]
+    pub fn index_of(&self, key: &K) -> Option<usize> {
+        self.find(key).ok()
+    }
+
+    /// Returns an iterator over the values, ordered by index.
+    #[inline]
+    pub fn into_values(self) -> impl Iterator<Item = V> {
+        self.entries.into_iter().map(|(_, v)| v)
+    }
+
+    /// Returns the number of keys in the map.
+    #[inline]
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// Returns whether the map is empty.
+    #[inline]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    /// Clears the map in place.
+    #[inline]
+    pub fn clear(&mut self) {
+        if !self.entries.is_empty() {
+            self.entries.clear();
+            self.table.fill(EMPTY);
+        }
+    }
+
+    #[inline]
+    #[expect(clippy::cast_possible_truncation)]
+    fn find(&self, key: &K) -> Result<usize, usize> {
+        let mask = self.table.len() - 1;
+        let mut slot = BuildFastHasher::default().hash_one(key) as usize & mask;
+        loop {
+            match self.table[slot] {
+                EMPTY => return Err(slot),
+                index if self.entries[index as usize].0 == *key => return Ok(index as usize),
+                _ => slot = (slot + 1) & mask,
+            }
+        }
+    }
+
+    #[cold]
+    #[inline(never)]
+    #[expect(clippy::cast_possible_truncation)]
+    fn grow(&mut self) {
+        let len = self.table.len() * 2;
+        assert!(len / 4 < EMPTY as usize, "too many keys");
+        self.table = vec![EMPTY; len];
+        for (index, (key, _)) in self.entries.iter().enumerate() {
+            let mut slot = BuildFastHasher::default().hash_one(key) as usize & (len - 1);
+            while self.table[slot] != EMPTY {
+                slot = (slot + 1) & (len - 1);
+            }
+            self.table[slot] = index as u32;
+        }
+    }
+}
+
+impl<K: Hash + Eq, V> Default for IndexedMap<K, V> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<K, V> Index<usize> for IndexedMap<K, V> {
+    type Output = V;
+
+    #[inline]
+    fn index(&self, index: usize) -> &V {
+        &self.entries[index].1
+    }
+}
+
+impl<K, V> IndexMut<usize> for IndexedMap<K, V> {
+    #[inline]
+    fn index_mut(&mut self, index: usize) -> &mut V {
+        &mut self.entries[index].1
+    }
+}
+
+impl<K: Debug, V: Debug> Debug for IndexedMap<K, V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_map()
+            .entries(self.entries.iter().map(|(k, v)| (k, v)))
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -322,5 +533,23 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn indexed_map_resizes() {
+        let mut map = IndexedMap::new();
+        for i in 0..1000u32 {
+            assert_eq!(map.try_insert_with(i * 3, || i * 5), Ok(i as usize));
+        }
+        assert_eq!(map.len(), 1000);
+        for i in 0..1000u32 {
+            let index = map.index_of(&(i * 3)).unwrap();
+            assert_eq!((index, map[index]), (i as usize, i * 5));
+        }
+
+        map.clear();
+        assert!(map.is_empty());
+        assert_eq!(map.index_of(&3), None);
+        assert_eq!(map.try_insert(6), Ok(0));
     }
 }

@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use utils::geometry::Vec2;
-use utils::hash::FastSet;
+use utils::hash::IndexedSet;
 use utils::prelude::*;
 
 /// Finding the shortest path.
@@ -21,7 +21,7 @@ impl Day13 {
 
         // Use a hashset to store visited nodes to avoid having a fixed grid size, as theoretically
         // the shortest route to the target may first go a long way down/right.
-        let mut visited = FastSet::with_capacity(512);
+        let mut visited = IndexedSet::with_capacity(512);
         visited.insert(Vec2::new(1, 1));
         let mut queue = VecDeque::new();
         queue.push_back((Vec2::new(1, 1), 0));
@@ -45,8 +45,7 @@ impl Day13 {
                 Vec2::new(p.x, p.y.saturating_add(1)),
             ] {
                 let n = (x * x) + (3 * x) + (2 * x * y) + y + (y * y) + favorite_number;
-                if n.count_ones().is_multiple_of(2) && !visited.contains(&next) {
-                    visited.insert(next);
+                if n.count_ones().is_multiple_of(2) && visited.insert(next) {
                     queue.push_back((next, steps + 1));
                 }
             }

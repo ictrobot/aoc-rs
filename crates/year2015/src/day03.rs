@@ -1,5 +1,5 @@
 use utils::geometry::Vec2;
-use utils::hash::FastSet;
+use utils::hash::IndexedSet;
 use utils::prelude::*;
 
 /// Counting unique points.
@@ -46,7 +46,8 @@ impl Day03 {
     }
 
     fn count_positions(&self, mut f: impl FnMut(Vec2<i32>) -> Vec2<i32>) -> usize {
-        let mut set = FastSet::with_capacity(self.directions.len());
+        // with_capacity(len / 2) is ~20% faster than len
+        let mut set = IndexedSet::with_capacity(self.directions.len() / 2);
         set.insert(Vec2::default());
 
         for &dir in &self.directions {

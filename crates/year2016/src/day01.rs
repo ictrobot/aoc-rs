@@ -1,5 +1,5 @@
 use utils::geometry::Vec2;
-use utils::hash::FastSet;
+use utils::hash::IndexedSet;
 use utils::prelude::*;
 
 /// Calculating Manhattan distance.
@@ -47,7 +47,7 @@ impl Day01 {
             .iter()
             .map(|&(_, steps)| usize::from(steps))
             .sum();
-        let mut visited = FastSet::with_capacity(total);
+        let mut visited = IndexedSet::with_capacity(total);
         let mut pos: Vec2<i32> = Vec2::ORIGIN;
         let mut dir = Vec2::UP;
 

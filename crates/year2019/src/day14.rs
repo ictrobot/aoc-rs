@@ -1,4 +1,5 @@
 use std::num::NonZeroU32;
+use utils::hash::IndexedMap;
 use utils::prelude::*;
 use utils::str::TinyStr8;
 
@@ -35,36 +36,22 @@ impl Day14 {
             .with_consumed()
             .with_eol();
 
-        let mut names = vec![
-            const { TinyStr8::from_const(b"ORE") },
-            const { TinyStr8::from_const(b"FUEL") },
-        ];
-        let mut reactions = vec![
-            Some(Reaction {
-                output_amount: NonZeroU32::MIN,
-                inputs: Vec::new(),
-            }),
-            None,
-        ];
+        let mut reactions = IndexedMap::new();
+        reactions.intern(const { TinyStr8::from_const(b"ORE") });
+        reactions.intern(const { TinyStr8::from_const(b"FUEL") });
+        reactions[ORE] = Some(Reaction {
+            output_amount: NonZeroU32::MIN,
+            inputs: Vec::new(),
+        });
 
         for item in reaction.parse_iterator(input) {
             let ((inputs, (output_amount, output_index)), line) = item?;
 
-            // Using a linear scan over a small Vec instead of a HashMap is ~15% faster.
-            let mut intern = |name| {
-                if let Some(index) = names.iter().position(|&n| n == name) {
-                    return index;
-                }
-                names.push(name);
-                reactions.push(None);
-                reactions.len() - 1
-            };
-
-            let output = intern(output_index);
+            let output = reactions.intern(output_index);
             let inputs = inputs
                 .into_iter()
                 .map(|(amount, name)| Input {
-                    index: intern(name),
+                    index: reactions.intern(name),
                     amount,
                 })
                 .collect();
@@ -90,7 +77,7 @@ impl Day14 {
             });
         }
 
-        let Some(reactions): Option<Vec<Reaction>> = reactions.into_iter().collect() else {
+        let Some(reactions): Option<Vec<Reaction>> = reactions.into_values().collect() else {
             return Err(InputError::new(
                 input,
                 0,
