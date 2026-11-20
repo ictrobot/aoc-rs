@@ -416,218 +416,223 @@ macro_rules! multiversion_test {
         use {$($($path:ident::)+*),*};
 
         #[test]
-        $(#[$m:meta])* $v:vis fn multiversion() $body:block
+        $(#[$m:meta])* $v:vis fn $name:ident() $body:block
     ) => {
-        #[test]
-        $(#[$m])*
-        fn scalar() {
-            #![allow(
-                clippy::reversed_empty_ranges,
-                clippy::range_plus_one,
-                clippy::modulo_one,
-                clippy::trivially_copy_pass_by_ref
-            )]
-
+        mod $name {
             #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+scalar::*),*};
+            use super::*;
 
-            $body
-        }
+            #[test]
+            $(#[$m])*
+            fn scalar() {
+                #![allow(
+                    clippy::reversed_empty_ranges,
+                    clippy::range_plus_one,
+                    clippy::modulo_one,
+                    clippy::trivially_copy_pass_by_ref
+                )]
 
-        #[test]
-        $(#[$m])*
-        fn array128() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+array128::*),*};
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+scalar::*),*};
 
-            $body
-        }
-
-        #[test]
-        $(#[$m])*
-        fn array256() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+array256::*),*};
-
-            $body
-        }
-
-        #[test]
-        #[cfg(feature = "all-simd")]
-        $(#[$m])*
-        fn array4096() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+array4096::*),*};
-
-            $body
-        }
-
-        #[test]
-        #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
-        $(#[$m])*
-        fn avx2() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+avx2::*),*};
-
-            if !$crate::multiversion::Version::AVX2.supported() {
-                use std::io::{stdout, Write};
-                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2 due to missing avx2 support", module_path!());
-                return;
+                $body
             }
 
-            unsafe { $body }
-        }
+            #[test]
+            $(#[$m])*
+            fn array128() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+array128::*),*};
 
-        #[test]
-        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
-        $(#[$m])*
-        fn avx2x2() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+avx2x2::*),*};
-
-            if !$crate::multiversion::Version::AVX2x2.supported() {
-                use std::io::{stdout, Write};
-                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2x2 due to missing avx2 support", module_path!());
-                return;
+                $body
             }
 
-            unsafe { $body }
-        }
+            #[test]
+            $(#[$m])*
+            fn array256() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+array256::*),*};
 
-        #[test]
-        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
-        $(#[$m])*
-        fn avx2x4() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+avx2x4::*),*};
-
-            if !$crate::multiversion::Version::AVX2x4.supported() {
-                use std::io::{stdout, Write};
-                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2x4 due to missing avx2 support", module_path!());
-                return;
+                $body
             }
 
-            unsafe { $body }
-        }
+            #[test]
+            #[cfg(feature = "all-simd")]
+            $(#[$m])*
+            fn array4096() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+array4096::*),*};
 
-        #[test]
-        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
-        $(#[$m])*
-        fn avx2x8() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+avx2x8::*),*};
-
-            if !$crate::multiversion::Version::AVX2x8.supported() {
-                use std::io::{stdout, Write};
-                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2x8 due to missing avx2 support", module_path!());
-                return;
+                $body
             }
 
-            unsafe { $body }
-        }
+            #[test]
+            #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+            $(#[$m])*
+            fn avx2() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx2::*),*};
 
-        #[test]
-        #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
-        $(#[$m])*
-        fn avx512() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+avx512::*),*};
+                if !$crate::multiversion::Version::AVX2.supported() {
+                    use std::io::{stdout, Write};
+                    let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2 due to missing avx2 support", module_path!());
+                    return;
+                }
 
-            if !$crate::multiversion::Version::AVX512.supported() {
-                use std::io::{stdout, Write};
-                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx512 due to missing avx512 support", module_path!());
-                return;
+                unsafe { $body }
             }
 
-            unsafe { $body }
-        }
+            #[test]
+            #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+            $(#[$m])*
+            fn avx2x2() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx2x2::*),*};
 
-        #[test]
-        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
-        $(#[$m])*
-        fn avx512x2() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+avx512x2::*),*};
+                if !$crate::multiversion::Version::AVX2x2.supported() {
+                    use std::io::{stdout, Write};
+                    let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2x2 due to missing avx2 support", module_path!());
+                    return;
+                }
 
-            if !$crate::multiversion::Version::AVX512x2.supported() {
-                use std::io::{stdout, Write};
-                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx512x2 due to missing avx512 support", module_path!());
-                return;
+                unsafe { $body }
             }
 
-            unsafe { $body }
-        }
+            #[test]
+            #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+            $(#[$m])*
+            fn avx2x4() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx2x4::*),*};
 
-        #[test]
-        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
-        $(#[$m])*
-        fn avx512x4() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+avx512x4::*),*};
+                if !$crate::multiversion::Version::AVX2x4.supported() {
+                    use std::io::{stdout, Write};
+                    let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2x4 due to missing avx2 support", module_path!());
+                    return;
+                }
 
-            if !$crate::multiversion::Version::AVX512x4.supported() {
-                use std::io::{stdout, Write};
-                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx512x4 due to missing avx512 support", module_path!());
-                return;
+                unsafe { $body }
             }
 
-            unsafe { $body }
-        }
+            #[test]
+            #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+            $(#[$m])*
+            fn avx2x8() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx2x8::*),*};
 
-        #[test]
-        #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
-        $(#[$m])*
-        fn avx512x8() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+avx512x8::*),*};
+                if !$crate::multiversion::Version::AVX2x8.supported() {
+                    use std::io::{stdout, Write};
+                    let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx2x8 due to missing avx2 support", module_path!());
+                    return;
+                }
 
-            if !$crate::multiversion::Version::AVX512x8.supported() {
-                use std::io::{stdout, Write};
-                let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx512x8 due to missing avx512 support", module_path!());
-                return;
+                unsafe { $body }
             }
 
-            unsafe { $body }
-        }
+            #[test]
+            #[cfg(all(feature = "unsafe", any(target_arch = "x86", target_arch = "x86_64")))]
+            $(#[$m])*
+            fn avx512() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx512::*),*};
 
-        #[test]
-        #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
-        $(#[$m])*
-        fn neon() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+neon::*),*};
+                if !$crate::multiversion::Version::AVX512.supported() {
+                    use std::io::{stdout, Write};
+                    let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx512 due to missing avx512 support", module_path!());
+                    return;
+                }
 
-            unsafe { $body }
-        }
+                unsafe { $body }
+            }
 
-        #[test]
-        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
-        $(#[$m])*
-        fn neonx2() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+neonx2::*),*};
+            #[test]
+            #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+            $(#[$m])*
+            fn avx512x2() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx512x2::*),*};
 
-            unsafe { $body }
-        }
+                if !$crate::multiversion::Version::AVX512x2.supported() {
+                    use std::io::{stdout, Write};
+                    let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx512x2 due to missing avx512 support", module_path!());
+                    return;
+                }
 
-        #[test]
-        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
-        $(#[$m])*
-        fn neonx4() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+neonx4::*),*};
+                unsafe { $body }
+            }
 
-            unsafe { $body }
-        }
+            #[test]
+            #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+            $(#[$m])*
+            fn avx512x4() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx512x4::*),*};
 
-        #[test]
-        #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
-        $(#[$m])*
-        fn neonx8() {
-            #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
-            use {$($($path::)+neonx8::*),*};
+                if !$crate::multiversion::Version::AVX512x4.supported() {
+                    use std::io::{stdout, Write};
+                    let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx512x4 due to missing avx512 support", module_path!());
+                    return;
+                }
 
-            unsafe { $body }
+                unsafe { $body }
+            }
+
+            #[test]
+            #[cfg(all(feature = "unsafe", feature = "all-simd", any(target_arch = "x86", target_arch = "x86_64")))]
+            $(#[$m])*
+            fn avx512x8() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+avx512x8::*),*};
+
+                if !$crate::multiversion::Version::AVX512x8.supported() {
+                    use std::io::{stdout, Write};
+                    let _ = writeln!(&mut stdout(), "warning: skipping test in {}::avx512x8 due to missing avx512 support", module_path!());
+                    return;
+                }
+
+                unsafe { $body }
+            }
+
+            #[test]
+            #[cfg(all(feature = "unsafe", target_arch = "aarch64"))]
+            $(#[$m])*
+            fn neon() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+neon::*),*};
+
+                unsafe { $body }
+            }
+
+            #[test]
+            #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+            $(#[$m])*
+            fn neonx2() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+neonx2::*),*};
+
+                unsafe { $body }
+            }
+
+            #[test]
+            #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+            $(#[$m])*
+            fn neonx4() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+neonx4::*),*};
+
+                unsafe { $body }
+            }
+
+            #[test]
+            #[cfg(all(feature = "unsafe", feature = "all-simd", target_arch = "aarch64"))]
+            $(#[$m])*
+            fn neonx8() {
+                #[allow(clippy::allow_attributes, unused_imports, clippy::wildcard_imports)]
+                use {$($($path::)+neonx8::*),*};
+
+                unsafe { $body }
+            }
         }
     };
 

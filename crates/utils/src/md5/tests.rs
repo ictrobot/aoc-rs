@@ -6,7 +6,7 @@ multiversion_test! {
     use {crate::simd::*, crate::md5::*};
 
     #[test]
-    fn multiversion() {
+    fn hash() {
         let mut buf = Vec::new();
         for len in 0..=STRINGS[0].len() {
             if len > 0 {
@@ -21,6 +21,22 @@ multiversion_test! {
                 array::from_fn(|i| HASHES[i % 8][len]),
                 "length {len}"
             );
+        }
+    }
+}
+
+multiversion_test! {
+    use {crate::simd::*, crate::md5::*};
+
+    #[test]
+    fn stretch() {
+        let hashes: [[u32; 4]; U32Vector::LANES] =
+            array::from_fn(|i| crate::md5::hash(&i.to_le_bytes()));
+
+        let mut expected = hashes;
+        for additional_hashes in 1..=10 {
+            expected = expected.map(|hash| crate::md5::hash(&to_hex(hash)));
+            assert_eq!(stretch(hashes, additional_hashes), expected, "{additional_hashes} hashes");
         }
     }
 }

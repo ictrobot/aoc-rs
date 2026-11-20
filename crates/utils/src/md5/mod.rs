@@ -16,6 +16,8 @@ pub use bruteforce::find_hash_with_appended_count;
 #[cfg(test)]
 mod tests;
 
+const INITIAL_STATE: [u32; 4] = [0x6745_2301, 0xefcd_ab89, 0x98ba_dcfe, 0x1032_5476];
+
 /// Fastest supported implementation, for dynamic dispatch.
 ///
 /// Determined using a small microbenchmark at runtime, see [`multiversion!`](crate::multiversion!).
@@ -69,12 +71,7 @@ multiversion! {
         assert_eq!(buf.len() % U32Vector::LANES, 0);
         let bytes = buf.len() / U32Vector::LANES;
 
-        let mut state = [
-            U32Vector::splat(0x6745_2301),
-            U32Vector::splat(0xefcd_ab89),
-            U32Vector::splat(0x98ba_dcfe),
-            U32Vector::splat(0x1032_5476),
-        ];
+        let mut state = array::from_fn(|i| U32Vector::splat(INITIAL_STATE[i]));
 
         let mut end_marker_written = false;
         let mut bit_count_written = false;
@@ -106,17 +103,7 @@ multiversion! {
             state = md5_block(state, &words);
         }
 
-        // `state.map(|x| x.into());` doesn't always get vectorised
-        let state: [[u32; U32Vector::LANES]; 4] = array::from_fn(|i| state[i].into());
-
-        array::from_fn(|i| {
-            [
-                state[0][i].swap_bytes(),
-                state[1][i].swap_bytes(),
-                state[2][i].swap_bytes(),
-                state[3][i].swap_bytes(),
-            ]
-        })
+        to_hashes(state)
     }
 
     #[inline]
@@ -159,8 +146,89 @@ multiversion! {
         }
     }
 
-    #[expect(clippy::many_single_char_names)]
-    fn md5_block([a0, b0, c0, d0]: [U32Vector; 4], m: &[U32Vector; 16]) -> [U32Vector; 4] {
+    #[inline]
+    fn to_hashes(state: [U32Vector; 4]) -> [[u32; 4]; U32Vector::LANES] {
+        // `state.map(|x| x.into());` doesn't always get vectorised
+        let state: [[u32; U32Vector::LANES]; 4] = array::from_fn(|i| state[i].into());
+
+        array::from_fn(|i| {
+            [
+                state[0][i].swap_bytes(),
+                state[1][i].swap_bytes(),
+                state[2][i].swap_bytes(),
+                state[3][i].swap_bytes(),
+            ]
+        })
+    }
+
+    /// [`multiversion!`] MD5 key stretching implementation.
+    ///
+    /// For example, passing 2 will return `hash(to_hex(hash(to_hex(hash))))` for each lane.
+    ///
+    /// # Examples
+    ///
+    /// For [`array128`](crate::simd::array128) with four lanes:
+    /// ```
+    /// # use utils::md5::{self, array128};
+    /// let hashes = array128::hash(b"hwafeobglrchlldiodej");
+    /// assert_eq!(
+    ///     array128::stretch(hashes, 2),
+    ///     hashes.map(|hash| md5::hash(&md5::to_hex(md5::hash(&md5::to_hex(hash))))),
+    /// );
+    /// ```
+    #[must_use]
+    #[expect(clippy::cast_possible_truncation)]
+    pub fn stretch(
+        hashes: [[u32; 4]; U32Vector::LANES],
+        additional_hashes: u32,
+    ) -> [[u32; 4]; U32Vector::LANES] {
+        let initial = array::from_fn(|i| U32Vector::splat(INITIAL_STATE[i]));
+
+        // Reverse the to_hashes call at the end of hash
+        let mut state: [U32Vector; 4] = array::from_fn(|i| {
+            let mut values = [0u32; U32Vector::LANES];
+            for (v, hash) in values.iter_mut().zip(hashes) {
+                *v = hash[i].swap_bytes();
+            }
+            values.into()
+        });
+
+        let mut words = [U32Vector::splat(0); 8];
+        for _ in 0..additional_hashes {
+            for i in 0..4 {
+                let values: [u32; U32Vector::LANES] = state[i].into();
+                let mut lo = [0u32; U32Vector::LANES];
+                let mut hi = [0u32; U32Vector::LANES];
+                for (j, &v) in values.iter().enumerate() {
+                    lo[j] = u16_to_hex(v as u16);
+                    hi[j] = u16_to_hex((v >> 16) as u16);
+                }
+                words[2 * i] = lo.into();
+                words[2 * i + 1] = hi.into();
+            }
+            state = md5_block(initial, &words);
+        }
+
+        to_hashes(state)
+    }
+
+    #[expect(clippy::cast_possible_truncation, clippy::many_single_char_names)]
+    fn md5_block<const N: usize>(
+        [a0, b0, c0, d0]: [U32Vector; 4],
+        words: &[U32Vector; N],
+    ) -> [U32Vector; 4] {
+        let mut block = [U32Vector::splat(0); 16];
+        let m: &[U32Vector; 16] = if let Ok(m) = words.as_slice().try_into() {
+            m
+        } else {
+            // Using a separate copy of this function for stretch is ~15% faster for 2016 day 14.
+            // The copy is optimized out, and the end marker and bit count become constants.
+            block[..N].copy_from_slice(words);
+            block[N] = U32Vector::splat(0x80);
+            block[14] = U32Vector::splat(32 * N as u32);
+            &block
+        };
+
         let (mut a, mut b, mut c, mut d) = (a0, b0, c0, d0);
 
         a = md5_round(md5_f(b, c, d), a, b, m[0], 7, 0xd76a_a478);
@@ -288,10 +356,6 @@ static BENCH_STRING: [[u8; 32]; 128] = {
 /// Implemented using bitwise operations on each [`u32`] to spread each nibble into separate bytes,
 /// followed by adding either '0' or 'a' to each byte using a bitmask.
 ///
-/// When using the vectorized AVX2 MD5 implementation, this makes
-/// [2016 day 14](../../year2016/struct.Day14.html) roughly 4x faster compared to using a naive
-/// [`format!`] implementation `format!("{a:08x}{b:08x}{c:08x}{d:08x}")`.
-///
 /// # Examples
 ///
 /// ```
@@ -338,4 +402,27 @@ fn u32_to_hex(n: u32) -> [u8; 8] {
     // hex = 0x3132_3334_6162_6364
 
     hex.to_be_bytes()
+}
+
+#[inline]
+fn u16_to_hex(n: u16) -> u32 {
+    const SPLAT: u32 = 0x0101_0101;
+
+    let mut n = u32::from(n);
+    // n = 0x0000_12AB
+
+    n = ((n & 0x0000_FF00) << 8) | (n & 0x0000_00FF);
+    // n = 0x0012_00AB
+
+    n = ((n & 0x000F_000F) << 8) | ((n & 0x00F0_00F0) >> 4);
+    // n = 0x0201_0B0A
+
+    let letter_positions = (n + ((128 - 10) * SPLAT)) & (128 * SPLAT);
+    // letter_positions = 0x0000_8080
+
+    let letter_mask = letter_positions - (letter_positions >> 7);
+    // letter_mask = 0x0000_7F7F
+
+    // 0x3231_6261
+    (n + u32::from(b'0') * SPLAT) + (letter_mask & (u32::from(b'a' - b'0' - 10) * SPLAT))
 }

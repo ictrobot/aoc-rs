@@ -83,15 +83,8 @@ multiversion! {
                     }
                 };
 
-                let mut hex_buf = [0u8; 32 * U32Vector::LANES];
-                for _ in 0..additional_hashes {
-                    for i in 0..U32Vector::LANES {
-                        let hex = md5::to_hex(hashes[i]);
-                        for h in 0..32 {
-                            hex_buf[h * U32Vector::LANES + i] = hex[h];
-                        }
-                    }
-                    hashes = hash(&hex_buf);
+                if additional_hashes > 0 {
+                    hashes = stretch(hashes, additional_hashes);
                 }
 
                 for (i, &hash) in hashes.iter().enumerate() {
