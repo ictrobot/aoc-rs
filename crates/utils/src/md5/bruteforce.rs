@@ -31,7 +31,7 @@ pub fn find_hash_with_appended_count(
         worker(
             prefix.as_bytes(),
             additional_hashes,
-            &predicate,
+            predicate,
             &counter,
             &done,
         );
@@ -46,7 +46,7 @@ multiversion! {
     fn worker(
         prefix: &[u8],
         additional_hashes: u32,
-        predicate: impl Fn(u32, [u32; 4]) -> bool + Copy + Send,
+        predicate: impl Fn(u32, [u32; 4]) -> bool,
         counter: &AtomicU32,
         done: &AtomicBool,
     ) {
